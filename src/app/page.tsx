@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { StatusCard } from "@/components/dashboard/status-card";
@@ -31,20 +31,25 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const mockMode = useRobotMode();
 
-  const handleDisconnect = () => {
+  const handleDisconnect = useCallback(() => {
     setStatus((current) => ({ ...current, connected: false, state: "error" }));
-  };
+  }, []);
 
   useEffect(() => {
-    // Initial fetch
-    Promise.all([
+    let cancelled = false;
+
+    Promise.allSettled([
       robot.getStatus(),
       robot.getNoGoZones(),
       robot.getSessions(),
-    ]).then(([statusData, zones, sessionsData]) => {
-      setStatus(statusData);
-      setNoGoZones(zones);
-      setSessions(sessionsData);
+    ]).then(([statusResult, zonesResult, sessionsResult]) => {
+      if (cancelled) return;
+
+      if (statusResult.status === "fulfilled") setStatus(statusResult.value);
+      else handleDisconnect();
+
+      if (zonesResult.status === "fulfilled") setNoGoZones(zonesResult.value);
+      if (sessionsResult.status === "fulfilled") setSessions(sessionsResult.value);
       setLoading(false);
     });
 
@@ -53,8 +58,11 @@ export default function Dashboard() {
       setStatus(newStatus);
     }, handleDisconnect);
 
-    return cleanup;
-  }, []);
+    return () => {
+      cancelled = true;
+      cleanup();
+    };
+  }, [handleDisconnect]);
 
   const handleStart = async () => {
     await robot.startCleaning();

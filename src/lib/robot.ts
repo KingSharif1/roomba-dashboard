@@ -43,6 +43,7 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
   
   const res = await fetch(`${robotUrl}${endpoint}`, {
     ...options,
+    signal: options?.signal ?? AbortSignal.timeout(5000),
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,
