@@ -20,10 +20,15 @@ A Next.js dashboard for controlling a DIY autonomous robot (Roomba 694 + Raspber
                     │                            ▼                │
                     │  ┌─────────────┐    ┌─────────────┐        │
                     │  │ mockRobot   │    │  Real Pi    │        │
-                    │  │ (simulated) │    │  (HTTP/WS)  │        │
-                    │  └─────────────┘    └─────────────┘        │
-                    │       MOCK               LIVE               │
-                    └─────────────────────────────────────────────┘
+                    │  │ (simulated) │    │ (Tailscale  │        │
+                    │  │             │    │  HTTPS/WSS) │        │
+                    │  └─────────────┘    └──────┬──────┘        │
+                    │       MOCK                 │ LIVE           │
+                    └────────────────────────────┼────────────────┘
+                                                 ▼
+                    FastAPI/rclpy → ROS 2 /cmd_vel + /odom
+                    → create_driver → USB MEGA passthrough
+                    → Roomba OI (serial 115200)
 ```
 
 ## Key Files
@@ -34,6 +39,7 @@ A Next.js dashboard for controlling a DIY autonomous robot (Roomba 694 + Raspber
 - **`robot.ts`** — Main API layer, switches between mock and real based on `NEXT_PUBLIC_ROBOT_URL`
 - **`mockRobot.ts`** — Simulated robot behavior with realistic state changes
 - **`utils.ts`** — Formatting helpers (time, duration, etc.)
+- **`src/hooks/use-robot-mode.ts`** — `useSyncExternalStore`-backed mock/live mode; hydration-safe read of the localStorage robot URL
 
 ### Supabase (`src/lib/supabase/`)
 
@@ -45,6 +51,7 @@ A Next.js dashboard for controlling a DIY autonomous robot (Roomba 694 + Raspber
 
 - **`components/ui/`** — Reusable UI primitives (Button, Card, etc.)
 - **`components/dashboard/`** — Dashboard-specific components
+- **`components/dashboard/drive-pad.tsx`** — Manual Drive pad (hold-to-drive buttons, WASD/arrows keyboard, speed slider, dead-man stop)
 - **`components/layout/`** — Layout components (Header)
 
 ### Pages (`src/app/`)
@@ -60,7 +67,7 @@ A Next.js dashboard for controlling a DIY autonomous robot (Roomba 694 + Raspber
 ## Environment Variables
 
 ```env
-NEXT_PUBLIC_ROBOT_URL     # "mock" or real Pi URL (e.g., http://100.73.192.106:8000)
+NEXT_PUBLIC_ROBOT_URL     # "mock" or private Tailscale URL (e.g., https://roomba.<tailnet>.ts.net)
 NEXT_PUBLIC_SUPABASE_URL  # Supabase project URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY  # Supabase anon key
 ```
@@ -91,6 +98,45 @@ Pointer/keyboard input → DrivePad → robot.drive(linear, angular)
 
 The dashboard sends a command every 100 ms while a direction is held and sends zero velocity when released, cancelled, blurred, disconnected, or unmounted. Controls are disabled in mock mode and while the robot is offline. The ROS driver's 0.2-second command latch acts as a dead-man stop if commands stop arriving.
 
+## Connection Semantics
+
+- **Active Mode LIVE** is configuration only — it means the live API URL is selected, not that anything is reachable.
+- **API reachable** means the Pi's HTTP API responded; `/status` can return 200 while the robot reports `connected: false`.
+- **Robot connected** (`RobotStatus.connected === true`) requires fresh `/odom` data seen by the Pi within the last 2 seconds.
+- An unexpected `/live` WebSocket close marks the UI disconnected (`connected: false`, `state: "error"`) without a console error overlay; cleanup-initiated closes do not.
+
+## Initialization and Offline Behavior
+
+- The dashboard fires `/status`, `/zones`, and `/sessions` together with `Promise.allSettled`; fulfilled results are kept even if others fail.
+- All `fetchApi` calls carry a default 5-second `AbortSignal.timeout` (caller-provided signals are preserved).
+- If `/status` fails, the dashboard marks the robot disconnected and renders the offline UI — no infinite `INITIALIZING SYSTEMS` spinner.
+
+## Private Mobile Access
+
+- The Pi API is tailnet-only: the viewing device (Android/iOS) must run Tailscale on the same tailnet with the VPN enabled.
+- Opening `<robot-url>/status` directly in the device browser is the fastest diagnostic.
+- CORS origins on the Pi are the production domain plus localhost.
+- `Failed to fetch` in the browser generally means there is no tailnet route to the Pi — not an auth problem.
+
+## Live Runtime and Startup
+
+No systemd/boot services exist yet — powering on the Pi alone does not bring the API up. Manual order:
+
+```bash
+# Physical: press Clean twice to wake the Roomba
+source ~/robot_ws/install/setup.bash
+ros2 launch create_bringup create_2.launch config:=/home/king/roomba.yaml
+```
+
+Separate terminal:
+
+```bash
+source ~/robot_ws/install/setup.bash
+python3 ~/robot_api.py
+```
+
+Verify with `ros2 topic hz /odom` (~10 Hz) and GET `https://roomba.<tailnet>.ts.net/status` (`connected: true`).
+
 ## Mock Mode Behavior
 
 When `NEXT_PUBLIC_ROBOT_URL` is "mock" or unset:
@@ -101,16 +147,28 @@ When `NEXT_PUBLIC_ROBOT_URL` is "mock" or unset:
 - Auto-returns to dock at 15% battery
 - Sessions are recorded when cleaning stops
 
-## Authentication Flow
+## Authentication Status
 
-1. User visits any page
-2. Middleware checks Supabase session
-3. No session → redirect to `/login`
-4. Login via email/password or magic link
-5. Session stored in cookies
-6. Protected pages accessible
+`src/middleware.ts` currently sets `AUTH_ENABLED = false`, so route protection is bypassed. The `/login` UI (Supabase email/password and magic link) exists, and session helpers live in `src/lib/supabase/`, but no guard runs today.
 
-## Future: Supabase Tables
+Before enabling:
+
+1. Set real `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` values
+2. Configure the Supabase redirect URL for the deployed domain
+3. Set `AUTH_ENABLED = true` in `src/middleware.ts`
+4. Test cookie persistence and the magic-link flow, including on mobile
+
+## Known Operational Notes
+
+- `Unknown mode detected` from create_driver is a known noisy firmware/driver mismatch — cosmetic while `/odom` streams ~10 Hz and driving works.
+- `failed to receive data from Create` is fatal: the serial OI is not answering — wake the Roomba and relaunch the driver.
+- Serial layout: MEGA passthrough on `/dev/ttyACM0`, RPLIDAR on `/dev/ttyUSB0`.
+- Full mode disables cliff/lift safety — only drive on open floor away from stairs.
+- The Network/Tailscale row in Settings is static and informational; Robot Connection is the real API result.
+
+## Future: Supabase Tables (not applied)
+
+These tables are planned and do not exist yet.
 
 ```sql
 -- No-go zones
