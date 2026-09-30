@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { useRobotMode } from "@/hooks/use-robot-mode";
 import * as robot from "@/lib/robot";
 import { 
   Settings, 
@@ -22,7 +23,7 @@ import {
 type SecurityStatus = {
   supabase: "checking" | "connected" | "error";
   auth: "checking" | "authenticated" | "unauthenticated";
-  robot: "checking" | "connected" | "mock" | "error";
+  robot: "checking" | "connected" | "api-only" | "mock" | "error";
 };
 
 export default function SettingsPage() {
@@ -39,6 +40,7 @@ export default function SettingsPage() {
     auth: "checking",
     robot: "checking",
   });
+  const mockMode = useRobotMode();
 
   useEffect(() => {
     // Load saved settings
@@ -80,8 +82,11 @@ export default function SettingsPage() {
       setSecurity(prev => ({ ...prev, robot: "mock" }));
     } else {
       try {
-        await robot.getStatus();
-        setSecurity(prev => ({ ...prev, robot: "connected" }));
+        const status = await robot.getStatus();
+        setSecurity(prev => ({
+          ...prev,
+          robot: status.connected ? "connected" : "api-only",
+        }));
       } catch {
         setSecurity(prev => ({ ...prev, robot: "error" }));
       }
@@ -203,7 +208,7 @@ export default function SettingsPage() {
                     {testResult.success ? (
                       <>
                         <CheckCircle className="w-4 h-4" />
-                        Connection successful! Robot is online.
+                        Robot API is reachable.
                       </>
                     ) : (
                       <>
@@ -234,17 +239,17 @@ export default function SettingsPage() {
                 <div>
                   <p className="text-sm font-medium">Active Mode</p>
                   <p className="text-xs text-muted">
-                    {robot.isMockMode() ? "Using simulated data" : "Connected to real robot"}
+                    {mockMode ? "Using simulated data" : "Using real robot API"}
                   </p>
                 </div>
                 <span
                   className={`px-3 py-1 rounded text-xs font-medium ${
-                    robot.isMockMode()
+                    mockMode
                       ? "bg-warning/10 text-warning border border-warning/30"
                       : "bg-accent/10 text-accent border border-accent/30"
                   }`}
                 >
-                  {robot.isMockMode() ? "MOCK" : "LIVE"}
+                  {mockMode ? "MOCK" : "LIVE"}
                 </span>
               </div>
               <p className="text-xs text-muted mt-2">
@@ -419,6 +424,12 @@ export default function SettingsPage() {
                     <>
                       <CheckCircle className="w-4 h-4 text-accent" />
                       <span className="text-accent">Live</span>
+                    </>
+                  )}
+                  {security.robot === "api-only" && (
+                    <>
+                      <AlertCircle className="w-4 h-4 text-warning" />
+                      <span className="text-warning">API reachable — robot offline</span>
                     </>
                   )}
                   {security.robot === "mock" && (

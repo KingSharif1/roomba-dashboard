@@ -27,7 +27,9 @@ export default function MapPage() {
       setRoutes(routesData);
     });
 
-    const cleanup = robot.startLiveUpdates(setStatus);
+    const cleanup = robot.startLiveUpdates(setStatus, () => {
+      setStatus((current) => current ? { ...current, connected: false, state: "error" } : current);
+    });
     return cleanup;
   }, []);
 

@@ -4,9 +4,14 @@ import * as mock from "./mockRobot";
 const STORAGE_KEY = "roomba_robot_url";
 const ENV_ROBOT_URL = process.env.NEXT_PUBLIC_ROBOT_URL;
 
+function normalizeRobotUrl(url: string | null | undefined): string | null {
+  const normalized = url?.trim().replace(/\/+$/, "");
+  return normalized || null;
+}
+
 function getRobotUrl(): string | null {
-  if (typeof window === "undefined") return ENV_ROBOT_URL || null;
-  return localStorage.getItem(STORAGE_KEY) || ENV_ROBOT_URL || null;
+  if (typeof window === "undefined") return normalizeRobotUrl(ENV_ROBOT_URL);
+  return normalizeRobotUrl(localStorage.getItem(STORAGE_KEY)) || normalizeRobotUrl(ENV_ROBOT_URL);
 }
 
 function shouldUseMock(): boolean {
@@ -16,7 +21,7 @@ function shouldUseMock(): boolean {
 
 export function setRobotUrl(url: string): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, url);
+  localStorage.setItem(STORAGE_KEY, normalizeRobotUrl(url) || "mock");
   window.dispatchEvent(new Event("robotUrlChanged"));
 }
 
@@ -71,6 +76,14 @@ export async function returnToDock(): Promise<{ success: boolean }> {
   return fetchApi<{ success: boolean }>("/control/dock", { method: "POST" });
 }
 
+export async function drive(linear: number, angular: number): Promise<{ success: boolean }> {
+  if (shouldUseMock()) return { success: true };
+  return fetchApi<{ success: boolean }>("/drive", {
+    method: "POST",
+    body: JSON.stringify({ linear, angular }),
+  });
+}
+
 export async function getSessions(): Promise<CleaningSession[]> {
   if (shouldUseMock()) return mock.getSessions();
   return fetchApi<CleaningSession[]>("/sessions");
@@ -114,14 +127,19 @@ export function getCameraUrl(): string {
   return `${getRobotUrl()}/camera/stream`;
 }
 
-export function startLiveUpdates(onUpdate: (status: RobotStatus) => void): () => void {
+export function startLiveUpdates(
+  onUpdate: (status: RobotStatus) => void,
+  onDisconnect?: () => void
+): () => void {
   if (shouldUseMock()) {
     return mock.startMockUpdates(onUpdate) || (() => {});
   }
-  
+
   const robotUrl = getRobotUrl();
   const ws = new WebSocket(`${robotUrl?.replace("http", "ws")}/live`);
-  
+
+  let closedByCleanup = false;
+
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
@@ -130,12 +148,19 @@ export function startLiveUpdates(onUpdate: (status: RobotStatus) => void): () =>
       console.error("Failed to parse WebSocket message:", e);
     }
   };
-  
-  ws.onerror = (error) => {
-    console.error("WebSocket error:", error);
+
+  ws.onerror = () => {
+    ws.close();
   };
-  
-  return () => ws.close();
+
+  ws.onclose = () => {
+    if (!closedByCleanup) onDisconnect?.();
+  };
+
+  return () => {
+    closedByCleanup = true;
+    ws.close();
+  };
 }
 
 export function isMockMode(): boolean {
@@ -144,7 +169,9 @@ export function isMockMode(): boolean {
 
 export async function testConnection(url: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${url}/status`, { 
+    const robotUrl = normalizeRobotUrl(url);
+    if (!robotUrl) return { success: false, error: "Enter a valid robot URL" };
+    const res = await fetch(`${robotUrl}/status`, {
       method: "GET",
       signal: AbortSignal.timeout(5000),
     });

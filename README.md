@@ -66,6 +66,7 @@ GET  /status              → Robot status
 POST /control/start       → Start cleaning
 POST /control/stop        → Stop cleaning  
 POST /control/dock        → Return to dock
+POST /drive               → Manual velocity command (`{ linear, angular }`)
 GET  /map                 → SLAM map image
 GET  /camera/stream       → MJPEG feed
 WS   /live                → Real-time updates

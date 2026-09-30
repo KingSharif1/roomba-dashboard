@@ -74,12 +74,22 @@ GET  /status              → RobotStatus
 POST /control/start       → Start cleaning
 POST /control/stop        → Stop cleaning
 POST /control/dock        → Return to dock
+POST /drive               → Manual velocity command (`{ linear, angular }`)
 GET  /map                 → Current SLAM map
 GET  /pose                → Robot position
 GET  /sessions            → Cleaning history
 GET  /camera/stream       → MJPEG video feed
 WS   /live                → Real-time status updates
 ```
+
+## Manual Drive Flow
+
+```text
+Pointer/keyboard input → DrivePad → robot.drive(linear, angular)
+→ POST /drive → Pi velocity clamping → ROS /cmd_vel → create_driver → Roomba
+```
+
+The dashboard sends a command every 100 ms while a direction is held and sends zero velocity when released, cancelled, blurred, disconnected, or unmounted. Controls are disabled in mock mode and while the robot is offline. The ROS driver's 0.2-second command latch acts as a dead-man stop if commands stop arriving.
 
 ## Mock Mode Behavior
 

@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { StatusCard } from "@/components/dashboard/status-card";
 import { ControlPanel } from "@/components/dashboard/control-panel";
+import { DrivePad } from "@/components/dashboard/drive-pad";
 import { MapView } from "@/components/dashboard/map-view";
 import { CameraView } from "@/components/dashboard/camera-view";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import type { RobotStatus, NoGoZone, CleaningSession } from "@/lib/types";
 import * as robot from "@/lib/robot";
 import { createClient } from "@/lib/supabase/client";
+import { useRobotMode } from "@/hooks/use-robot-mode";
 import { formatDuration, formatTimeAgo } from "@/lib/utils";
 import { Activity, Zap, Clock, Target } from "lucide-react";
 
@@ -27,6 +29,11 @@ export default function Dashboard() {
   const [noGoZones, setNoGoZones] = useState<NoGoZone[]>([]);
   const [sessions, setSessions] = useState<CleaningSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const mockMode = useRobotMode();
+
+  const handleDisconnect = () => {
+    setStatus((current) => ({ ...current, connected: false, state: "error" }));
+  };
 
   useEffect(() => {
     // Initial fetch
@@ -44,7 +51,7 @@ export default function Dashboard() {
     // Start live updates
     const cleanup = robot.startLiveUpdates((newStatus) => {
       setStatus(newStatus);
-    });
+    }, handleDisconnect);
 
     return cleanup;
   }, []);
@@ -90,7 +97,7 @@ export default function Dashboard() {
       
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Mock mode indicator */}
-        {robot.isMockMode() && (
+        {mockMode && (
           <div className="mb-4 px-3 py-2 bg-warning/10 border border-warning/30 rounded text-warning text-xs flex items-center gap-2">
             <Zap className="w-4 h-4" />
             <span>MOCK MODE — Simulated data for development</span>
@@ -169,6 +176,7 @@ export default function Dashboard() {
               onStop={handleStop}
               onDock={handleDock}
             />
+            <DrivePad status={status} />
           </div>
 
           {/* Center column - Map */}
