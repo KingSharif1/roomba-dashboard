@@ -115,7 +115,7 @@ export default function LearningPage() {
                 <p className="text-xs text-muted mt-1">
                   When the robot encounters an unknown object, it will capture an image
                   and ask you to identify it. Your labels help the robot learn what to
-                  avoid and what's safe to clean around.
+                  avoid and what&apos;s safe to clean around.
                 </p>
               </div>
             </div>

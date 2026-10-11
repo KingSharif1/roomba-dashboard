@@ -1,26 +1,60 @@
 "use client";
 
-import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import Link from "next/link";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 
+function loginQueryError(code: string | null): string | null {
+  if (code === "not-owner") {
+    return "That account is not the owner. Live controls stay off. The demo works without signing in.";
+  }
+  if (code === "auth") return "Sign-in did not finish. You can keep using the demo.";
+  return null;
+}
+
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const error = formError ?? loginQueryError(searchParams.get("error"));
   const [mode, setMode] = useState<"login" | "magic">("login");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
+  const configured = isSupabaseConfigured();
+  const supabase = configured ? createClient() : null;
+
+  const rejectUnlessOwner = async () => {
+    const access = await fetch("/api/access", { cache: "no-store" }).then((res) => res.json());
+    if (access.role === "owner") return true;
+    await supabase?.auth.signOut();
+    setFormError("That email is not the owner. Live controls stay off. The demo works without signing in.");
+    return false;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
+    setFormError(null);
+
+    if (!supabase) {
+      setFormError("Owner sign-in is not configured on this server.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -29,10 +63,11 @@ export default function LoginPage() {
       });
 
       if (error) throw error;
+      if (!(await rejectUnlessOwner())) return;
       router.push("/");
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setFormError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
     }
@@ -41,7 +76,13 @@ export default function LoginPage() {
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
+    setFormError(null);
+
+    if (!supabase) {
+      setFormError("Owner sign-in is not configured on this server.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const { error } = await supabase.auth.signInWithOtp({
@@ -54,7 +95,7 @@ export default function LoginPage() {
       if (error) throw error;
       setMagicLinkSent(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to send magic link");
+      setFormError(err instanceof Error ? err.message : "Failed to send magic link");
     } finally {
       setLoading(false);
     }
@@ -70,7 +111,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold">
             <span className="text-foreground">ROOMBA</span>
-            <span className="text-accent mx-2">//</span>
+            <span className="text-accent mx-2">{"//"}</span>
             <span className="text-muted">CONTROL</span>
           </h1>
           <p className="text-sm text-muted mt-2">Autonomous Robot Dashboard</p>
@@ -78,7 +119,17 @@ export default function LoginPage() {
 
         <Card className="glow">
           <CardContent className="pt-6">
-            {magicLinkSent ? (
+            {!configured ? (
+              <div className="text-center py-4">
+                <h2 className="text-lg font-medium mb-2">Demo mode</h2>
+                <p className="text-sm text-muted">
+                  Owner sign-in is not configured on this server. The dashboard runs on the simulated robot.
+                </p>
+                <Button variant="primary" className="mt-4" onClick={() => router.push("/")}>
+                  Continue in demo
+                </Button>
+              </div>
+            ) : magicLinkSent ? (
               <div className="text-center py-4">
                 <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-accent/10 flex items-center justify-center">
                   <Mail className="w-6 h-6 text-accent" />
@@ -189,7 +240,11 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-xs text-muted mt-6">
-          Secured by Supabase Auth • Tailscale VPN
+          <Link href="/" className="underline underline-offset-2 hover:text-foreground">
+            Continue in demo
+          </Link>
+          {" · "}
+          Owner sign-in only · Tailscale VPN
         </p>
       </div>
     </div>

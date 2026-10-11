@@ -16,18 +16,19 @@ export function BatteryIndicator({ level, charging, className }: BatteryIndicato
     return "text-accent";
   };
   
-  const getIcon = () => {
-    if (charging) return BatteryCharging;
-    if (level <= 15) return BatteryLow;
-    if (level <= 30) return BatteryWarning;
-    return Battery;
-  };
-  
-  const Icon = getIcon();
+  const iconClass = cn("w-5 h-5", getColor());
   
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <Icon className={cn("w-5 h-5", getColor())} />
+      {charging ? (
+        <BatteryCharging className={iconClass} />
+      ) : level <= 15 ? (
+        <BatteryLow className={iconClass} />
+      ) : level <= 30 ? (
+        <BatteryWarning className={iconClass} />
+      ) : (
+        <Battery className={iconClass} />
+      )}
       <div className="flex items-baseline gap-1">
         <span className={cn("mono text-2xl font-bold", getColor())}>
           {Math.round(level)}

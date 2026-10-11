@@ -10,7 +10,7 @@ interface MapViewProps {
   mapUrl?: string;
 }
 
-export function MapView({ status, noGoZones = [], mapUrl }: MapViewProps) {
+export function MapView({ status, noGoZones = [] }: MapViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   useEffect(() => {

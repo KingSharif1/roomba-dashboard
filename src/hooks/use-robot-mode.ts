@@ -1,21 +1,17 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import * as robot from "@/lib/robot";
-
-function subscribe(onStoreChange: () => void): () => void {
-  window.addEventListener("robotUrlChanged", onStoreChange);
-  return () => window.removeEventListener("robotUrlChanged", onStoreChange);
-}
+import { robotSession } from "@/lib/robot-session";
 
 function getSnapshot(): boolean {
-  return robot.isMockMode();
+  return robotSession.isDemo();
 }
 
 function getServerSnapshot(): boolean {
   return true;
 }
 
+/** True when this session is on the simulated robot. */
 export function useRobotMode(): boolean {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return useSyncExternalStore(robotSession.subscribe, getSnapshot, getServerSnapshot);
 }

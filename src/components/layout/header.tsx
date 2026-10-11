@@ -40,7 +40,7 @@ export function Header({ onLogout }: HeaderProps) {
             </div>
             <div className="hidden sm:block">
               <span className="font-bold tracking-wider text-foreground">ROOMBA</span>
-              <span className="text-accent mx-1">//</span>
+              <span className="text-accent mx-1">{"//"}</span>
               <span className="text-muted tracking-wider">CONTROL</span>
             </div>
           </Link>

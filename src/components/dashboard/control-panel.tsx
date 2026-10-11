@@ -26,7 +26,6 @@ export function ControlPanel({ status, onStart, onStop, onDock }: ControlPanelPr
   };
   
   const canStart = status.connected && (status.state === "idle" || status.state === "docked");
-  const canStop = status.connected && status.state === "cleaning";
   const canDock = status.connected && (status.state === "idle" || status.state === "cleaning");
   
   return (
@@ -54,7 +53,6 @@ export function ControlPanel({ status, onStart, onStop, onDock }: ControlPanelPr
           variant="danger"
           size="lg"
           className="w-full"
-          disabled={!canStop || loading !== null}
           onClick={() => handleAction("stop", onStop)}
         >
           {loading === "stop" ? (
@@ -82,7 +80,7 @@ export function ControlPanel({ status, onStart, onStop, onDock }: ControlPanelPr
         
         {!status.connected && (
           <p className="text-xs text-danger text-center mt-2">
-            Robot offline — controls disabled
+            Robot offline — start and dock are paused. Stop still sends.
           </p>
         )}
       </CardContent>

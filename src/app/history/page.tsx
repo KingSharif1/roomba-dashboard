@@ -26,12 +26,6 @@ export default function HistoryPage() {
           sessions.reduce((acc, s) => acc + s.coveragePercent, 0) / sessions.length
         )
       : 0;
-  const avgDuration =
-    sessions.length > 0
-      ? Math.round(
-          sessions.reduce((acc, s) => acc + s.durationSeconds, 0) / sessions.length
-        )
-      : 0;
   const totalBatteryUsed = sessions.reduce(
     (acc, s) => acc + s.batteryUsedPercent,
     0

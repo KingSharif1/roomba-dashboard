@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Square } from "lucide-react";
 import type { RobotStatus } from "@/lib/types";
 import * as robot from "@/lib/robot";
-import { useRobotMode } from "@/hooks/use-robot-mode";
 
 type Dir = "up" | "down" | "left" | "right";
 
@@ -29,8 +28,7 @@ export function DrivePad({ status }: DrivePadProps) {
   const [speed, setSpeed] = useState(0.15); // m/s
   const [active, setActive] = useState<Dir | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const mockMode = useRobotMode();
-  const enabled = status.connected && !mockMode;
+  const enabled = status.connected;
 
   const velocity = useCallback(
     (d: Dir): [number, number] => {
@@ -44,14 +42,23 @@ export function DrivePad({ status }: DrivePadProps) {
     [speed]
   );
 
-  const stop = useCallback(() => {
+  const clearHold = useCallback(() => {
     if (timer.current) {
       clearInterval(timer.current);
       timer.current = null;
     }
     setActive(null);
-    robot.drive(0, 0).catch(() => {});
   }, []);
+
+  const halt = useCallback(() => {
+    clearHold();
+    robot.drive(0, 0).catch(() => {});
+  }, [clearHold]);
+
+  const emergency = useCallback(() => {
+    clearHold();
+    robot.emergencyStop().catch(() => {});
+  }, [clearHold]);
 
   const go = useCallback(
     (d: Dir) => {
@@ -73,7 +80,7 @@ export function DrivePad({ status }: DrivePadProps) {
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.key === " ") {
         e.preventDefault();
-        stop();
+        emergency();
         return;
       }
       const d = KEYS[e.key];
@@ -83,34 +90,34 @@ export function DrivePad({ status }: DrivePadProps) {
       }
     };
     const onUp = (e: KeyboardEvent) => {
-      if (KEYS[e.key]) stop();
+      if (KEYS[e.key]) halt();
     };
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup", onUp);
-    window.addEventListener("blur", stop);
+    window.addEventListener("blur", emergency);
     return () => {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
-      window.removeEventListener("blur", stop);
+      window.removeEventListener("blur", emergency);
     };
-  }, [go, stop]);
+  }, [emergency, go, halt]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: stop an active drive when the robot disconnects
-    if (!enabled && active !== null) stop();
-  }, [active, enabled, stop]);
+    if (!enabled && active !== null) halt();
+  }, [active, enabled, halt]);
 
   // Always stop when leaving the page.
-  useEffect(() => stop, [stop]);
+  useEffect(() => emergency, [emergency]);
 
   const holdProps = (d: Dir) => ({
     onPointerDown: (e: ReactPointerEvent) => {
       e.preventDefault();
       go(d);
     },
-    onPointerUp: stop,
-    onPointerLeave: () => active === d && stop(),
-    onPointerCancel: stop,
+    onPointerUp: halt,
+    onPointerLeave: () => active === d && halt(),
+    onPointerCancel: halt,
     onContextMenu: (e: ReactMouseEvent) => e.preventDefault(),
     disabled: !enabled,
     className: `h-14 touch-none select-none ${active === d ? "ring-2 ring-accent" : ""}`,
@@ -135,8 +142,7 @@ export function DrivePad({ status }: DrivePadProps) {
             variant="danger"
             aria-label="Stop"
             className="h-14"
-            onClick={stop}
-            disabled={!enabled}
+            onClick={emergency}
           >
             <Square className="w-6 h-6" />
           </Button>
@@ -172,7 +178,7 @@ export function DrivePad({ status }: DrivePadProps) {
         </p>
         {!enabled && (
           <p className="text-xs text-danger text-center">
-            {mockMode ? "Manual drive needs the real robot (mock mode)" : "Robot offline — drive disabled"}
+            Robot offline — drive paused. Stop still works.
           </p>
         )}
       </CardContent>

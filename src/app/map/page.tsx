@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { RobotStatus, NoGoZone, CustomRoute } from "@/lib/types";
 import * as robot from "@/lib/robot";
-import { Plus, Trash2, Route, Ban, Save } from "lucide-react";
+import { Trash2, Route, Ban, Save } from "lucide-react";
 
 export default function MapPage() {
   const [status, setStatus] = useState<RobotStatus | null>(null);

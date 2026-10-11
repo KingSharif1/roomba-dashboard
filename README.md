@@ -39,30 +39,59 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## Environment Variables
 
-```env
-# Robot API URL
-# Set to "mock" for demo mode with simulated data
-# Set to the private Tailscale HTTPS URL when robot is live
-# e.g. https://roomba.<tailnet>.ts.net (not a plain IP)
-NEXT_PUBLIC_ROBOT_URL=mock
+Copy `.env.example` to `.env.local`. Do not commit real values.
 
-# Supabase (get from project settings > API)
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```env
+# Server-only Tailscale origin of the Pi. Not embedded in the client bundle.
+# Example: https://roomba.<tailnet>.ts.net
+# Leave unset to force demo mode.
+ROBOT_URL=
+
+# The one email allowed to control the real robot. Never hardcode this.
+OWNER_EMAIL=
+
+# Supabase (project settings → API). Required only for owner sign-in.
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
+
+`NEXT_PUBLIC_ROBOT_URL` is no longer read. A URL saved in the browser (`localStorage`) cannot unlock the robot.
 
 ## Access Modes
 
-**Mock** — when `NEXT_PUBLIC_ROBOT_URL` is "mock" or unset:
-- Simulated battery drain/charge
-- Robot position jitters during cleaning
-- Auto-return to dock at low battery
-- Session history recorded
+**Demo** — the default for every visitor, and for the owner when `ROBOT_URL` is unset:
+- Simulated battery drain while cleaning (~0.1%/s) and charge while docked (~0.2%/s)
+- Drive commands move the pose (4 m room drawn in the existing 0–1 map)
+- Sample sessions, zones, routes, and learning items
+- The link drops on its own (and via "Simulate drop") so the label cycles Demo mode → Reconnecting… → Robot offline → Demo mode
+- Auto-return to dock at 15% battery
 
-**Live Robot** — when the Pi API URL is selected via `NEXT_PUBLIC_ROBOT_URL` or Settings (stored in localStorage `roomba_robot_url`):
-- Saved URLs are trimmed and trailing slashes stripped on save/load
-- The Active Mode **LIVE** badge means live API mode is selected — it is configuration, not proof of physical connectivity
-- Robot Connection in Settings reports the actual `/status` result
+**Live robot** — only when the server session email matches `OWNER_EMAIL` and `ROBOT_URL` is set:
+- The server returns the robot URL after `supabase.auth.getUser()`. Visitors never receive it.
+- The browser then opens the Pi directly, because the Pi is on a private tailnet the hosting server usually cannot reach.
+- `POST /api/robot/*` is a second server-side gate and rejects non-owners with 403.
+- Active mode is configuration plus that gate. The connection label is the actual link.
+
+## Data layer for the visual redesign
+
+The redesign should read state from `useRobot()` (`src/hooks/use-robot.ts`) inside `RobotProvider` (already mounted in the root layout). Do not open a second WebSocket.
+
+```tsx
+const {
+  status,       // RobotStatus from src/lib/types.ts
+  connection,   // { phase, label, linkUp, robotReady, attempt, demo }
+  access,       // { role: "owner" | "visitor" | "unknown", email, demo, robotConfigured }
+  zones, routes, sessions, learning,
+  loading,
+  mapUrl, cameraUrl,
+  commands,     // { start, stop, dock, drive(linear, angular) }
+  simulateDrop, // demo only
+} = useRobot();
+```
+
+`connection.label` is the string to show: `Connected`, `Connecting…`, `Reconnecting…`, `Robot offline`, or `Demo mode`. `commands.stop()` is the emergency stop. It is safe while the link is down. `commands.drive(linear, angular)` uses m/s and rad/s. `ConnectionStatus` (`src/components/connection/connection-status.tsx`) is a small status row if you do not want to draw the label yourself.
+
+`useRobotMode()` still returns `true` in demo mode for older components.
 
 ## Live Robot Runtime
 
@@ -96,7 +125,7 @@ Dashboard → POST /drive every 100 ms → Pi clamps ±0.30 m/s, ±1.5 rad/s →
 - Zero velocity is sent on release, pointer cancellation, window blur, disconnect, or unmount
 - The ROS driver's 0.2-second command latch is a dead-man stop if commands stop arriving
 - Full mode disables cliff/lift safety — drive on open floor away from stairs
-- Drive controls are disabled in mock mode and while the robot is offline
+- Drive controls are paused while the link is down. STOP stays enabled, including in demo mode.
 
 ## Mobile Access
 
@@ -108,7 +137,14 @@ Dashboard → POST /drive every 100 ms → Pi clamps ±0.30 m/s, ±1.5 rad/s →
 
 ## Authentication
 
-`src/middleware.ts` currently sets `AUTH_ENABLED = false`, so routes are not protected. The login UI supports Supabase email/password and magic link, but no password is stored in this repo. To enable auth later: set the flag to `true`, configure real Supabase env values, and set the redirect URL.
+The dashboard stays open so visitors can use demo mode. Live controls require Supabase sign-in, and the server allows exactly `OWNER_EMAIL`.
+
+1. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+2. In the Supabase dashboard, add `https://<your-domain>/auth/callback` as a redirect URL.
+3. Set `OWNER_EMAIL` to that person's email and `ROBOT_URL` to the tailnet origin.
+4. Sign in at `/login` (password or magic link). Any other email is signed out and stays on the demo.
+
+`src/proxy.ts` only refreshes the Supabase cookie. It does not force a login. Authorization for the robot is `GET /api/access` and `POST /api/robot/*`, both of which call `supabase.auth.getUser()` on the server.
 
 ## Real Robot API
 
