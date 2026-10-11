@@ -8,17 +8,18 @@ type ConnectionStatusProps = {
 };
 
 const PHASE_CLASS: Record<string, string> = {
-  demo: "bg-warning/10 border-warning/30 text-warning",
+  demo: "bg-surface-light border-border text-muted",
   connecting: "bg-warning/10 border-warning/30 text-warning",
   reconnecting: "bg-warning/10 border-warning/30 text-warning",
   connected: "bg-accent/10 border-accent/30 text-accent",
-  offline: "bg-danger/10 border-danger/30 text-danger",
+  offline: "bg-surface-light border-border text-muted",
 };
 
 /** Plain-language link state. The redesign can restyle this or read `useRobot().connection`. */
 export function ConnectionStatus({ showSimulateDrop = false }: ConnectionStatusProps) {
   const { connection, simulateDrop } = useRobot();
-  const tone = PHASE_CLASS[connection.phase] ?? PHASE_CLASS.demo;
+  const phase = connection.phase === "connected" && !connection.robotReady ? "offline" : connection.phase;
+  const tone = PHASE_CLASS[phase] ?? PHASE_CLASS.demo;
 
   return (
     <div

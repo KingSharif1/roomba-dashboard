@@ -6,6 +6,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { emitToastOps, noteVoluntarySignOut } from "@/lib/toast-store";
 import { authToastOps } from "@/lib/toasts";
 import { useRouter, useSearchParams } from "next/navigation";
+import { StellaLoginMark } from "@/components/brand/stella-lockup";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Lock, Loader2 } from "lucide-react";
@@ -102,16 +103,8 @@ function LoginForm() {
   return (
     <div className="min-h-screen bg-background grid-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-lg border border-accent/50 flex items-center justify-center bg-accent/10">
-            <span className="text-accent font-bold text-2xl">R</span>
-          </div>
-          <h1 className="text-2xl font-bold">
-            <span className="text-foreground">ROOMBA</span>
-            <span className="text-accent mx-2">{"//"}</span>
-            <span className="text-muted">CONTROL</span>
-          </h1>
+          <StellaLoginMark />
         </div>
 
         <Card className="glow">

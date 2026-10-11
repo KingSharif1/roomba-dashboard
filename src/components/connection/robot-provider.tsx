@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
+import { DemoMarkPin } from "@/components/brand/mark-pin";
 import { ToastViewport } from "@/components/connection/toast-viewport";
 import { retainRobotSession, robotSession } from "@/lib/robot-session";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -54,6 +55,9 @@ export function RobotProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <Suspense fallback={null}>
+        <DemoMarkPin />
+      </Suspense>
       {children}
       <ToastViewport />
     </>

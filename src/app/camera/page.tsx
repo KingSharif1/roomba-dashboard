@@ -150,8 +150,8 @@ export default function CameraPage() {
               <CardContent className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">Status</span>
-                  <span className={connected ? "text-accent" : "text-danger"}>
-                    {connected ? "Connected" : "Disconnected"}
+                  <span className={connected ? "text-accent" : "text-muted"}>
+                    {connected ? "Connected" : "Offline"}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">

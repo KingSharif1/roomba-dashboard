@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { StellaLockup } from "@/components/brand/stella-lockup";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
@@ -33,20 +34,10 @@ export function Header({ onLogout }: HeaderProps) {
     <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-14">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded border border-accent/50 flex items-center justify-center bg-accent/10 group-hover:bg-accent/20 transition-colors">
-              <span className="text-accent font-bold text-sm">R</span>
-            </div>
-            <div className="hidden sm:block">
-              <span className="font-bold tracking-wider text-foreground">ROOMBA</span>
-              <span className="text-accent mx-1">{"//"}</span>
-              <span className="text-muted tracking-wider">CONTROL</span>
-            </div>
-          </Link>
+          <StellaLockup />
           
           {/* Navigation */}
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
@@ -56,7 +47,7 @@ export function Header({ onLogout }: HeaderProps) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded text-sm transition-all",
+                    "flex items-center gap-2 px-2 py-2 md:px-3 rounded text-sm transition-all",
                     isActive
                       ? "bg-accent/10 text-accent border border-accent/30"
                       : "text-muted hover:text-foreground hover:bg-surface-light"
@@ -71,7 +62,7 @@ export function Header({ onLogout }: HeaderProps) {
             {onLogout && (
               <button
                 onClick={onLogout}
-                className="flex items-center gap-2 px-3 py-2 rounded text-sm text-muted hover:text-danger hover:bg-danger/10 transition-all ml-2"
+                className="flex items-center gap-2 px-2 py-2 md:px-3 rounded text-sm text-muted hover:text-danger hover:bg-danger/10 transition-all"
               >
                 <LogOut className="w-4 h-4" />
                 <span className="hidden md:inline">Logout</span>

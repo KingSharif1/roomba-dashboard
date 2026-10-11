@@ -1,8 +1,10 @@
 "use client";
 
+import { StellaHero } from "@/components/brand/stella-lockup";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { BatteryIndicator } from "@/components/ui/battery";
+import { markStateFrom } from "@/lib/mark-state";
 import { formatTimeAgo } from "@/lib/utils";
 import type { RobotStatus } from "@/lib/types";
 import { Wifi, WifiOff, Clock } from "lucide-react";
@@ -12,27 +14,31 @@ interface StatusCardProps {
 }
 
 export function StatusCard({ status }: StatusCardProps) {
-  const isCharging = status.state === "docked" && status.battery < 100;
-  
+  const offline = markStateFrom(status) === "offline";
+
   return (
-    <Card glow={status.connected && status.state === "cleaning"}>
+    <Card glow={markStateFrom(status) === "moving"}>
       <CardHeader>
         <CardTitle>Status</CardTitle>
         <div className="flex items-center gap-1 text-xs">
-          {status.connected ? (
-            <Wifi className="w-3 h-3 text-accent" />
+          {offline ? (
+            <WifiOff className="w-3 h-3 text-muted" />
           ) : (
-            <WifiOff className="w-3 h-3 text-danger" />
+            <Wifi className="w-3 h-3 text-accent" />
           )}
-          <span className={status.connected ? "text-accent" : "text-danger"}>
-            {status.connected ? "CONNECTED" : "DISCONNECTED"}
+          <span className={offline ? "text-muted" : "text-accent"}>
+            {offline ? "OFFLINE" : "LIVE"}
           </span>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <StatusIndicator state={status.state} connected={status.connected} />
-        
-        <BatteryIndicator level={status.battery} charging={isCharging} />
+        <div className="flex items-center gap-4">
+          <StellaHero status={status} />
+          <div className="min-w-0 flex-1 space-y-3">
+            <StatusIndicator status={status} />
+            <BatteryIndicator status={status} />
+          </div>
+        </div>
         
         <div className="flex items-center gap-2 text-sm text-muted">
           <Clock className="w-4 h-4" />

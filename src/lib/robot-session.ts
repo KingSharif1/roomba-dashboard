@@ -323,7 +323,10 @@ class RobotSession {
       linkUp: this.connection.linkUp,
       state: this.status.state,
       battery: this.status.battery,
-      charging: this.status.state === "docked" && this.status.battery < 100,
+      charging:
+        typeof this.status.charging === "boolean"
+          ? this.status.charging
+          : this.status.state === "docked" && this.status.battery < 100,
       stuck: isStuckStatus(this.status),
     });
     this.conditionMemory = condition.memory;

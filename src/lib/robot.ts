@@ -1,3 +1,4 @@
+import { normalizeRobotStatus } from "./robot-status";
 import type { CleaningSession, CommandResult, CustomRoute, LearningItem, NoGoZone, RobotStatus } from "./types";
 import * as demo from "./mockRobot";
 import { robotSession } from "./robot-session";
@@ -31,7 +32,9 @@ export async function getStatus(): Promise<RobotStatus> {
   if (!base) return demo.getStatus();
   const res = await fetch(`${base}/status`, { signal: AbortSignal.timeout(5000) });
   if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
-  return res.json();
+  const status = normalizeRobotStatus(await res.json());
+  if (!status) throw new Error("Invalid status");
+  return status;
 }
 
 export async function startCleaning(): Promise<{ success: boolean }> {

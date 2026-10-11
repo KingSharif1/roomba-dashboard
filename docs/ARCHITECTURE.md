@@ -1,8 +1,10 @@
-# Roomba Dashboard Architecture
+# Stella
 
 ## Overview
 
-A Next.js dashboard for controlling a DIY autonomous robot (Roomba 694 + Raspberry Pi 4 + RPLIDAR C1 + ROS 2 Jazzy).
+Architecture for Stella, King Sharif's robot dashboard (Roomba 694 + Raspberry Pi 4 + RPLIDAR C1 + ROS 2 Jazzy).
+
+Detailed project docs: https://github.com/KingSharif1/ARK/tree/main/projects/roomba-dashboard
 
 ## Data Flow
 

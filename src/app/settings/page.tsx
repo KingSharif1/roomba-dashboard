@@ -292,20 +292,20 @@ export default function SettingsPage() {
                   )}
                   {security.robot === "api-only" && (
                     <>
-                      <AlertCircle className="w-4 h-4 text-warning" />
-                      <span className="text-warning">Offline</span>
+                      <AlertCircle className="w-4 h-4 text-muted" />
+                      <span className="text-muted">Offline</span>
                     </>
                   )}
                   {security.robot === "mock" && (
                     <>
-                      <AlertCircle className="w-4 h-4 text-warning" />
-                      <span className="text-warning">Demo</span>
+                      <AlertCircle className="w-4 h-4 text-muted" />
+                      <span className="text-muted">Demo</span>
                     </>
                   )}
                   {security.robot === "error" && (
                     <>
-                      <XCircle className="w-4 h-4 text-danger" />
-                      <span className="text-danger">Offline</span>
+                      <XCircle className="w-4 h-4 text-muted" />
+                      <span className="text-muted">Offline</span>
                     </>
                   )}
                 </div>

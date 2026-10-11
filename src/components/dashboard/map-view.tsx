@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { robotPaint, statusTone, TONE_HEX } from "@/lib/mark-state";
 import type { RobotStatus, NoGoZone } from "@/lib/types";
 import { useEffect, useRef } from "react";
 
@@ -91,17 +92,18 @@ export function MapView({ status, noGoZones = [] }: MapViewProps) {
       ctx.translate(robotX, robotY);
       ctx.rotate(heading);
       
+      const paint = robotPaint(status);
       // Outer glow
       const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 20);
-      gradient.addColorStop(0, "rgba(0, 255, 157, 0.4)");
-      gradient.addColorStop(1, "rgba(0, 255, 157, 0)");
+      gradient.addColorStop(0, paint.glow);
+      gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.arc(0, 0, 20, 0, Math.PI * 2);
       ctx.fill();
       
       // Robot circle
-      ctx.fillStyle = status.state === "cleaning" ? "#00ff9d" : "#666666";
+      ctx.fillStyle = paint.fill;
       ctx.beginPath();
       ctx.arc(0, 0, 10, 0, Math.PI * 2);
       ctx.fill();
@@ -155,7 +157,7 @@ export function MapView({ status, noGoZones = [] }: MapViewProps) {
     ctx.lineTo(width, height - cornerSize);
     ctx.stroke();
     
-  }, [status.pose, noGoZones, status.state]);
+  }, [status, noGoZones]);
   
   return (
     <Card className="h-full">
@@ -163,7 +165,7 @@ export function MapView({ status, noGoZones = [] }: MapViewProps) {
         <CardTitle>Map</CardTitle>
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-accent" />
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: TONE_HEX[statusTone(status)] }} />
             <span className="text-muted">Robot</span>
           </div>
           <div className="flex items-center gap-1">

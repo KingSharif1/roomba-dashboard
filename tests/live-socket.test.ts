@@ -103,8 +103,25 @@ test("connects to wss /live and publishes status frames", () => {
   assert.equal(phases.at(-1), "connected");
   sockets[0].message(STATUS);
   assert.equal(statuses[0].battery, 80);
+  assert.equal(statuses[0].activity, "idle");
   sockets[0].message("not-json");
+  sockets[0].message({ battery: "high", connected: true, state: "idle" });
   assert.equal(statuses.length, 1);
+  sockets[0].message({
+    ...STATUS,
+    state: "cleaning",
+    activity: "moving",
+    charging: false,
+    chargingState: "off",
+    voltage: 14.4,
+    current: "nope",
+    temperature: 32,
+  });
+  assert.equal(statuses[1].activity, "moving");
+  assert.equal(statuses[1].voltage, 14.4);
+  assert.equal(statuses[1].temperature, 32);
+  assert.equal(statuses[1].chargingState, "off");
+  assert.equal(statuses[1].current, undefined);
 });
 
 test("silence past the heartbeat closes the socket and schedules a reconnect", () => {

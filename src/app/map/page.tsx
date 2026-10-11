@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { robotPaint } from "@/lib/mark-state";
 import type { RobotStatus, NoGoZone, CustomRoute } from "@/lib/types";
 import * as robot from "@/lib/robot";
 import { Trash2, Route, Ban, Save } from "lucide-react";
@@ -152,15 +153,16 @@ export default function MapPage() {
       ctx.translate(robotX, robotY);
       ctx.rotate(status.pose.heading);
 
+      const paint = robotPaint(status);
       const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 25);
-      gradient.addColorStop(0, "rgba(0, 255, 157, 0.4)");
-      gradient.addColorStop(1, "rgba(0, 255, 157, 0)");
+      gradient.addColorStop(0, paint.glow);
+      gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.arc(0, 0, 25, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = status.state === "cleaning" ? "#00ff9d" : "#666666";
+      ctx.fillStyle = paint.fill;
       ctx.beginPath();
       ctx.arc(0, 0, 12, 0, Math.PI * 2);
       ctx.fill();

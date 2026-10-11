@@ -1,3 +1,4 @@
+import { normalizeRobotStatus } from "../robot-status";
 import type { ConnectionPhase, RobotStatus } from "../types";
 import { backoffDelayMs } from "./backoff";
 import { toWebSocketUrl } from "./ws-url";
@@ -36,12 +37,6 @@ export type LiveSocketOptions = {
 function defaultTimer(fn: () => void, ms: number): TimerHandle {
   const id = setTimeout(fn, ms);
   return { cancel: () => clearTimeout(id) };
-}
-
-function isRobotStatus(value: unknown): value is RobotStatus {
-  if (!value || typeof value !== "object") return false;
-  const status = value as Partial<RobotStatus>;
-  return typeof status.battery === "number" && typeof status.connected === "boolean" && typeof status.state === "string";
 }
 
 /**
@@ -157,7 +152,8 @@ export class LiveSocket {
       this.armStale();
       try {
         const parsed: unknown = JSON.parse(String(event.data));
-        if (isRobotStatus(parsed)) this.onStatus(parsed);
+        const status = normalizeRobotStatus(parsed);
+        if (status) this.onStatus(status);
       } catch {
         // Ignore a bad frame. Silence is what triggers reconnect.
       }

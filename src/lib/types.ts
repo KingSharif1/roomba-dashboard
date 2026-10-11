@@ -1,3 +1,5 @@
+import type { RobotActivity } from "./mark-state";
+
 export type RobotState = "idle" | "cleaning" | "docked" | "returning" | "error";
 
 export type RobotStatus = {
@@ -8,6 +10,18 @@ export type RobotStatus = {
   pose: { x: number; y: number; heading: number } | null;
   /** Set when the Pi reports a stuck robot. Absent on older firmware. */
   stuck?: boolean;
+  /** Pi activity. Absent until the robot API publishes it; derived from `state` until then. */
+  activity?: RobotActivity;
+  /** True while the robot is on the dock and accepting charge. */
+  charging?: boolean;
+  /** Dock charger detail from the Pi (`"charged"`, `"trickle"`, …). Optional. */
+  chargingState?: string;
+  /** Pack voltage in volts, when the Pi sends it. */
+  voltage?: number;
+  /** Pack current in amps, when the Pi sends it. */
+  current?: number;
+  /** Pack temperature in celsius, when the Pi sends it. */
+  temperature?: number;
 };
 
 export type CommandFailure = "unreachable" | "forbidden" | "unauthorized" | "rejected";

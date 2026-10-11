@@ -1,14 +1,21 @@
 import type { CleaningSession, CustomRoute, LearningItem, NoGoZone, RobotStatus } from "./types";
 import { forceDemoDrop, demoLinkPhase, initialDemoLink, stepDemoLink, type DemoLinkPhase, type DemoLinkState } from "./demo/link";
 import { DOCK, stepMotion } from "./demo/physics";
+import { applyShowcase, statusForPreview, type MarkPreview } from "./demo/showcase";
+import { withDerivedMark } from "./robot-status";
 
-let status: RobotStatus = {
-  battery: 78,
-  state: "docked",
-  connected: true,
-  lastSeen: new Date().toISOString(),
-  pose: { x: DOCK.x, y: DOCK.y, heading: 0 },
-};
+let status: RobotStatus = applyShowcase(
+  {
+    battery: 78,
+    state: "docked",
+    connected: true,
+    lastSeen: new Date().toISOString(),
+    pose: { x: DOCK.x, y: DOCK.y, heading: 0 },
+  },
+  Date.now(),
+);
+let commanded = false;
+let markPin: MarkPreview | null = null;
 
 let linear = 0;
 let angular = 0;
@@ -134,7 +141,21 @@ function delay(ms: number): Promise<void> {
 }
 
 function copyStatus(): RobotStatus {
-  return { ...status, pose: status.pose ? { ...status.pose } : null };
+  const current = markPin ? statusForPreview(markPin, status) : status;
+  return { ...current, pose: current.pose ? { ...current.pose } : null };
+}
+
+function deriveFromLegacy(current: RobotStatus): RobotStatus {
+  return withDerivedMark({ ...current, activity: undefined, charging: undefined });
+}
+
+/** `?mark=` pins one logo state over the demo cycle. Pass null to release it. */
+export function setDemoMarkPin(next: MarkPreview | null): void {
+  markPin = next;
+}
+
+function noteCommand(): void {
+  commanded = true;
 }
 
 export function getDemoPhase(now = Date.now()): DemoLinkPhase {
@@ -145,13 +166,17 @@ export function tickDemo(now = Date.now(), dtSec = 0.2): RobotStatus {
   link = stepDemoLink(link, now);
   const phase = demoLinkPhase(link, now);
   const linked = phase === "demo";
-  if (!linked) {
+  if (markPin) {
+    status = statusForPreview(markPin, status);
+  } else if (!linked) {
     linear = 0;
     angular = 0;
     if (manual && !cleaningStartTime) {
       manual = false;
       status = { ...status, state: "idle" };
     }
+  } else if (!commanded && !manual && !cleaningStartTime) {
+    status = applyShowcase(status, now);
   } else {
     const stepped = stepMotion({
       status,
@@ -161,21 +186,27 @@ export function tickDemo(now = Date.now(), dtSec = 0.2): RobotStatus {
       manual,
       autoCleaning: cleaningStartTime !== null,
     });
-    status = stepped.status;
+    status = deriveFromLegacy(stepped.status);
     manual = stepped.manual;
   }
-  status = { ...status, connected: linked, lastSeen: new Date(now).toISOString() };
+  if (markPin) {
+    status = { ...status, lastSeen: new Date(now).toISOString() };
+  } else {
+    status = { ...status, connected: linked, lastSeen: new Date(now).toISOString() };
+    if (!linked) status = deriveFromLegacy(status);
+  }
   return copyStatus();
 }
 
 export function simulateConnectionDrop(durationMs?: number, now = Date.now()): void {
   link = forceDemoDrop(link, now, durationMs);
-  status = { ...status, connected: false };
+  status = deriveFromLegacy({ ...status, connected: false });
 }
 
 /** Returns false when the demo link is down so drive does not move a "disconnected" robot. */
 export function setDemoDrive(nextLinear: number, nextAngular: number, now = Date.now()): boolean {
   if (demoLinkPhase(link, now) !== "demo") return false;
+  noteCommand();
   linear = nextLinear;
   angular = nextAngular;
   const moving = Math.abs(nextLinear) > 0.001 || Math.abs(nextAngular) > 0.001;
@@ -188,6 +219,7 @@ export function setDemoDrive(nextLinear: number, nextAngular: number, now = Date
     manual = false;
     status = { ...status, state: "idle" };
   }
+  status = deriveFromLegacy(status);
   return true;
 }
 
@@ -207,6 +239,7 @@ function finishCleaningSession(): void {
 }
 
 export function demoEmergencyStop(): void {
+  noteCommand();
   linear = 0;
   angular = 0;
   manual = false;
@@ -214,6 +247,7 @@ export function demoEmergencyStop(): void {
     finishCleaningSession();
     status = { ...status, state: "idle" };
   }
+  status = deriveFromLegacy(status);
 }
 
 export async function getStatus(): Promise<RobotStatus> {
@@ -229,7 +263,8 @@ export async function startCleaning(): Promise<{ success: boolean }> {
   await delay(100);
   if (demoLinkPhase(link, Date.now()) !== "demo") return { success: false };
   if (status.state === "docked" || status.state === "idle") {
-    status = { ...status, state: "cleaning" };
+    noteCommand();
+    status = deriveFromLegacy({ ...status, state: "cleaning" });
     cleaningStartTime = new Date();
     cleaningStartBattery = status.battery;
     manual = false;
@@ -248,11 +283,12 @@ export async function returnToDock(): Promise<{ success: boolean }> {
   await delay(100);
   if (demoLinkPhase(link, Date.now()) !== "demo") return { success: false };
   if (status.state === "docked") return { success: false };
+  noteCommand();
   linear = 0;
   angular = 0;
   manual = false;
   finishCleaningSession();
-  status = { ...status, state: "returning" };
+  status = deriveFromLegacy({ ...status, state: "returning" });
   return { success: true };
 }
 
