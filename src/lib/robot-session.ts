@@ -3,9 +3,27 @@ import { issueEmergencyStop } from "./connection/emergency-stop";
 import { LiveSocket } from "./connection/live-socket";
 import { describeConnection } from "./connection/labels";
 import * as demo from "./mockRobot";
+import { emitToastOps, voluntarySignOutActive } from "./toast-store";
+import {
+  accessTransitionOps,
+  commandToastOps,
+  dominantFailure,
+  initialConditionMemory,
+  initialLinkMemory,
+  isStuckStatus,
+  noteLinkRecovered,
+  noteLinkUnreachable,
+  reduceConditionToasts,
+  reduceLinkToast,
+  type CommandName,
+  type ConditionMemory,
+  type LinkMemory,
+} from "./toasts";
 import type {
+  AccessRole,
   AccessState,
   CleaningSession,
+  CommandResult,
   ConnectionState,
   CustomRoute,
   LearningItem,
@@ -78,6 +96,8 @@ class RobotSession {
     robotConfigured: false,
   };
   private connection: ConnectionState = demoConnection(this.status);
+  private linkMemory: LinkMemory = initialLinkMemory();
+  private conditionMemory: ConditionMemory = initialConditionMemory();
   private snapshot: RobotSnapshot = buildSnapshot({
     loading: false,
     status: this.status,
@@ -122,14 +142,28 @@ class RobotSession {
 
   applyAccess = (body: unknown): void => {
     const decision = parseAccessPayload(body);
+    const prevRole: AccessRole = this.access.role;
     this.access = {
       role: decision.role,
       email: decision.email,
       demo: decision.demo,
       robotConfigured: decision.robotConfigured,
     };
+    emitToastOps(accessTransitionOps(
+      prevRole,
+      { role: this.access.role, email: this.access.email },
+      voluntarySignOutActive(),
+    ));
     if (!decision.demo && decision.robotUrl) this.startLive(decision.robotUrl);
     else this.startDemo();
+  };
+
+  /** Timeout, DNS, or TLS on a live probe that did not go through a drive command. */
+  noteUnreachable = (): void => {
+    if (this.demoMode) return;
+    const link = noteLinkUnreachable(this.linkMemory);
+    this.linkMemory = link.memory;
+    emitToastOps(link.ops);
   };
 
   resume = (): void => {
@@ -275,6 +309,66 @@ class RobotSession {
       learning: this.learning,
     });
     for (const listener of this.listeners) listener();
+    this.noteLinkAndCondition();
+  }
+
+  private noteLinkAndCondition(): void {
+    const link = reduceLinkToast(this.linkMemory, {
+      demo: this.connection.demo,
+      phase: this.connection.phase,
+    });
+    this.linkMemory = link.memory;
+    const condition = reduceConditionToasts(this.conditionMemory, {
+      demo: this.connection.demo,
+      linkUp: this.connection.linkUp,
+      state: this.status.state,
+      battery: this.status.battery,
+      charging: this.status.state === "docked" && this.status.battery < 100,
+      stuck: isStuckStatus(this.status),
+    });
+    this.conditionMemory = condition.memory;
+    emitToastOps([...link.ops, ...condition.ops]);
+  }
+
+  private reportCommand(command: CommandName, result: CommandResult): CommandResult {
+    const planned = commandToastOps(command, result, this.demoMode);
+    let ops = planned.ops;
+    if (planned.unreachable) {
+      const link = noteLinkUnreachable(this.linkMemory);
+      this.linkMemory = link.memory;
+      ops = [...link.ops, ...ops];
+    } else if (result.success && !this.demoMode) {
+      const recovered = noteLinkRecovered(this.linkMemory);
+      this.linkMemory = recovered.memory;
+      ops = [...ops, ...recovered.ops];
+    }
+    emitToastOps(ops);
+    return result;
+  }
+
+  private async requestLive(path: string, body?: unknown): Promise<CommandResult> {
+    const base = this.getRobotUrl();
+    if (!base) return { success: false, reason: "rejected" };
+    try {
+      const res = await fetch(`${base}${path}`, {
+        method: "POST",
+        signal: AbortSignal.timeout(5000),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body ?? {}),
+      });
+      if (res.status === 401) return { success: false, status: 401, reason: "unauthorized" };
+      if (res.status === 403) return { success: false, status: 403, reason: "forbidden" };
+      if (!res.ok) return { success: false, status: res.status, reason: "rejected" };
+      const data: unknown = await res.json().catch(() => ({ success: true }));
+      const rejected = Boolean(
+        data && typeof data === "object" && "success" in data && (data as { success: unknown }).success === false,
+      );
+      return rejected
+        ? { success: false, status: res.status, reason: "rejected" }
+        : { success: true, status: res.status };
+    } catch {
+      return { success: false, reason: "unreachable" };
+    }
   }
 
   private captureDemoCollections(): void {
@@ -323,65 +417,56 @@ class RobotSession {
     this.publish();
   }
 
-  private async start(): Promise<{ success: boolean }> {
+  private async start(): Promise<CommandResult> {
     if (this.demoMode) {
       const result = await demo.startCleaning();
       this.syncDemo();
-      return result;
+      return this.reportCommand("start", result);
     }
-    try {
-      return await this.fetchJson("/control/start", { method: "POST" });
-    } catch {
-      return { success: false };
-    }
+    return this.reportCommand("start", await this.requestLive("/control/start"));
   }
 
-  private async stop(): Promise<{ success: boolean }> {
+  private async stop(): Promise<CommandResult> {
+    const attempts: CommandResult[] = [];
     const result = await issueEmergencyStop({
       demo: this.demoMode,
       socketOpen: this.live?.isOpen ?? false,
       sendSocket: (payload) => {
         this.live?.send(payload);
       },
-      postStop: () => this.fetchJson("/control/stop", { method: "POST" }),
-      postZeroDrive: () =>
-        this.fetchJson("/drive", {
-          method: "POST",
-          body: JSON.stringify({ linear: 0, angular: 0 }),
-        }),
+      postStop: async () => {
+        const outcome = await this.requestLive("/control/stop");
+        attempts.push(outcome);
+        return { success: outcome.success };
+      },
+      postZeroDrive: async () => {
+        const outcome = await this.requestLive("/drive", { linear: 0, angular: 0 });
+        attempts.push(outcome);
+        return { success: outcome.success };
+      },
       applyDemoStop: () => demo.demoEmergencyStop(),
     });
     if (this.demoMode) this.syncDemo();
-    return { success: result.success };
+    const feedback = result.success ? { success: true } : dominantFailure(attempts);
+    return this.reportCommand("stop", feedback);
   }
 
-  private async dock(): Promise<{ success: boolean }> {
+  private async dock(): Promise<CommandResult> {
     if (this.demoMode) {
       const result = await demo.returnToDock();
       this.syncDemo();
-      return result;
+      return this.reportCommand("dock", result);
     }
-    try {
-      return await this.fetchJson("/control/dock", { method: "POST" });
-    } catch {
-      return { success: false };
-    }
+    return this.reportCommand("dock", await this.requestLive("/control/dock"));
   }
 
-  private async drive(linear: number, angular: number): Promise<{ success: boolean }> {
+  private async drive(linear: number, angular: number): Promise<CommandResult> {
     if (this.demoMode) {
       const ok = demo.setDemoDrive(linear, angular);
       this.syncDemo();
-      return { success: ok };
+      return this.reportCommand("drive", { success: ok, reason: ok ? undefined : "rejected" });
     }
-    try {
-      return await this.fetchJson("/drive", {
-        method: "POST",
-        body: JSON.stringify({ linear, angular }),
-      });
-    } catch {
-      return { success: false };
-    }
+    return this.reportCommand("drive", await this.requestLive("/drive", { linear, angular }));
   }
 }
 

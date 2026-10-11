@@ -126,7 +126,7 @@ export function DrivePad({ status }: DrivePadProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Manual Drive</CardTitle>
+        <CardTitle>Drive</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-2 max-w-[220px] mx-auto">
@@ -172,15 +172,6 @@ export function DrivePad({ status }: DrivePadProps) {
             className="w-full accent-[var(--color-accent,currentColor)]"
           />
         </div>
-
-        <p className="text-xs text-muted text-center">
-          Hold an arrow to drive · keyboard: arrows / WASD · space = stop
-        </p>
-        {!enabled && (
-          <p className="text-xs text-danger text-center">
-            Robot offline — drive paused. Stop still works.
-          </p>
-        )}
       </CardContent>
     </Card>
   );

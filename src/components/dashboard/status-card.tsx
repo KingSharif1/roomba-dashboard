@@ -17,7 +17,7 @@ export function StatusCard({ status }: StatusCardProps) {
   return (
     <Card glow={status.connected && status.state === "cleaning"}>
       <CardHeader>
-        <CardTitle>System Status</CardTitle>
+        <CardTitle>Status</CardTitle>
         <div className="flex items-center gap-1 text-xs">
           {status.connected ? (
             <Wifi className="w-3 h-3 text-accent" />

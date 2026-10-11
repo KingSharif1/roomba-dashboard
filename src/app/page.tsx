@@ -11,6 +11,7 @@ import { ConnectionStatus } from "@/components/connection/connection-status";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useRobot } from "@/hooks/use-robot";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { noteVoluntarySignOut } from "@/lib/toast-store";
 import { formatDuration, formatTimeAgo } from "@/lib/utils";
 import { Activity, Zap, Clock, Target } from "lucide-react";
 
@@ -32,6 +33,7 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     if (isSupabaseConfigured()) {
+      noteVoluntarySignOut();
       const supabase = createClient();
       await supabase.auth.signOut();
     }
@@ -48,10 +50,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background grid-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted mono text-sm">INITIALIZING SYSTEMS...</p>
-        </div>
+        <div className="w-12 h-12 border-2 border-accent border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -153,7 +152,7 @@ export default function Dashboard() {
         <div className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
+              <CardTitle>Activity</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -164,9 +163,6 @@ export default function Dashboard() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-accent" />
-                      <span className="text-sm">
-                        Cleaning session
-                      </span>
                       <span className="text-xs text-muted">
                         {formatTimeAgo(session.startedAt)}
                       </span>

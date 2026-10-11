@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import type { CleaningSession } from "@/lib/types";
 import * as robot from "@/lib/robot";
 import { formatDuration, formatDateTime } from "@/lib/utils";
-import { Calendar, Clock, Target, Battery, TrendingUp } from "lucide-react";
+import { Calendar, Clock, Target, Battery } from "lucide-react";
 
 export default function HistoryPage() {
   const [sessions, setSessions] = useState<CleaningSession[]>([]);
@@ -113,10 +113,7 @@ export default function HistoryPage() {
           </CardHeader>
           <CardContent>
             {sessions.length === 0 ? (
-              <div className="text-center py-8">
-                <TrendingUp className="w-12 h-12 mx-auto mb-4 text-muted" />
-                <p className="text-muted">No cleaning sessions yet</p>
-              </div>
+              <p className="text-sm text-muted text-center py-8">None</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -190,22 +187,6 @@ export default function HistoryPage() {
                 </table>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Chart placeholder */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Coverage Over Time</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-48 flex items-center justify-center border border-border rounded bg-surface-light">
-              <div className="text-center">
-                <TrendingUp className="w-8 h-8 mx-auto mb-2 text-muted" />
-                <p className="text-sm text-muted">Chart visualization</p>
-                <p className="text-xs text-muted/50">Coming soon</p>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </main>

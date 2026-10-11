@@ -6,6 +6,16 @@ export type RobotStatus = {
   connected: boolean;
   lastSeen: string;
   pose: { x: number; y: number; heading: number } | null;
+  /** Set when the Pi reports a stuck robot. Absent on older firmware. */
+  stuck?: boolean;
+};
+
+export type CommandFailure = "unreachable" | "forbidden" | "unauthorized" | "rejected";
+
+export type CommandResult = {
+  success: boolean;
+  status?: number;
+  reason?: CommandFailure;
 };
 
 export type CleaningSession = {
@@ -92,15 +102,15 @@ export type RobotSnapshot = {
 };
 
 export type RobotCommands = {
-  start: () => Promise<{ success: boolean }>;
+  start: () => Promise<CommandResult>;
   /**
    * Emergency stop. Sends immediately.
    * A stop frame is written on the live socket when it is open, and REST
    * POST /control/stop always runs because the Pi's /live socket is status-only.
    * When the socket is down, that REST call is the path that still reaches the robot.
    */
-  stop: () => Promise<{ success: boolean }>;
-  dock: () => Promise<{ success: boolean }>;
+  stop: () => Promise<CommandResult>;
+  dock: () => Promise<CommandResult>;
   /** linear m/s (+ forward), angular rad/s (+ left). */
-  drive: (linear: number, angular: number) => Promise<{ success: boolean }>;
+  drive: (linear: number, angular: number) => Promise<CommandResult>;
 };

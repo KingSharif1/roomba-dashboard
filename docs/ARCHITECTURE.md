@@ -110,7 +110,9 @@ The dashboard sends a command every 100 ms while a direction is held and sends z
 - **Active Mode LIVE** is configuration only — it means the live API URL is selected, not that anything is reachable.
 - **API reachable** means the Pi's HTTP API responded; `/status` can return 200 while the robot reports `connected: false`.
 - **Robot connected** (`RobotStatus.connected === true`) requires fresh `/odom` data seen by the Pi within the last 2 seconds.
-- An unexpected `/live` WebSocket close marks the UI disconnected (`connected: false`, `state: "error"`) and schedules a reconnect with jittered backoff. Silence longer than 3 seconds (the Pi sends a frame every 0.5 seconds) is treated the same way. After three failures the label reads "Robot offline" while retries continue. Tab visibility and the browser `online` event reconnect immediately. Cleanup-initiated closes do not.
+- An unexpected `/live` WebSocket close marks the UI disconnected (`connected: false`, `state: "error"`) and schedules a reconnect with jittered backoff. Silence longer than 3 seconds (the Pi sends a frame every 0.5 seconds) is treated the same way. A handshake that does not open within 5 seconds is the same failure. After three failures the label reads "Robot offline" while retries continue. Tab visibility and the browser `online` event reconnect immediately. Cleanup-initiated closes do not.
+- Live outages (Tailscale off, timeout, DNS, TLS, socket drop) raise one sticky toast: "Robot unreachable. Check Tailscale." It is not repeated for the same outage, and it clears on reconnect with a short "Reconnected" toast. Demo mode, including simulated drops, never shows that toast.
+- The same toast stack carries command failures (including 403 and 401), "Stopped" after a confirmed stop, sign-in failure, session expiry, and a live robot error, low battery, or stuck flag when the link is up. Successes dismiss themselves. Errors stay until the cause clears or the visitor dismisses them.
 
 ## Initialization and Offline Behavior
 

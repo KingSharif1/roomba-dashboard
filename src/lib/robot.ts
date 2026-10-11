@@ -1,4 +1,4 @@
-import type { CleaningSession, CustomRoute, LearningItem, NoGoZone, RobotStatus } from "./types";
+import type { CleaningSession, CommandResult, CustomRoute, LearningItem, NoGoZone, RobotStatus } from "./types";
 import * as demo from "./mockRobot";
 import { robotSession } from "./robot-session";
 
@@ -119,17 +119,17 @@ export function startLiveUpdates(
   };
 }
 
-export async function testConnection(): Promise<{ success: boolean; error?: string }> {
+export async function testConnection(): Promise<CommandResult> {
   const robotUrl = robotSession.getRobotUrl();
-  if (!robotUrl) {
-    return { success: false, error: "Demo mode — the live robot is not available for this session" };
-  }
+  if (!robotUrl) return { success: false, reason: "rejected" };
   try {
     const res = await fetch(`${robotUrl}/status`, { signal: AbortSignal.timeout(5000) });
-    if (res.ok) return { success: true };
-    return { success: false, error: `HTTP ${res.status}` };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Connection failed" };
+    if (res.ok) return { success: true, status: res.status };
+    if (res.status === 401) return { success: false, status: 401, reason: "unauthorized" };
+    if (res.status === 403) return { success: false, status: 403, reason: "forbidden" };
+    return { success: false, status: res.status, reason: "rejected" };
+  } catch {
+    return { success: false, reason: "unreachable" };
   }
 }
 

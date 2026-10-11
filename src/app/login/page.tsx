@@ -1,20 +1,14 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { emitToastOps, noteVoluntarySignOut } from "@/lib/toast-store";
+import { authToastOps } from "@/lib/toasts";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
-
-function loginQueryError(code: string | null): string | null {
-  if (code === "not-owner") {
-    return "That account is not the owner. Live controls stay off. The demo works without signing in.";
-  }
-  if (code === "auth") return "Sign-in did not finish. You can keep using the demo.";
-  return null;
-}
+import { Mail, Lock, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   return (
@@ -29,29 +23,33 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const error = formError ?? loginQueryError(searchParams.get("error"));
   const [mode, setMode] = useState<"login" | "magic">("login");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const router = useRouter();
   const configured = isSupabaseConfigured();
   const supabase = configured ? createClient() : null;
+  const queryError = searchParams.get("error");
+
+  useEffect(() => {
+    if (queryError === "not-owner") emitToastOps(authToastOps("not-owner"));
+    else if (queryError === "auth") emitToastOps(authToastOps("auth"));
+  }, [queryError]);
 
   const rejectUnlessOwner = async () => {
     const access = await fetch("/api/access", { cache: "no-store" }).then((res) => res.json());
     if (access.role === "owner") return true;
+    noteVoluntarySignOut();
     await supabase?.auth.signOut();
-    setFormError("That email is not the owner. Live controls stay off. The demo works without signing in.");
+    emitToastOps(authToastOps("not-owner"));
     return false;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setFormError(null);
 
     if (!supabase) {
-      setFormError("Owner sign-in is not configured on this server.");
+      emitToastOps(authToastOps("unavailable"));
       setLoading(false);
       return;
     }
@@ -66,8 +64,8 @@ function LoginForm() {
       if (!(await rejectUnlessOwner())) return;
       router.push("/");
       router.refresh();
-    } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Login failed");
+    } catch {
+      emitToastOps(authToastOps("auth"));
     } finally {
       setLoading(false);
     }
@@ -76,10 +74,9 @@ function LoginForm() {
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setFormError(null);
 
     if (!supabase) {
-      setFormError("Owner sign-in is not configured on this server.");
+      emitToastOps(authToastOps("unavailable"));
       setLoading(false);
       return;
     }
@@ -93,9 +90,10 @@ function LoginForm() {
       });
 
       if (error) throw error;
+      emitToastOps(authToastOps("sent"));
       setMagicLinkSent(true);
-    } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to send magic link");
+    } catch {
+      emitToastOps(authToastOps("auth"));
     } finally {
       setLoading(false);
     }
@@ -114,19 +112,15 @@ function LoginForm() {
             <span className="text-accent mx-2">{"//"}</span>
             <span className="text-muted">CONTROL</span>
           </h1>
-          <p className="text-sm text-muted mt-2">Autonomous Robot Dashboard</p>
         </div>
 
         <Card className="glow">
           <CardContent className="pt-6">
             {!configured ? (
               <div className="text-center py-4">
-                <h2 className="text-lg font-medium mb-2">Demo mode</h2>
-                <p className="text-sm text-muted">
-                  Owner sign-in is not configured on this server. The dashboard runs on the simulated robot.
-                </p>
-                <Button variant="primary" className="mt-4" onClick={() => router.push("/")}>
-                  Continue in demo
+                <h2 className="text-lg font-medium mb-4">Demo</h2>
+                <Button variant="primary" onClick={() => router.push("/")}>
+                  Open
                 </Button>
               </div>
             ) : magicLinkSent ? (
@@ -134,10 +128,8 @@ function LoginForm() {
                 <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-accent/10 flex items-center justify-center">
                   <Mail className="w-6 h-6 text-accent" />
                 </div>
-                <h2 className="text-lg font-medium mb-2">Check your email</h2>
-                <p className="text-sm text-muted">
-                  We sent a magic link to <strong>{email}</strong>
-                </p>
+                <h2 className="text-lg font-medium mb-2">Check email</h2>
+                <p className="text-sm">{email}</p>
                 <Button
                   variant="ghost"
                   className="mt-4"
@@ -171,13 +163,6 @@ function LoginForm() {
                     Magic Link
                   </button>
                 </div>
-
-                {error && (
-                  <div className="mb-4 p-3 bg-danger/10 border border-danger/30 rounded flex items-center gap-2 text-danger text-sm">
-                    <AlertCircle className="w-4 h-4" />
-                    {error}
-                  </div>
-                )}
 
                 <form onSubmit={mode === "login" ? handleLogin : handleMagicLink}>
                   <div className="space-y-4">
@@ -241,10 +226,8 @@ function LoginForm() {
 
         <p className="text-center text-xs text-muted mt-6">
           <Link href="/" className="underline underline-offset-2 hover:text-foreground">
-            Continue in demo
+            Demo
           </Link>
-          {" · "}
-          Owner sign-in only · Tailscale VPN
         </p>
       </div>
     </div>

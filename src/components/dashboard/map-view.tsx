@@ -160,7 +160,7 @@ export function MapView({ status, noGoZones = [] }: MapViewProps) {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Map View</CardTitle>
+        <CardTitle>Map</CardTitle>
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-accent" />
@@ -183,9 +183,6 @@ export function MapView({ status, noGoZones = [] }: MapViewProps) {
           height={300}
           className="w-full h-auto rounded border border-border"
         />
-        <div className="absolute bottom-2 right-2 text-xs mono text-muted bg-background/80 px-2 py-1 rounded">
-          SLAM // MOCK
-        </div>
       </CardContent>
     </Card>
   );

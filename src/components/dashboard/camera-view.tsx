@@ -12,7 +12,7 @@ export function CameraView({ connected }: CameraViewProps) {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Camera Feed</CardTitle>
+        <CardTitle>Camera</CardTitle>
         <div className="flex items-center gap-1 text-xs">
           {connected ? (
             <>
@@ -33,12 +33,8 @@ export function CameraView({ connected }: CameraViewProps) {
             <>
               {/* Placeholder static noise effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-surface to-surface-light flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-accent/30 flex items-center justify-center">
-                    <Video className="w-8 h-8 text-accent/50" />
-                  </div>
-                  <p className="text-muted text-sm">Camera feed placeholder</p>
-                  <p className="text-xs text-muted/50 mt-1">MJPEG stream when connected</p>
+                <div className="w-16 h-16 rounded-full border-2 border-accent/30 flex items-center justify-center">
+                  <Video className="w-8 h-8 text-accent/50" />
                 </div>
               </div>
               
@@ -79,11 +75,7 @@ export function CameraView({ connected }: CameraViewProps) {
             </>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <VideoOff className="w-12 h-12 mx-auto mb-2 text-muted" />
-                <p className="text-muted text-sm">No camera feed</p>
-                <p className="text-xs text-muted/50">Robot offline</p>
-              </div>
+              <VideoOff className="w-12 h-12 text-muted" />
             </div>
           )}
         </div>

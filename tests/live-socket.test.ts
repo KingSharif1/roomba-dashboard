@@ -134,7 +134,20 @@ test("an unexpected close reconnects with backoff, then resume connects immediat
   client.resume();
   assert.equal(sockets.length, 2);
   assert.equal(phases.at(-1), "connecting");
-  clock.advance(10_000);
+  clock.advance(4_000);
+  assert.equal(sockets.length, 2);
+});
+
+test("a handshake that never opens times out and reconnects", () => {
+  const { clock, sockets, phases, client } = harness();
+  client.start();
+  assert.equal(phases.at(-1), "connecting");
+  clock.advance(4_999);
+  assert.equal(sockets.length, 1);
+  clock.advance(1);
+  assert.equal(sockets[0].readyState, 3);
+  assert.equal(phases.at(-1), "reconnecting");
+  clock.advance(250);
   assert.equal(sockets.length, 2);
 });
 

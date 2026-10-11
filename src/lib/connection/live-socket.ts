@@ -3,6 +3,8 @@ import { backoffDelayMs } from "./backoff";
 import { toWebSocketUrl } from "./ws-url";
 
 export const LIVE_STALE_MS = 3_000;
+/** A handshake that never opens is the same kind of outage as a dropped socket. */
+export const LIVE_CONNECT_TIMEOUT_MS = 5_000;
 /** After this many failed attempts the label becomes "Robot offline" while retries continue. */
 export const LIVE_OFFLINE_AFTER_ATTEMPTS = 3;
 
@@ -23,6 +25,7 @@ export type StatusSocket = {
 export type LiveSocketOptions = {
   url: string;
   staleMs?: number;
+  connectTimeoutMs?: number;
   createSocket?: (url: string) => StatusSocket;
   setTimer?: (fn: () => void, ms: number) => TimerHandle;
   random?: () => number;
@@ -49,6 +52,7 @@ function isRobotStatus(value: unknown): value is RobotStatus {
 export class LiveSocket {
   private readonly wsUrl: string;
   private readonly staleMs: number;
+  private readonly connectTimeoutMs: number;
   private readonly createSocket: (url: string) => StatusSocket;
   private readonly setTimer: (fn: () => void, ms: number) => TimerHandle;
   private readonly random: () => number;
@@ -62,11 +66,13 @@ export class LiveSocket {
   private browserOffline = false;
   private retryTimer: TimerHandle | null = null;
   private staleTimer: TimerHandle | null = null;
+  private connectTimer: TimerHandle | null = null;
   private phase: Exclude<ConnectionPhase, "demo"> = "connecting";
 
   constructor(options: LiveSocketOptions) {
     this.wsUrl = toWebSocketUrl(options.url);
     this.staleMs = options.staleMs ?? LIVE_STALE_MS;
+    this.connectTimeoutMs = options.connectTimeoutMs ?? LIVE_CONNECT_TIMEOUT_MS;
     this.createSocket = options.createSocket ?? ((url) => new WebSocket(url) as unknown as StatusSocket);
     this.setTimer = options.setTimer ?? defaultTimer;
     this.random = options.random ?? Math.random;
@@ -136,9 +142,11 @@ export class LiveSocket {
       return;
     }
     this.socket = socket;
+    this.armConnectTimeout();
 
     socket.onopen = () => {
       if (generation !== this.generation || this.stopped) return;
+      this.clearConnectTimeout();
       this.attempt = 0;
       this.setPhase("connected");
       this.armStale();
@@ -168,6 +176,7 @@ export class LiveSocket {
       if (generation !== this.generation) return;
       this.socket = null;
       this.clearStale();
+      this.clearConnectTimeout();
       if (this.stopped || this.browserOffline) return;
       this.scheduleReconnect();
     };
@@ -183,6 +192,29 @@ export class LiveSocket {
       this.retryTimer = null;
       this.connect();
     }, delay);
+  }
+
+  private armConnectTimeout(): void {
+    this.clearConnectTimeout();
+    this.connectTimer = this.setTimer(() => {
+      this.connectTimer = null;
+      if (this.stopped || this.phase === "connected") return;
+      const socket = this.socket;
+      if (!socket) {
+        this.scheduleReconnect();
+        return;
+      }
+      try {
+        socket.close();
+      } catch {
+        this.scheduleReconnect();
+      }
+    }, this.connectTimeoutMs);
+  }
+
+  private clearConnectTimeout(): void {
+    this.connectTimer?.cancel();
+    this.connectTimer = null;
   }
 
   private armStale(): void {
@@ -216,6 +248,7 @@ export class LiveSocket {
   private dropSocket(): void {
     this.generation += 1;
     this.clearStale();
+    this.clearConnectTimeout();
     const socket = this.socket;
     this.socket = null;
     if (!socket) return;

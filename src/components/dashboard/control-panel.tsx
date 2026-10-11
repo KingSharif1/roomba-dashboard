@@ -46,7 +46,7 @@ export function ControlPanel({ status, onStart, onStop, onDock }: ControlPanelPr
           ) : (
             <Play className="w-5 h-5 mr-2" />
           )}
-          START CLEANING
+          START
         </Button>
         
         <Button
@@ -75,14 +75,8 @@ export function ControlPanel({ status, onStart, onStop, onDock }: ControlPanelPr
           ) : (
             <Home className="w-5 h-5 mr-2" />
           )}
-          RETURN TO DOCK
+          DOCK
         </Button>
-        
-        {!status.connected && (
-          <p className="text-xs text-danger text-center mt-2">
-            Robot offline — start and dock are paused. Stop still sends.
-          </p>
-        )}
       </CardContent>
     </Card>
   );
