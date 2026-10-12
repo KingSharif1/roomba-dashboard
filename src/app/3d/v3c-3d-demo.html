@@ -28,7 +28,7 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
 .tag{position:absolute;padding:6px 10px;border-radius:8px;background:var(--chip);backdrop-filter:blur(10px);border:1px solid rgba(233,231,255,.25);white-space:nowrap;transition:opacity .4s;transform:translate(-50%,-100%);font-size:12px;pointer-events:none;z-index:5}
 .tag b{font-weight:500}.tag span{color:var(--mute);margin-left:6px}
 /* top bar */
-#topbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(12px + env(safe-area-inset-top)) 16px 0;pointer-events:none;z-index:10}
+#topbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(12px + env(safe-area-inset-top)) 16px 0;pointer-events:none;z-index:30}
 .brand{pointer-events:auto;display:flex;align-items:center;gap:10px;font-weight:500;letter-spacing:.18em;font-size:11px;color:var(--mute);background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:8px 16px 8px 8px;backdrop-filter:blur(10px)}
 .brand img{width:30px;height:30px;border-radius:8px;display:block}
 /* theme toggle — same language as the landing page */
@@ -44,7 +44,7 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
 .ctl-group button.on-state{background:rgba(94,234,212,.16);color:var(--ok)}
 html[data-embed] #controls,html[data-embed] #panel,html[data-embed] #batBadge,html[data-embed] #hint,html[data-embed] .brand{display:none!important}
 @media(max-width:720px){
-  #controls{bottom:calc(8px + env(safe-area-inset-bottom));gap:6px;flex-wrap:nowrap;justify-content:flex-start;max-width:calc(100vw - 12px);overflow-x:auto;-webkit-overflow-scrolling:touch}
+  #controls{left:8px;right:8px;transform:none;width:auto;max-width:none;bottom:calc(8px + env(safe-area-inset-bottom));gap:6px;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .ctl-group{gap:2px;padding:3px}
   .ctl-group button{padding:6px 9px;font-size:11px;min-height:40px;letter-spacing:.01em}
 }
