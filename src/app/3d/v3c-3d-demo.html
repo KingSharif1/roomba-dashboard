@@ -29,11 +29,11 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
 .tag b{font-weight:500}.tag span{color:var(--mute);margin-left:6px}
 /* top bar */
 #topbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(12px + env(safe-area-inset-top)) 16px 0;pointer-events:none;z-index:30}
-.brand{pointer-events:auto;display:flex;align-items:center;gap:10px;font-weight:500;letter-spacing:.18em;font-size:11px;color:var(--mute);background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:8px 16px 8px 8px;backdrop-filter:blur(10px)}
-.brand img{width:30px;height:30px;border-radius:8px;display:block}
+.brand{pointer-events:auto;display:flex;align-items:center;font-weight:500;letter-spacing:.18em;font-size:11px;color:var(--mute);background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:10px 16px;backdrop-filter:blur(10px)}
 /* theme toggle — same language as the landing page */
 #themeBtn{pointer-events:auto;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:12px 18px;font:inherit;font-size:13px;cursor:pointer;min-height:48px;white-space:nowrap}
 #themeBtn:active{transform:scale(.96)}
+#topLeft{position:relative;display:flex;align-items:flex-start;pointer-events:none}
 #topRight{display:flex;align-items:center;gap:8px;pointer-events:none}
 /* bottom control bar: view presets + robot state */
 #controls{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));display:flex;gap:22px;flex-wrap:wrap;justify-content:center;z-index:15;pointer-events:auto;max-width:min(1120px,calc(100vw - 48px))}
@@ -42,14 +42,15 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
 .ctl-group button:active{transform:scale(.96)}
 .ctl-group button.on{background:var(--acc);color:#1a0f0a;font-weight:500}
 .ctl-group button.on-state{background:rgba(94,234,212,.16);color:var(--ok)}
-html[data-embed] #controls,html[data-embed] #panel,html[data-embed] #batBadge,html[data-embed] #hint,html[data-embed] .brand{display:none!important}
+/* embed (landing Fig. 1): status + theme only. Position presets stay on /3d. */
+html[data-embed] #viewPresets,html[data-embed] #panel,html[data-embed] #batBadge,html[data-embed] #hint,html[data-embed] .brand{display:none!important}
 @media(max-width:720px){
   #controls{left:8px;right:8px;transform:none;width:auto;max-width:none;bottom:calc(8px + env(safe-area-inset-bottom));gap:6px;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .ctl-group{gap:2px;padding:3px}
   .ctl-group button{padding:6px 9px;font-size:11px;min-height:40px;letter-spacing:.01em}
 }
-/* battery badge — always visible, toggles the parts panel */
-#batBadge{pointer-events:auto;display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 14px 8px 10px;border-radius:14px;border:1px solid var(--line);background:var(--chip);backdrop-filter:blur(10px);color:var(--ink);font:inherit;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,.35)}
+/* battery badge — absolutely placed beside the title, so it takes no flex space and stays off the parts list */
+#batBadge{position:absolute;left:calc(100% + 8px);top:0;z-index:1;pointer-events:auto;display:flex;align-items:center;gap:10px;width:max-content;min-height:48px;padding:8px 14px 8px 10px;border-radius:14px;border:1px solid var(--line);background:var(--chip);backdrop-filter:blur(10px);color:var(--ink);font:inherit;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,.35)}
 #batBadge:active{transform:scale(.97)}
 #batBadge svg{display:block}
 #batBadge b{font-size:17px;font-weight:500;min-width:3ch;text-align:right}
@@ -78,8 +79,7 @@ html[data-embed] #controls,html[data-embed] #panel,html[data-embed] #batBadge,ht
   #themeBtn{padding:6px 10px;font-size:11px;min-height:40px}
   #batBadge{min-height:40px;padding:6px 10px 6px 8px;gap:6px}
   #batBadge b{font-size:14px}
-  .brand{font-size:10px;padding:6px 12px 6px 6px;gap:8px}
-  .brand img{width:24px;height:24px}
+  .brand{font-size:10px;padding:8px 12px}
   #hint{display:none}
   #panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:62dvh;border-left:0;border-top:1.5px solid var(--line);border-radius:20px 20px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.45)}
   #panel.closed{transform:translateY(105%)}
@@ -90,13 +90,15 @@ html[data-embed] #controls,html[data-embed] #panel,html[data-embed] #batBadge,ht
   <svg class="lead" id="leaders"><line id="ln"/><circle id="dt" r="3.5"/></svg>
   <div class="tag" id="tag" style="opacity:0"></div>
   <header id="topbar">
-    <div class="brand"><img id="brandLogo" src="/brand/stella-paper-mark.svg" alt="Stella logo">STELLA · 3D</div>
-    <div id="topRight">
-      <button id="themeBtn" aria-label="Toggle theme">◐ paper</button>
+    <div id="topLeft">
+      <div class="brand">STELLA · 3D</div>
       <button id="batBadge" aria-label="Battery status — tap to show parts" aria-expanded="false">
         <svg id="badgeGlyph" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"></svg>
         <b id="pct">–</b>
       </button>
+    </div>
+    <div id="topRight">
+      <button id="themeBtn" aria-label="Toggle theme">◐ paper</button>
     </div>
   </header>
   <aside id="panel" class="closed" aria-label="Parts list">
@@ -109,7 +111,7 @@ html[data-embed] #controls,html[data-embed] #panel,html[data-embed] #batBadge,ht
   </aside>
   <div id="hint">drag to orbit · scroll to zoom</div>
   <div id="controls">
-    <div class="ctl-group" role="group" aria-label="Camera positions">
+    <div class="ctl-group" id="viewPresets" role="group" aria-label="Camera positions">
       <button data-view="front">Front</button><button data-view="top">Top</button><button data-view="side">Side</button><button data-view="threeq" class="on">¾</button><button data-view="run">Run</button><button data-view="dock">Dock</button><button data-view="exploded">Exploded</button>
     </div>
     <div class="ctl-group" role="group" aria-label="Robot status">
@@ -196,6 +198,9 @@ try{
 }
 renderer.setPixelRatio(Math.min(devicePixelRatio||1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+// Stable draw order. Sorting transparent meshes every frame swaps coplanar
+// fills and edges as the camera orbits, which reads as z-fighting.
+renderer.sortObjects = false;
 stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -205,7 +210,10 @@ const sun = new THREE.DirectionalLight(0xfff4e0, 1.4); sun.position.set(-300, 60
 const battLight = new THREE.PointLight(batt.getHex(), 9000, 2200, 1.8); battLight.position.set(0, 120, 0); scene.add(battLight);
 
 /* shared wireframe materials — tinted by battery level */
-const fillMat = new THREE.MeshBasicMaterial({color: batt.clone(), transparent:true, opacity:0.10, depthWrite:false});
+const fillMat = new THREE.MeshBasicMaterial({
+  color: batt.clone(), transparent:true, opacity:0.10, depthWrite:false,
+  polygonOffset:true, polygonOffsetFactor:1, polygonOffsetUnits:1,
+});
 const edgeMat = new THREE.LineBasicMaterial({color: 0xdfe0ff, transparent:true, opacity:0.85});
 const accentMat = new THREE.LineBasicMaterial({color: batt.clone(), transparent:true, opacity:0.9});
 
@@ -224,9 +232,6 @@ function setTheme(t){
   localStorage.setItem('stella-theme', t);
   themeBtn.textContent = t === 'dark' ? '◐ paper' : '◑ colored';
   themeBtn.setAttribute('aria-label', t === 'dark' ? 'Switch to paper view' : 'Switch to colored view');
-  // cream tile blends into paper — use the dark mark on light backgrounds
-  document.getElementById('brandLogo').src =
-    t === 'paper' ? '/brand/stella-paper-dark.svg' : '/brand/stella-paper-mark.svg';
   paintGlyphs();
   applySceneTheme();
 }
@@ -242,12 +247,24 @@ addEventListener('storage', e=>{
   if(e.key === 'stella-theme' && (e.newValue === 'dark' || e.newValue === 'paper')) setTheme(e.newValue);
 });
 
+const pickables = [];
 function wire(geo, opts){
   opts = opts || {};
   const g = new THREE.Group();
-  const m = new THREE.Mesh(geo, opts.fill===false ? new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}) : fillMat);
+  const ghost = opts.fill===false;
+  const m = new THREE.Mesh(geo, ghost
+    ? new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false})
+    : fillMat);
+  m.renderOrder = 1;
+  // Lines and invisible spoke fills sit on the same surface as the solid mesh.
+  // Raycasting them makes the hit part flicker under a still pointer.
+  if(ghost) m.raycast = function(){};
+  else pickables.push(m);
   g.add(m);
-  g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, opts.threshold||22), opts.accent ? accentMat : edgeMat));
+  const lines = new THREE.LineSegments(new THREE.EdgesGeometry(geo, opts.threshold||22), opts.accent ? accentMat : edgeMat);
+  lines.renderOrder = 2;
+  lines.raycast = function(){};
+  g.add(lines);
   return g;
 }
 
@@ -295,7 +312,10 @@ addPart('roomba', wire(new THREE.CylinderGeometry(168, 176, 62, 56)), 0);
 /* clear deck plate */
 {
   const p = wire(new THREE.CylinderGeometry(150, 150, 9, 56));
-  p.children[0].material = new THREE.MeshBasicMaterial({color: batt.clone(), transparent:true, opacity:0.06, depthWrite:false});
+  p.children[0].material = new THREE.MeshBasicMaterial({
+    color: batt.clone(), transparent:true, opacity:0.06, depthWrite:false,
+    polygonOffset:true, polygonOffsetFactor:1, polygonOffsetUnits:1,
+  });
   addPart('plate', p, 44);
 }
 /* small power parts on the deck */
@@ -448,7 +468,7 @@ elc.addEventListener('pointerup', e=>{
   ndc.x = ((e.clientX-rect.left)/rect.width)*2-1;
   ndc.y = -((e.clientY-rect.top)/rect.height)*2+1;
   raycaster.setFromCamera(ndc, cam);
-  const hits = raycaster.intersectObject(model, true);
+  const hits = raycaster.intersectObjects(pickables, false);
   for(const hit of hits){
     const key = partFromObject(hit.object);
     if(key && SHOW.some(s=>s[0]===key)){ spotlight = key; spotlightT = 0; return; }
@@ -467,6 +487,20 @@ addEventListener('resize', resize); resize();
 const ln = document.getElementById('ln'), dt = document.getElementById('dt'), tag = document.getElementById('tag');
 const bb = new THREE.Box3(), v = new THREE.Vector3();
 let spotlight = null, spotlightT = 0;
+let tagKey = null, tagSide = 1, litIdx = -2, calloutOn = false;
+let anchorX = 0, anchorY = 0, dotX = 0, dotY = 0;
+function damp(cur, goal, delta, rate){
+  if(!(delta > 0)) return goal;
+  return cur + (goal - cur) * (1 - Math.exp(-rate * delta));
+}
+function hideCallout(){
+  if(!calloutOn) return;
+  tag.style.opacity = '0';
+  ln.style.opacity = '0';
+  dt.style.opacity = '0';
+  calloutOn = false;
+  tagKey = null;
+}
 const CYCLE = 34, HOLD = 5;   // 34 s loop: 5 s assembled, explode, hold, reassemble
 const ease = x => x<.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2;
 
@@ -562,27 +596,55 @@ function frame(t, delta){
   const step = (CYCLE-HOLD-8)/SHOW.length;
   let idx = -1;
   if(spotlight){
-    spotlightT += 1/60;
+    spotlightT += delta;
     idx = SHOW.findIndex(s=>s[0]===spotlight);
     if(spotlightT > 6){ spotlight=null; idx=-1; }
   } else if(tt > HOLD+2 && tt < CYCLE-6){
     idx = Math.min(SHOW.length-1, Math.floor((tt-HOLD-2)/step));
   }
-  [...list.children].forEach((li,j)=> li.classList.toggle('on', j===idx));
-  if(idx >= 0 && parts[SHOW[idx][0]]){
-    bb.setFromObject(parts[SHOW[idx][0]]); bb.getCenter(v); v.project(cam);
+  if(idx !== litIdx){
+    const kids = list.children;
+    for(let j=0;j<kids.length;j++) kids[j].classList.toggle('on', j===idx);
+    litIdx = idx;
+  }
+  const part = idx >= 0 ? parts[SHOW[idx][0]] : null;
+  if(part){
+    bb.setFromObject(part); bb.getCenter(v); v.project(cam);
     const w = stage.clientWidth, h = stage.clientHeight;
     if(v.z < 1){
       const x=(v.x+1)/2*w, y=(1-v.y)/2*h;
+      const partId = SHOW[idx][0];
+      const ratio = x / Math.max(1, w);
+      const fresh = tagKey !== partId;
+      if(fresh){
+        tagKey = partId;
+        // Side is chosen once per part, then held until the center
+        // crosses well past the middle. Orbit bob used to flip it every frame.
+        tagSide = ratio < 0.5 ? -1 : 1;
+        tag.innerHTML = `<b>${SHOW[idx][1]}</b><span>${SHOW[idx][2]}</span>`;
+      } else if(tagSide < 0 && ratio > 0.62) tagSide = 1;
+      else if(tagSide > 0 && ratio < 0.38) tagSide = -1;
       const edge = w < 720 ? 120 : 80;
-      const tx=Math.min(w-edge,Math.max(edge,x+(x<w/2?-110:110))), ty=Math.max(w<720?72:56,y-84);
-      ln.setAttribute('x1',x);ln.setAttribute('y1',y);ln.setAttribute('x2',tx);ln.setAttribute('y2',ty);
-      dt.setAttribute('cx',x);dt.setAttribute('cy',y);
-      tag.style.left=tx+'px';tag.style.top=ty+'px';
-      tag.innerHTML=`<b>${SHOW[idx][1]}</b><span>${SHOW[idx][2]}</span>`;
-      tag.style.opacity=1;ln.style.opacity=dt.style.opacity=1;
-    } else { tag.style.opacity=0;ln.style.opacity=dt.style.opacity=0; }
-  } else { tag.style.opacity=0;ln.style.opacity=dt.style.opacity=0; }
+      const goalX = Math.min(w-edge, Math.max(edge, x + tagSide*110));
+      const goalY = Math.max(w < 720 ? 72 : 56, y-84);
+      if(fresh){
+        anchorX = goalX; anchorY = goalY; dotX = x; dotY = y;
+      } else {
+        anchorX = damp(anchorX, goalX, delta, 10);
+        anchorY = damp(anchorY, goalY, delta, 10);
+        dotX = damp(dotX, x, delta, 18);
+        dotY = damp(dotY, y, delta, 18);
+      }
+      ln.setAttribute('x1', dotX); ln.setAttribute('y1', dotY);
+      ln.setAttribute('x2', anchorX); ln.setAttribute('y2', anchorY);
+      dt.setAttribute('cx', dotX); dt.setAttribute('cy', dotY);
+      tag.style.left = anchorX+'px'; tag.style.top = anchorY+'px';
+      if(!calloutOn){
+        tag.style.opacity = '1'; ln.style.opacity = '1'; dt.style.opacity = '1';
+        calloutOn = true;
+      }
+    } else hideCallout();
+  } else hideCallout();
 }
 
 if(FIX !== null){ frame(FIX, 0); document.title='ready'; }
