@@ -284,3 +284,20 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .v3-toast, .v3-pulse, .v3-logo-clean, .v3-logo-charge, .v3-logo-listen, .v3-logo-speak, .v3-cam-drift { animation: none !important; }
 }
+
+/* signature: "Stella" writes itself out in cursive, then the ink fills in */
+.v3-sig { overflow: visible; display: block; }
+.v3-sig text {
+  font-family: var(--font-sig), cursive;
+  fill: transparent;
+  stroke: var(--v3-text);
+  stroke-width: 1.1;
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: v3-sigwrite 2.4s ease-in-out .8s forwards, v3-sigfill .8s ease 3s forwards;
+}
+@keyframes v3-sigwrite { to { stroke-dashoffset: 0; } }
+@keyframes v3-sigfill { to { fill: var(--v3-text); stroke-width: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .v3-sig text { animation: none; stroke-dashoffset: 0; fill: var(--v3-text); stroke-width: 0; }
+}

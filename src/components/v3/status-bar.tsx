@@ -15,7 +15,13 @@ export function V3StatusBar() {
           Stella · v3 <span className="mx-1" style={{ color: "var(--v3-mint)" }}>●</span> Pi online · lidar 10 Hz · cam 15 fps
         </span>
       </div>
-      <span className="mono hidden sm:inline">last sync 2 s</span>
+      <div className="flex items-center gap-3">
+        <span className="mono hidden sm:inline">last sync 2 s</span>
+        <span className="mono hidden lg:inline">Built by King and the gng (Claude, Grok, Muse)</span>
+        <svg className="v3-sig" width="72" height="26" viewBox="0 0 120 40" role="img" aria-label="Stella — signed">
+          <text x="6" y="30" fontSize="30">Stella</text>
+        </svg>
+      </div>
     </footer>
   );
 }
