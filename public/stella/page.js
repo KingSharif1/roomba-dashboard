@@ -3,7 +3,7 @@ const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.
 const tx=(p,x,y,s,cls='',extra={})=>{const t=el('text',{x,y,class:cls,...extra},p);t.textContent=s;return t;};
 /* ---------- theme ---------- */
 const root=document.documentElement,btn=document.getElementById('theme');
-function setTheme(t){root.dataset.theme=t;localStorage.setItem('stella-theme',t);btn.textContent=t==='dark'?'◐ paper':'◑ blueprint';
+function setTheme(t){root.dataset.theme=t;localStorage.setItem('stella-theme',t);btn.textContent=t==='dark'?'◐ paper':'◑ colored';
  const f=document.querySelector('iframe.viewer');if(f&&f.contentWindow)f.contentWindow.postMessage({theme:t},'*');}
 setTheme(localStorage.getItem('stella-theme')||'paper');
 btn.onclick=()=>setTheme(root.dataset.theme==='dark'?'paper':'dark');

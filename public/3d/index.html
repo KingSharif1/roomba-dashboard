@@ -1,17 +1,92 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stella</title><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Stella — 3D Build</title>
+<base href="/3d/">
+<script>{const q=new URLSearchParams(location.search);if(q.has('embed'))document.documentElement.dataset.embed='1';const forced=q.get('theme');if(forced==='dark'||forced==='paper')localStorage.setItem('stella-theme',forced);const t=localStorage.getItem('stella-theme')||'paper';document.documentElement.dataset.theme=t==='dark'?'dark':'paper';}</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-html[data-theme=paper] body:not(.bp){background:#efe6d2;color:#2a2119}html[data-theme=dark] body,body.bp{background:#0c0f2e!important;color:#e9e7ff}
-html,body{margin:0;height:100%;overflow:hidden;font:12px/1.3 'IBM Plex Mono',ui-monospace,monospace;background:#eef1f4;color:#111}
-
-#ui{position:fixed;top:14px;left:14px;display:flex;gap:10px;align-items:center}
-button{font:inherit;border:1px solid currentColor;background:transparent;color:inherit;padding:5px 10px;border-radius:6px;cursor:pointer;opacity:.8}
-button:hover{opacity:1}
-input[type=range]{width:140px;accent-color:#ff7a59}
-#info{position:fixed;left:14px;bottom:14px;pointer-events:none}
-#info b{display:block;font-size:16px}
-#info span{opacity:.7}
-canvas{display:block}
+:root{--bg:#0c0f2e;--card:#141a46;--ink:#e9e7ff;--mute:#9ea3d8;--line:#2a2f78;--acc:#ff7a59}
+[data-theme=paper]{--bg:#efe6d2;--card:#f9f2e2;--ink:#2a2119;--mute:#76695a;--line:#d8cbb2;--acc:#c2410c}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:12px/1.35 "IBM Plex Mono",ui-monospace,monospace;-webkit-tap-highlight-color:transparent}
+canvas{position:fixed;inset:0;z-index:1;display:block;touch-action:none}
+#wash{position:fixed;inset:0;z-index:0;pointer-events:none;background:#071433;transform-origin:left center;transform:scaleX(0);will-change:transform}
+#watermark{position:fixed;right:18px;bottom:calc(16px + env(safe-area-inset-bottom));width:104px;height:104px;opacity:.2;pointer-events:none;z-index:0;color:var(--ink)}
+#watermark svg{display:block;width:100%;height:100%}
+#watermark .ink{stroke:currentColor;fill:none}
+#watermark .star{fill:currentColor;stroke:none}
+#dock{position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:30;width:min(228px,calc(100vw - 24px));display:flex;flex-direction:column;align-items:stretch}
+#expandBtn,#sheet button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer;touch-action:manipulation}
+#expandBtn{display:flex;align-items:center;min-height:40px;padding:0 12px;text-align:left;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--mute);border:1px solid var(--ink);border-bottom:0;background:var(--card)}
+#sheet{border:1px solid var(--ink);background:var(--card);color:var(--ink);max-height:calc(100dvh - 72px);overflow:auto;overscroll-behavior:contain}
+#sheetTab{display:none}
+.grp-h{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:40px;padding:0 12px;text-align:left;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--mute)}
+#sheetBody>*+*{border-top:1px solid var(--ink)}
+.grp-h i{font-style:normal;color:var(--ink);letter-spacing:0}
+.grp-b{display:grid;grid-template-rows:0fr;transition:grid-template-rows .2s ease}
+.grp.open .grp-b{grid-template-rows:1fr}
+.opts{overflow:hidden;min-height:0;display:flex;flex-wrap:wrap}
+.opts button{flex:1 1 50%;box-sizing:border-box;min-height:40px;padding:8px 10px;border-top:1px solid var(--line);font-size:13px;letter-spacing:0;text-transform:none;color:var(--ink);transition:background .18s ease,color .18s ease}
+.opts button:nth-child(odd){border-right:1px solid var(--line)}
+.opts button:last-child:nth-child(odd){flex-basis:100%;border-right:0}
+.opts button[aria-checked="true"]{background:var(--ink);color:var(--card)}
+#sheet button:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+#sheet button:active{background:var(--acc);color:#fff}
+html[data-embed] #statusGroup,html[data-embed] [data-full]{display:none!important}
+html:not([data-embed]) [data-embedonly]{display:none!important}
+#info{position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:6;max-width:min(300px,calc(100vw - 24px));padding:8px 12px;background:var(--card);border:1px solid var(--ink);pointer-events:none}
+#info:empty{display:none}
+#info b{display:block;font-size:14px;font-weight:500}
+#info span{color:var(--mute)}
+@media(max-width:720px){
+  #dock{left:10px;width:auto;max-width:calc(100vw - 16px);flex-direction:row;flex-wrap:wrap;align-items:flex-start;gap:8px}
+  #expandBtn{width:auto;min-height:44px;min-width:44px;padding:0 14px;border-bottom:1px solid var(--ink);background:rgba(20,26,70,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  #sheet{position:relative;width:auto;max-height:none;overflow:visible;border:0;background:transparent}
+  #sheetTab{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid var(--ink);background:rgba(20,26,70,.78);color:var(--ink);letter-spacing:.12em;text-transform:uppercase;font-size:11px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  #sheetBody{display:none}
+  #sheet.open #sheetBody{display:block;position:absolute;top:52px;left:0;width:min(210px,calc(100vw - 20px));max-height:min(46dvh,360px);overflow:auto;background:rgba(20,26,70,.76);border:1px solid var(--ink);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  [data-theme=paper] #expandBtn,[data-theme=paper] #sheetTab,[data-theme=paper] #sheet.open #sheetBody{background:rgba(249,242,226,.76)}
+  #sheetBody .grp-h{min-height:44px;padding:0 10px;font-size:10px}
+  #sheetBody .opts button{min-height:44px;padding:4px 8px;font-size:12px}
+  #info{font-size:15px;padding:12px 14px;max-width:calc(100vw - 20px)}
+  #info b{font-size:17px}
+  #info span{font-size:14px}
+  #watermark{width:84px;height:84px;right:10px}
+}
+@media(prefers-reduced-motion:reduce){.grp-b{transition:none}}
 </style></head><body>
-<div id="ui"><button id="mode">blueprint</button><button id="spin">pause</button><label>explode <input id="ex" type="range" min="0" max="1" step="0.01" value="0"></label></div>
+<div id="wash" aria-hidden="true"></div>
+<div id="watermark" aria-hidden="true"><svg viewBox="0 0 512 512"><g fill="none" stroke-width="18" stroke-linecap="round" class="ink"><circle cx="256" cy="256" r="168"/><circle cx="256" cy="256" r="112" stroke-width="10" opacity="0.55"/><path d="M256 168 l28 58 64 8 -46 44 12 62 -58 -32 -58 32 12 -62 -46 -44 64 -8 z" class="star"/></g></svg></div>
+<div id="dock">
+  <button id="expandBtn" type="button" aria-pressed="false">Expand</button>
+  <div id="sheet">
+    <button id="sheetTab" type="button" aria-expanded="false" aria-controls="sheetBody">Controls</button>
+    <div id="sheetBody">
+  <section class="grp" id="viewGroup">
+    <button class="grp-h" type="button" aria-expanded="false"><span>View</span><i aria-hidden="true">+</i></button>
+    <div class="grp-b"><div class="opts" role="group" aria-label="View">
+      <button type="button" data-model="real" aria-checked="true">Real</button>
+      <button type="button" data-model="blueprint" aria-checked="false">Blueprint</button>
+    </div></div>
+  </section>
+  <section class="grp" id="positionGroup">
+    <button class="grp-h" type="button" aria-expanded="false"><span>Position</span><i aria-hidden="true">+</i></button>
+    <div class="grp-b"><div class="opts" role="group" aria-label="Position">
+      <button type="button" data-view="top">Top</button>
+      <button type="button" data-view="front">Front</button>
+      <button type="button" data-view="side">Side</button>
+      <button type="button" data-view="iso" aria-checked="true">Iso</button>
+      <button type="button" data-view="exploded" data-full>Exploded</button>
+    </div></div>
+  </section>
+  <section class="grp" id="statusGroup">
+    <button class="grp-h" type="button" aria-expanded="false"><span>Status</span><i aria-hidden="true">+</i></button>
+    <div class="grp-b"><div class="opts" role="group" aria-label="Status">
+      <button type="button" data-state="running">Running</button>
+      <button type="button" data-state="dock" aria-checked="true">Dock</button>
+      <button type="button" data-state="cleaning">Cleaning</button>
+      <button type="button" data-state="stuck">Stuck</button>
+    </div></div>
+  </section>
+    </div>
+  </div>
+</div>
 <div id="info"></div>
-<script type="module" src="app.js?v3b"></script></body></html>
+<script type="module" src="app.js?v3d"></script></body></html>
