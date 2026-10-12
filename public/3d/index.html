@@ -8,15 +8,17 @@
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:12px/1.35 "IBM Plex Mono",ui-monospace,monospace;-webkit-tap-highlight-color:transparent}
 canvas{position:fixed;inset:0;z-index:1;display:block;touch-action:none}
 #wash{position:fixed;inset:0;z-index:0;pointer-events:none;background:#071433;transform-origin:left center;transform:scaleX(0);will-change:transform}
-#watermark{position:fixed;right:14px;bottom:calc(12px + env(safe-area-inset-bottom));width:120px;height:120px;opacity:.07;pointer-events:none;z-index:0;color:var(--ink)}
+#watermark{position:fixed;right:18px;bottom:calc(16px + env(safe-area-inset-bottom));width:104px;height:104px;opacity:.2;pointer-events:none;z-index:0;color:var(--ink)}
 #watermark svg{display:block;width:100%;height:100%}
-#watermark .tile{fill:currentColor}
 #watermark .ink{stroke:currentColor;fill:none}
 #watermark .star{fill:currentColor;stroke:none}
-#sheet{position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:30;width:min(228px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;background:var(--card);color:var(--ink);border:1px solid var(--ink)}
-#sheet button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer;touch-action:manipulation}
-#expandBtn,.grp-h{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:40px;padding:0 12px;text-align:left;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--mute)}
-#sheet>*+*{border-top:1px solid var(--ink)}
+#dock{position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:30;width:min(228px,calc(100vw - 24px));display:flex;flex-direction:column;align-items:stretch}
+#expandBtn,#sheet button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer;touch-action:manipulation}
+#expandBtn{display:flex;align-items:center;min-height:40px;padding:0 12px;text-align:left;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--mute);border:1px solid var(--ink);border-bottom:0;background:var(--card)}
+#sheet{border:1px solid var(--ink);background:var(--card);color:var(--ink);max-height:calc(100dvh - 72px);overflow:auto;overscroll-behavior:contain}
+#sheetTab{display:none}
+.grp-h{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:40px;padding:0 12px;text-align:left;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--mute)}
+#sheetBody>*+*{border-top:1px solid var(--ink)}
 .grp-h i{font-style:normal;color:var(--ink);letter-spacing:0}
 .grp-b{display:grid;grid-template-rows:0fr;transition:grid-template-rows .2s ease}
 .grp.open .grp-b{grid-template-rows:1fr}
@@ -34,20 +36,29 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
 #info b{display:block;font-size:14px;font-weight:500}
 #info span{color:var(--mute)}
 @media(max-width:720px){
-  #sheet{width:min(196px,calc(100vw - 20px));left:10px}
-  #expandBtn,.grp-h,.opts button{min-height:44px}
-  .opts button{font-size:14px;padding:10px 8px}
+  #dock{left:10px;width:auto;max-width:calc(100vw - 16px);flex-direction:row;flex-wrap:wrap;align-items:flex-start;gap:8px}
+  #expandBtn{width:auto;min-height:44px;min-width:44px;padding:0 14px;border-bottom:1px solid var(--ink);background:rgba(20,26,70,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  #sheet{position:relative;width:auto;max-height:none;overflow:visible;border:0;background:transparent}
+  #sheetTab{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid var(--ink);background:rgba(20,26,70,.78);color:var(--ink);letter-spacing:.12em;text-transform:uppercase;font-size:11px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  #sheetBody{display:none}
+  #sheet.open #sheetBody{display:block;position:absolute;top:52px;left:0;width:min(210px,calc(100vw - 20px));max-height:min(46dvh,360px);overflow:auto;background:rgba(20,26,70,.76);border:1px solid var(--ink);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  [data-theme=paper] #expandBtn,[data-theme=paper] #sheetTab,[data-theme=paper] #sheet.open #sheetBody{background:rgba(249,242,226,.76)}
+  #sheetBody .grp-h{min-height:44px;padding:0 10px;font-size:10px}
+  #sheetBody .opts button{min-height:44px;padding:4px 8px;font-size:12px}
   #info{font-size:15px;padding:12px 14px;max-width:calc(100vw - 20px)}
   #info b{font-size:17px}
   #info span{font-size:14px}
-  #watermark{width:92px;height:92px;right:8px}
+  #watermark{width:84px;height:84px;right:10px}
 }
 @media(prefers-reduced-motion:reduce){.grp-b{transition:none}}
 </style></head><body>
 <div id="wash" aria-hidden="true"></div>
-<div id="watermark" aria-hidden="true"><svg viewBox="0 0 512 512"><rect width="512" height="512" rx="112" class="tile"/><g fill="none" stroke-width="14" stroke-linecap="round" class="ink"><circle cx="256" cy="256" r="150"/><circle cx="256" cy="256" r="104" stroke-width="8" opacity="0.45"/><path d="M256 176 l24 52 56 6 -41 39 11 55 -50 -28 -50 28 11 -55 -41 -39 56 -6 z" class="star"/></g></svg></div>
-<div id="sheet">
+<div id="watermark" aria-hidden="true"><svg viewBox="0 0 512 512"><g fill="none" stroke-width="18" stroke-linecap="round" class="ink"><circle cx="256" cy="256" r="168"/><circle cx="256" cy="256" r="112" stroke-width="10" opacity="0.55"/><path d="M256 168 l28 58 64 8 -46 44 12 62 -58 -32 -58 32 12 -62 -46 -44 64 -8 z" class="star"/></g></svg></div>
+<div id="dock">
   <button id="expandBtn" type="button" aria-pressed="false">Expand</button>
+  <div id="sheet">
+    <button id="sheetTab" type="button" aria-expanded="false" aria-controls="sheetBody">Controls</button>
+    <div id="sheetBody">
   <section class="grp" id="viewGroup">
     <button class="grp-h" type="button" aria-expanded="false"><span>View</span><i aria-hidden="true">+</i></button>
     <div class="grp-b"><div class="opts" role="group" aria-label="View">
@@ -61,10 +72,7 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
       <button type="button" data-view="top">Top</button>
       <button type="button" data-view="front">Front</button>
       <button type="button" data-view="side">Side</button>
-      <button type="button" data-view="iso" data-embedonly>Iso</button>
-      <button type="button" data-view="threeq" data-full aria-checked="true">¾</button>
-      <button type="button" data-view="run" data-full>Run</button>
-      <button type="button" data-view="dock" data-full>Dock</button>
+      <button type="button" data-view="iso" aria-checked="true">Iso</button>
       <button type="button" data-view="exploded" data-full>Exploded</button>
     </div></div>
   </section>
@@ -77,6 +85,8 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
       <button type="button" data-state="stuck">Stuck</button>
     </div></div>
   </section>
+    </div>
+  </div>
 </div>
 <div id="info"></div>
-<script type="module" src="app.js?v3c"></script></body></html>
+<script type="module" src="app.js?v3d"></script></body></html>

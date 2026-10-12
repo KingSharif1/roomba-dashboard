@@ -33,7 +33,6 @@ const INFO={
 const LAYER={wheels:-70,tape:25,plate:50,posts:95,powerbox:85,xh:85,buck:85,rocker:85,fuse:85,pi:85,camera:85,mega:85,mpu:125,lcd:150,lidar:150,speaker:130,mic:130,battwires:50,usbc:85,dincable:60};
 
 const q=new URLSearchParams(location.search);
-const EMBED=q.has('embed');
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const info=document.getElementById('info');
 const wash=document.getElementById('wash');
@@ -198,12 +197,9 @@ const VIEWS={
   top:{pos:[80,1280,40],explode:0},
   side:{pos:[1100,300,30],explode:0},
   iso:{pos:[-560,470,-520],explode:0},
-  threeq:{pos:[-560,470,-520],explode:0},
-  run:{pos:[-380,260,-760],explode:0},
-  dock:{pos:[-240,560,-820],explode:0},
   exploded:{pos:[-720,680,-700],explode:1}
 };
-let currentView=EMBED?'iso':'threeq';
+let currentView='iso';
 let explodeT=q.has('ex')?+q.get('ex'):0;
 let explodeGoal=explodeT;
 let tween=null;
@@ -253,12 +249,6 @@ document.querySelectorAll('.grp-h').forEach(btn=>{
 document.querySelectorAll('[data-model]').forEach(b=>b.addEventListener('click',()=>setModelView(b.dataset.model)));
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>flyTo(b.dataset.view)));
 document.querySelectorAll('[data-state]').forEach(b=>b.addEventListener('click',()=>setState(b.dataset.state)));
-if(EMBED){
-  const iso=document.querySelector('[data-view="iso"]');
-  if(iso)iso.setAttribute('aria-checked','true');
-  const tq=document.querySelector('[data-view="threeq"]');
-  if(tq)tq.setAttribute('aria-checked','false');
-}
 const expandBtn=document.getElementById('expandBtn');
 function syncExpand(){
   const on=!!document.fullscreenElement;
@@ -273,6 +263,19 @@ expandBtn.addEventListener('click',()=>{
 });
 document.addEventListener('fullscreenchange',syncExpand);
 const sheet=document.getElementById('sheet');
+const sheetTab=document.getElementById('sheetTab');
+const mobileSheet=()=>matchMedia('(max-width:720px)').matches;
+function setSheet(open){
+  sheet.classList.toggle('open',open);
+  sheetTab.setAttribute('aria-expanded',String(open));
+  sheetTab.textContent=open?'Close':'Controls';
+}
+sheetTab.addEventListener('click',()=>{if(mobileSheet())setSheet(!sheet.classList.contains('open'));});
+addEventListener('pointerdown',e=>{
+  if(!mobileSheet()||!sheet.classList.contains('open'))return;
+  if(sheet.contains(e.target)||expandBtn.contains(e.target))return;
+  setSheet(false);
+});
 sheet.addEventListener('keydown',e=>{
   const items=[...sheet.querySelectorAll('button')].filter(b=>b.offsetParent!==null);
   const i=items.indexOf(document.activeElement);
