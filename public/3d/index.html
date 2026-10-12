@@ -1,7 +1,8 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Stella — 3D Build</title>
 <base href="/3d/">
 <script>{const q=new URLSearchParams(location.search);if(q.has('embed'))document.documentElement.dataset.embed='1';const forced=q.get('theme');if(forced==='dark'||forced==='paper')localStorage.setItem('stella-theme',forced);const t=localStorage.getItem('stella-theme')||'paper';document.documentElement.dataset.theme=t==='dark'?'dark':'paper';}</script>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<link rel="modulepreload" href="viewer.js?v1">
 <style>
 :root{--bg:#0c0f2e;--card:#141a46;--ink:#e9e7ff;--mute:#9ea3d8;--line:#2a2f78;--acc:#ff7a59}
 [data-theme=paper]{--bg:#efe6d2;--card:#f9f2e2;--ink:#2a2119;--mute:#76695a;--line:#d8cbb2;--acc:#c2410c}
@@ -12,10 +13,19 @@ canvas{position:fixed;inset:0;z-index:1;display:block;touch-action:none}
 #watermark svg{display:block;width:100%;height:100%}
 #watermark .ink{stroke:currentColor;fill:none}
 #watermark .star{fill:currentColor;stroke:none}
-#dock{position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:30;width:min(228px,calc(100vw - 24px));display:flex;flex-direction:column;align-items:stretch}
-#expandBtn,#sheet button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer;touch-action:manipulation}
-#expandBtn{display:flex;align-items:center;min-height:40px;padding:0 12px;text-align:left;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--mute);border:1px solid var(--ink);border-bottom:0;background:var(--card)}
-#sheet{border:1px solid var(--ink);background:var(--card);color:var(--ink);max-height:calc(100dvh - 72px);overflow:auto;overscroll-behavior:contain}
+#dock{position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:30;width:min(280px,calc(100vw - 24px));display:flex;flex-direction:column;align-items:stretch}
+#fullBtn,#sheet button,#explodeBar{font:inherit;color:inherit;touch-action:manipulation}
+#explodeBar{display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 8px 4px 12px;border:1px solid var(--ink);border-bottom:0;background:rgba(20,26,70,.66);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#exLabel{flex:0 0 auto;letter-spacing:.12em;text-transform:uppercase;font-size:11px;color:var(--mute)}
+#ex{position:relative;flex:1 1 auto;min-width:88px;height:44px;touch-action:none;cursor:ew-resize}
+#ex::before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;transform:translateY(-50%);background:var(--ink);opacity:.35}
+#ex i{position:absolute;left:0;top:50%;height:4px;width:var(--p,0%);transform:translateY(-50%);background:var(--ink)}
+#ex b{position:absolute;left:var(--p,0%);top:50%;width:28px;height:28px;transform:translate(-50%,-50%);border-radius:50%;background:var(--ink);border:2px solid var(--card);box-shadow:0 1px 2px rgba(0,0,0,.28)}
+#ex:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+#fullBtn{flex:0 0 auto;min-width:44px;min-height:36px;padding:0 8px;border:1px solid var(--ink);background:transparent;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;font-size:10px;color:var(--mute)}
+#sheet button{background:transparent;border:0;cursor:pointer}
+#sheet{border:1px solid var(--ink);background:var(--card);color:var(--ink);max-height:calc(100dvh - 120px);overflow:auto;overscroll-behavior:contain}
+[data-theme=paper] #explodeBar{background:rgba(249,242,226,.66)}
 #sheetTab{display:none}
 .grp-h{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:40px;padding:0 12px;text-align:left;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--mute)}
 #sheetBody>*+*{border-top:1px solid var(--ink)}
@@ -36,13 +46,14 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
 #info b{display:block;font-size:14px;font-weight:500}
 #info span{color:var(--mute)}
 @media(max-width:720px){
-  #dock{left:10px;width:auto;max-width:calc(100vw - 16px);flex-direction:row;flex-wrap:wrap;align-items:flex-start;gap:8px}
-  #expandBtn{width:auto;min-height:44px;min-width:44px;padding:0 14px;border-bottom:1px solid var(--ink);background:rgba(20,26,70,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-  #sheet{position:relative;width:auto;max-height:none;overflow:visible;border:0;background:transparent}
+  #dock{left:10px;right:10px;width:auto;max-width:none;gap:8px}
+  #explodeBar{border-bottom:1px solid var(--ink)}
+  #fullBtn{min-height:44px}
+  #sheet{position:relative;align-self:flex-start;width:auto;max-height:none;overflow:visible;border:0;background:transparent}
   #sheetTab{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid var(--ink);background:rgba(20,26,70,.78);color:var(--ink);letter-spacing:.12em;text-transform:uppercase;font-size:11px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
   #sheetBody{display:none}
-  #sheet.open #sheetBody{display:block;position:absolute;top:52px;left:0;width:min(210px,calc(100vw - 20px));max-height:min(46dvh,360px);overflow:auto;background:rgba(20,26,70,.76);border:1px solid var(--ink);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-  [data-theme=paper] #expandBtn,[data-theme=paper] #sheetTab,[data-theme=paper] #sheet.open #sheetBody{background:rgba(249,242,226,.76)}
+  #sheet.open #sheetBody{display:block;position:absolute;top:52px;left:0;width:min(240px,calc(100vw - 20px));max-height:min(72dvh,520px);overflow:auto;background:rgba(20,26,70,.76);border:1px solid var(--ink);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);scrollbar-width:thin}
+  [data-theme=paper] #sheetTab,[data-theme=paper] #sheet.open #sheetBody{background:rgba(249,242,226,.76)}
   #sheetBody .grp-h{min-height:44px;padding:0 10px;font-size:10px}
   #sheetBody .opts button{min-height:44px;padding:4px 8px;font-size:12px}
   #info{font-size:15px;padding:12px 14px;max-width:calc(100vw - 20px)}
@@ -50,12 +61,42 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
   #info span{font-size:14px}
   #watermark{width:84px;height:84px;right:10px}
 }
-@media(prefers-reduced-motion:reduce){.grp-b{transition:none}}
+#boot{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:var(--bg);color:var(--ink);transition:opacity .45s ease}
+#boot.done{opacity:0;pointer-events:none}
+#boot .sheet{display:grid;justify-items:center}
+#boot svg{width:min(68vw,280px);height:auto;overflow:visible}
+#boot .part{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;transform-box:fill-box;transform-origin:center}
+#boot .ardu{stroke:#c2410c}
+#boot .cable{stroke:#b42318}
+[data-theme=dark] #boot .ardu{stroke:#ffb089}
+[data-theme=dark] #boot .cable{stroke:#ff7a7a}
+#boot p{margin:16px 0 0;letter-spacing:.22em;text-transform:uppercase;font-size:11px;color:var(--mute)}
+@keyframes boot-up{from{transform:translateY(46vh);opacity:0}to{transform:none;opacity:1}}
+@keyframes boot-down{from{transform:translateY(-46vh);opacity:0}to{transform:none;opacity:1}}
+@keyframes boot-left{from{transform:translateX(-70vw);opacity:0}to{transform:none;opacity:1}}
+@keyframes boot-right{from{transform:translateX(70vw);opacity:0}to{transform:none;opacity:1}}
+@keyframes boot-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+#boot .shell{animation:boot-up 1.15s cubic-bezier(.16,.8,.2,1) both,boot-float 2.8s ease-in-out 1.2s infinite}
+#boot .pi{animation:boot-left 1.05s cubic-bezier(.16,.8,.2,1) .06s both,boot-float 3s ease-in-out 1.25s infinite}
+#boot .lidar{animation:boot-down 1.1s cubic-bezier(.16,.8,.2,1) .1s both,boot-float 2.6s ease-in-out 1.3s infinite}
+#boot .lcd{animation:boot-right 1.05s cubic-bezier(.16,.8,.2,1) .16s both,boot-float 3.1s ease-in-out 1.28s infinite}
+#boot .ardu{animation:boot-left 1.2s cubic-bezier(.16,.8,.2,1) .2s both,boot-float 2.9s ease-in-out 1.4s infinite}
+#boot .cable{animation:boot-right 1.15s cubic-bezier(.16,.8,.2,1) .26s both,boot-float 3.2s ease-in-out 1.45s infinite}
+@media(prefers-reduced-motion:reduce){
+  .grp-b{transition:none}
+  #boot{transition:none}
+  #boot .part{animation:none;opacity:1;transform:none}
+}
 </style></head><body>
+<div id="boot" role="status" aria-busy="true" aria-label="Drawing Stella"><div class="sheet"><svg viewBox="0 0 240 240" aria-hidden="true"><g class="part shell"><circle cx="120" cy="132" r="74"/><circle cx="120" cy="132" r="50" opacity="0.4"/></g><g class="part ardu"><rect x="132" y="116" width="54" height="42" rx="3"/><path d="M142 128h34M142 136h24M142 146h30"/></g><g class="part pi"><rect x="96" y="84" width="46" height="26" rx="2"/></g><g class="part lcd"><rect x="102" y="116" width="36" height="16" rx="1"/><path d="M106 121h28M106 127h18"/></g><g class="part lidar"><circle cx="120" cy="102" r="16"/><circle cx="120" cy="102" r="5"/></g><g class="part cable"><path d="M58 170 C84 196, 132 192, 150 160"/><circle cx="58" cy="170" r="3.2"/></g></svg><p>Stella</p></div></div>
 <div id="wash" aria-hidden="true"></div>
 <div id="watermark" aria-hidden="true"><svg viewBox="0 0 512 512"><g fill="none" stroke-width="18" stroke-linecap="round" class="ink"><circle cx="256" cy="256" r="168"/><circle cx="256" cy="256" r="112" stroke-width="10" opacity="0.55"/><path d="M256 168 l28 58 64 8 -46 44 12 62 -58 -32 -58 32 12 -62 -46 -44 64 -8 z" class="star"/></g></svg></div>
 <div id="dock">
-  <button id="expandBtn" type="button" aria-pressed="false">Expand</button>
+  <div id="explodeBar">
+    <span id="exLabel">Explode</span>
+    <div id="ex" role="slider" tabindex="0" aria-labelledby="exLabel" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i><b></b></div>
+    <button id="fullBtn" type="button" aria-pressed="false" aria-label="Fullscreen">Full</button>
+  </div>
   <div id="sheet">
     <button id="sheetTab" type="button" aria-expanded="false" aria-controls="sheetBody">Controls</button>
     <div id="sheetBody">
@@ -73,11 +114,10 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
       <button type="button" data-view="front">Front</button>
       <button type="button" data-view="side">Side</button>
       <button type="button" data-view="iso" aria-checked="true">Iso</button>
-      <button type="button" data-view="exploded" data-full>Exploded</button>
     </div></div>
   </section>
-  <section class="grp" id="statusGroup">
-    <button class="grp-h" type="button" aria-expanded="false"><span>Status</span><i aria-hidden="true">+</i></button>
+  <section class="grp open" id="statusGroup">
+    <button class="grp-h" type="button" aria-expanded="true"><span>Status</span><i aria-hidden="true">–</i></button>
     <div class="grp-b"><div class="opts" role="group" aria-label="Status">
       <button type="button" data-state="running">Running</button>
       <button type="button" data-state="dock" aria-checked="true">Dock</button>
@@ -89,4 +129,4 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
   </div>
 </div>
 <div id="info"></div>
-<script type="module" src="app.js?v3d"></script></body></html>
+<script type="module" src="viewer.js?v1"></script></body></html>

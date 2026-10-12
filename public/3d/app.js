@@ -1,3 +1,4 @@
+// The page loads viewer.js, the minified bundle of this module.
 import * as THREE from './three.module.js';
 import {OrbitControls} from './OrbitControls.js';
 import {LineSegments2} from './LineSegments2.js';
@@ -93,6 +94,8 @@ function installWipe(mat,hex,alpha){
   const uBlueA={value:alpha};
   mat.userData.wasTransparent=!!mat.transparent;
   mat.userData.wasDepthWrite=mat.depthWrite!==false;
+  // Alpha is driven by uMix, so this program is compiled once and never rebuilt.
+  if(alpha<0.95)mat.transparent=true;
   mat.onBeforeCompile=(shader)=>{
     shader.uniforms.uMix=wipeU.uMix;
     shader.uniforms.uResolution=wipeU.uResolution;
@@ -115,7 +118,6 @@ function installWipe(mat,hex,alpha){
 }
 
 const meshes=[];
-const solidMats=[];
 const edgeMat=new LineMaterial({color:0xe7fbff,linewidth:1.5,transparent:true,opacity:0.001,depthWrite:false});
 edgeMat.resolution.set(innerWidth,innerHeight);
 const seen=new Set();
@@ -139,7 +141,6 @@ for(const o of pending){
     const op=mat.opacity===undefined?1:mat.opacity;
     const faint=op<0.3;
     installWipe(mat,faint?0x7ef6ff:0x14386e,faint?Math.min(0.5,Math.max(op,0.12)):0.22);
-    if(!faint)solidMats.push(mat);
   }
 }
 root.traverse(o=>{
@@ -153,39 +154,58 @@ root.traverse(o=>{
   }
 });
 
-let edgesOn=false,blended=false,envOff=false;
-function syncEdges(v){
-  const on=v>0.02;
-  if(on===edgesOn)return;
-  edgesOn=on;
-  for(const m of meshes)if(m.userData.edge)m.userData.edge.visible=on;
-}
-function syncBlend(v){
-  const on=v>0.62;
-  if(on===blended)return;
-  blended=on;
-  for(const mat of solidMats){
-    mat.transparent=on?true:mat.userData.wasTransparent;
-    mat.depthWrite=on?false:mat.userData.wasDepthWrite;
-    mat.needsUpdate=true;
-  }
-}
-function syncEnv(v){
-  const off=v>0.82;
-  if(off===envOff)return;
-  envOff=off;
-  scene.environment=off?null:envTex;
-  r.toneMapping=off?THREE.NoToneMapping:THREE.ACESFilmicToneMapping;
-  grid.visible=off;
-  ground.visible=!off;
-}
+let edgesOn=false,envOff=false;
 function applyMix(v){
   wipeU.uMix.value=v;
   wash.style.transform='scaleX('+v+')';
   edgeMat.opacity=0.001+v*0.94;
-  syncEdges(v);
-  syncBlend(v);
-  syncEnv(v);
+  const edges=v>0.02;
+  if(edges!==edgesOn){
+    edgesOn=edges;
+    for(const m of meshes)if(m.userData.edge)m.userData.edge.visible=edges;
+  }
+  const sheet=v>0.82;
+  if(sheet!==envOff){
+    envOff=sheet;
+    grid.visible=sheet;
+    ground.visible=!sheet;
+  }
+}
+// Real materials stay on the meshes. Blueprint clones exist so their programs
+// are compiled up front; the wipe itself only writes uMix.
+const blueprintMats=new Map();
+function blueprintOf(src){
+  let bp=blueprintMats.get(src);
+  if(bp)return bp;
+  bp=src.clone();
+  bp.transparent=true;
+  bp.depthWrite=false;
+  const op=src.opacity===undefined?1:src.opacity;
+  bp.opacity=op<0.3?Math.min(0.5,Math.max(op,0.12)):0.22;
+  if(bp.color)bp.color=new THREE.Color(op<0.3?0x7ef6ff:0x14386e);
+  if(bp.emissive){bp.emissive=new THREE.Color(0x14386e);bp.emissiveIntensity=0.4;}
+  installWipe(bp,op<0.3?0x7ef6ff:0x14386e,bp.opacity);
+  blueprintMats.set(src,bp);
+  return bp;
+}
+function prewarm(){
+  scene.updateMatrixWorld(true);
+  cam.updateMatrixWorld();
+  applyMix(0);
+  r.compile(scene,cam);
+  r.render(scene,cam);
+  const saved=[];
+  for(const m of meshes){
+    const src=m.userData.solid;
+    if(!src||src.isShadowMaterial)continue;
+    saved.push([m,m.material]);
+    m.material=Array.isArray(src)?src.map(blueprintOf):blueprintOf(src);
+  }
+  applyMix(1);
+  r.compile(scene,cam);
+  r.render(scene,cam);
+  for(const pair of saved)pair[0].material=pair[1];
+  applyMix(0);
 }
 
 const base={};
@@ -193,14 +213,13 @@ for(const k in parts)base[k]=parts[k].position.y;
 function explode(t){for(const k in parts){if(k==='lidarhead')continue;parts[k].position.y=base[k]+(LAYER[k]||0)*t;}}
 
 const VIEWS={
-  front:{pos:[0,320,-980],explode:0},
-  top:{pos:[80,1280,40],explode:0},
-  side:{pos:[1100,300,30],explode:0},
-  iso:{pos:[-560,470,-520],explode:0},
-  exploded:{pos:[-720,680,-700],explode:1}
+  front:{pos:[0,320,-980]},
+  top:{pos:[80,1280,40]},
+  side:{pos:[1100,300,30]},
+  iso:{pos:[-560,470,-520]}
 };
 let currentView='iso';
-let explodeT=q.has('ex')?+q.get('ex'):0;
+let explodeT=q.has('ex')?Math.max(0,Math.min(1,+q.get('ex')||0)):0;
 let explodeGoal=explodeT;
 let tween=null;
 const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
@@ -208,7 +227,6 @@ function flyTo(name){
   const v=VIEWS[name];if(!v)return;
   currentView=name;
   tween={t:0,p0:cam.position.clone(),p1:new THREE.Vector3(v.pos[0],v.pos[1],v.pos[2])};
-  explodeGoal=v.explode||0;
   document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.view===name)));
 }
 
@@ -249,19 +267,52 @@ document.querySelectorAll('.grp-h').forEach(btn=>{
 document.querySelectorAll('[data-model]').forEach(b=>b.addEventListener('click',()=>setModelView(b.dataset.model)));
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>flyTo(b.dataset.view)));
 document.querySelectorAll('[data-state]').forEach(b=>b.addEventListener('click',()=>setState(b.dataset.state)));
-const expandBtn=document.getElementById('expandBtn');
-function syncExpand(){
+const fullBtn=document.getElementById('fullBtn');
+function syncFull(){
   const on=!!document.fullscreenElement;
-  expandBtn.textContent=on?'Exit':'Expand';
-  expandBtn.setAttribute('aria-pressed',String(on));
+  fullBtn.textContent=on?'Exit':'Full';
+  fullBtn.setAttribute('aria-pressed',String(on));
+  fullBtn.setAttribute('aria-label',on?'Exit fullscreen':'Fullscreen');
 }
-expandBtn.addEventListener('click',()=>{
+fullBtn.addEventListener('click',()=>{
   const el=document.documentElement;
   if(document.fullscreenElement){if(document.exitFullscreen)document.exitFullscreen();}
   else if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
   else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
 });
-document.addEventListener('fullscreenchange',syncExpand);
+document.addEventListener('fullscreenchange',syncFull);
+const ex=document.getElementById('ex');
+function paintExplode(t){
+  const n=Math.max(0,Math.min(1,+t||0));
+  explodeGoal=n;
+  explodeT=n;
+  explode(n);
+  ex.style.setProperty('--p',(n*100)+'%');
+  ex.setAttribute('aria-valuenow',String(Math.round(n*100)));
+}
+function explodeFromX(clientX){
+  const r=ex.getBoundingClientRect();
+  if(!r.width)return;
+  paintExplode((clientX-r.left)/r.width);
+}
+paintExplode(explodeT);
+ex.addEventListener('pointerdown',e=>{
+  if(e.button!=null&&e.button!==0)return;
+  explodeFromX(e.clientX);
+  try{ex.setPointerCapture(e.pointerId);}catch(err){}
+});
+ex.addEventListener('pointermove',e=>{
+  if(!ex.hasPointerCapture(e.pointerId))return;
+  explodeFromX(e.clientX);
+});
+ex.addEventListener('keydown',e=>{
+  const step=e.shiftKey?0.1:0.02;
+  if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();paintExplode(explodeT+step);}
+  else if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();paintExplode(explodeT-step);}
+  else if(e.key==='Home'){e.preventDefault();paintExplode(0);}
+  else if(e.key==='End'){e.preventDefault();paintExplode(1);}
+});
+const explodeBar=document.getElementById('explodeBar');
 const sheet=document.getElementById('sheet');
 const sheetTab=document.getElementById('sheetTab');
 const mobileSheet=()=>matchMedia('(max-width:720px)').matches;
@@ -273,7 +324,7 @@ function setSheet(open){
 sheetTab.addEventListener('click',()=>{if(mobileSheet())setSheet(!sheet.classList.contains('open'));});
 addEventListener('pointerdown',e=>{
   if(!mobileSheet()||!sheet.classList.contains('open'))return;
-  if(sheet.contains(e.target)||expandBtn.contains(e.target))return;
+  if(sheet.contains(e.target)||explodeBar.contains(e.target))return;
   setSheet(false);
 });
 sheet.addEventListener('keydown',e=>{
@@ -384,12 +435,22 @@ addEventListener('message',e=>{const t=e.data&&e.data.theme;if(t==='dark'||t==='
 addEventListener('storage',e=>{if(e.key==='stella-theme')applyTheme(e.newValue);});
 
 const clock=new THREE.Clock();
+prewarm();
 if(q.has('mix'))applyMix(Math.max(0,Math.min(1,+q.get('mix'))));
 else if(q.has('bp'))setModelView('blueprint');
 else applyMix(0);
 if(q.has('sel')){locked=q.get('sel');show(locked);}
 explode(explodeT);
 
+let revealed=false;
+function reveal(){
+  if(revealed)return;
+  revealed=true;
+  const boot=document.getElementById('boot');
+  if(!boot)return;
+  boot.classList.add('done');
+  boot.setAttribute('aria-busy','false');
+}
 r.setAnimationLoop(()=>{
   const dt=Math.min(0.05,clock.getDelta());
   const t=clock.elapsedTime;
@@ -424,5 +485,6 @@ r.setAnimationLoop(()=>{
   if(cur)fit(cur);
   ctl.update();
   r.render(scene,cam);
+  reveal();
 });
 window.__stella3d=true;
