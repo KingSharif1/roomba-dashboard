@@ -110,10 +110,9 @@ html.static .rv,html.static .card{transition:none!important}
 footer.big{margin-top:90px;position:relative;border-top:1.5px solid var(--ink);background:var(--card);overflow:hidden}
 footer.big:before{content:"";position:absolute;inset:0;background:radial-gradient(60% 120% at 85% 0%,var(--glow),transparent 70%);pointer-events:none}
 footer.big .in{max-width:1080px;margin:0 auto;padding:56px 20px 26px;position:relative;display:grid;grid-template-columns:1.4fr 1fr;gap:40px}
-footer.big .mark{font:500 clamp(64px,13vw,168px)/.85 "IBM Plex Mono",monospace;letter-spacing:.04em;color:transparent;-webkit-text-stroke:1.2px var(--ink);margin:0 0 18px;opacity:.9}
 footer.big .cred{font:italic 22px/1.45 "Newsreader",Georgia,serif;max-width:30ch;margin:0}
-/* signature: writes itself out, then the ink fills in */
-footer.big .sig{width:170px;height:54px;overflow:visible;margin-top:10px;display:block}
+/* signature: writes itself out, then the ink fills in — the footer's centerpiece */
+footer.big .sig{width:210px;height:66px;overflow:visible;margin:6px 0 14px;display:block}
 footer.big .sig text{font-family:'La Belle Aurore',cursive;font-size:50px;fill:transparent;stroke:var(--ink);stroke-width:1.3;stroke-dasharray:560;stroke-dashoffset:560;animation:sigwrite 2.6s ease-in-out .8s forwards,sigfill .9s ease 3.2s forwards}
 @keyframes sigwrite{to{stroke-dashoffset:0}}
 @keyframes sigfill{to{fill:var(--ink);stroke-width:0}}

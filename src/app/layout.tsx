@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Schibsted_Grotesk, La_Belle_Aurore } from "next/font/google";
+import { Geist, Geist_Mono, Schibsted_Grotesk } from "next/font/google";
 import { RobotProvider } from "@/components/connection/robot-provider";
 import "./globals.css";
 
@@ -17,12 +17,6 @@ const display = Schibsted_Grotesk({
   variable: "--font-schibsted",
   subsets: ["latin"],
   weight: "700",
-});
-
-const sigFont = La_Belle_Aurore({
-  variable: "--font-sig",
-  subsets: ["latin"],
-  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -49,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${sigFont.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <RobotProvider>{children}</RobotProvider>
