@@ -91,7 +91,7 @@ export function DrivePad({ status }: DrivePadProps) {
       if (d && !e.repeat) {
         e.preventDefault();
         if (demo) {
-          emitToastOps([{ type: "push", key: "drive:demo", tone: "error", message: "Demo mode — connect the real robot to drive" }]);
+          emitToastOps([{ type: "push", key: "drive:demo", tone: "info", message: "Demo mode — connect the real robot to drive" }]);
           return;
         }
         go(d);

@@ -50,6 +50,7 @@ export function ToastViewport() {
     <div className="pointer-events-none fixed top-16 left-0 right-0 z-[70] flex flex-col items-center gap-2 px-4">
       {state.items.map((item) => {
         const error = item.tone === "error";
+        const info = item.tone === "info";
         return (
           <div
             key={item.id}
@@ -59,7 +60,9 @@ export function ToastViewport() {
             className={`pointer-events-auto flex items-center gap-3 max-w-full px-3 py-2 border rounded text-sm shadow-lg ${
               error
                 ? "bg-danger/15 border-danger/50 text-danger"
-                : "bg-accent/15 border-accent/50 text-accent"
+                : info
+                  ? "bg-surface/90 border-border text-muted"
+                  : "bg-accent/15 border-accent/50 text-accent"
             }`}
           >
             <span>{item.message}</span>

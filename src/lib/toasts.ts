@@ -3,6 +3,9 @@ import type { AccessRole, CommandResult, ConnectionPhase } from "./types";
 /** How long a success toast stays up before it leaves on its own. */
 export const SUCCESS_TOAST_MS = 2_500;
 
+/** How long an info toast stays up before it leaves on its own. */
+export const INFO_TOAST_MS = 2_500;
+
 export const TOAST = {
   unreachable: "Robot unreachable. Check Tailscale.",
   reconnected: "Reconnected",
@@ -47,7 +50,7 @@ export const TOAST_KEY = {
   save: "settings:save",
 } as const;
 
-export type ToastTone = "error" | "success";
+export type ToastTone = "error" | "success" | "info";
 
 export type ToastRecord = {
   id: number;
@@ -120,7 +123,7 @@ export function pushToast(state: ToastState, input: { key: string; tone: ToastTo
     key: input.key,
     tone: input.tone,
     message: input.message,
-    expiresAt: input.tone === "success" ? now + SUCCESS_TOAST_MS : null,
+    expiresAt: input.tone === "info" ? now + INFO_TOAST_MS : input.tone === "success" ? now + SUCCESS_TOAST_MS : null,
   });
   return {
     items,

@@ -8,6 +8,7 @@ import { markStateFrom } from "@/lib/mark-state";
 import { formatTimeAgo } from "@/lib/utils";
 import type { RobotStatus } from "@/lib/types";
 import { Wifi, WifiOff, Clock } from "lucide-react";
+import { useRobotMode } from "@/hooks/use-robot-mode";
 
 interface StatusCardProps {
   status: RobotStatus;
@@ -15,19 +16,20 @@ interface StatusCardProps {
 
 export function StatusCard({ status }: StatusCardProps) {
   const offline = markStateFrom(status) === "offline";
+  const demo = useRobotMode();
 
   return (
     <Card glow={markStateFrom(status) === "moving"}>
       <CardHeader>
         <CardTitle>Status</CardTitle>
         <div className="flex items-center gap-1 text-xs">
-          {offline ? (
+          {offline || demo ? (
             <WifiOff className="w-3 h-3 text-muted" />
           ) : (
             <Wifi className="w-3 h-3 text-accent" />
           )}
-          <span className={offline ? "text-muted" : "text-accent"}>
-            {offline ? "OFFLINE" : "LIVE"}
+          <span className={offline || demo ? "text-muted" : "text-accent"}>
+            {offline ? "OFFLINE" : demo ? "Demo" : "LIVE"}
           </span>
         </div>
       </CardHeader>
