@@ -12,10 +12,20 @@ canvas{position:fixed;inset:0;z-index:1;display:block;touch-action:none}
 #watermark svg{display:block;width:100%;height:100%}
 #watermark .ink{stroke:currentColor;fill:none}
 #watermark .star{fill:currentColor;stroke:none}
-#dock{position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:30;width:min(228px,calc(100vw - 24px));display:flex;flex-direction:column;align-items:stretch}
-#expandBtn,#sheet button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer;touch-action:manipulation}
-#expandBtn{display:flex;align-items:center;min-height:40px;padding:0 12px;text-align:left;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--mute);border:1px solid var(--ink);border-bottom:0;background:var(--card)}
-#sheet{border:1px solid var(--ink);background:var(--card);color:var(--ink);max-height:calc(100dvh - 72px);overflow:auto;overscroll-behavior:contain}
+#dock{position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:30;width:min(280px,calc(100vw - 24px));display:flex;flex-direction:column;align-items:stretch}
+#fullBtn,#sheet button,#explodeBar{font:inherit;color:inherit;touch-action:manipulation}
+#explodeBar{display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 8px 4px 12px;border:1px solid var(--ink);border-bottom:0;background:rgba(20,26,70,.66);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#explodeBar label{flex:0 0 auto;letter-spacing:.12em;text-transform:uppercase;font-size:11px;color:var(--mute)}
+#ex{-webkit-appearance:none;appearance:none;flex:1 1 auto;min-width:72px;height:44px;margin:0;background:transparent;cursor:ew-resize;touch-action:none}
+#ex::-webkit-slider-runnable-track{height:4px;background:var(--ink);opacity:.5}
+#ex::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;margin-top:-12px;border-radius:50%;background:var(--ink);border:2px solid var(--card)}
+#ex::-moz-range-track{height:4px;background:var(--ink);opacity:.5;border:0}
+#ex::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:var(--ink);border:2px solid var(--card)}
+#ex:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+#fullBtn{flex:0 0 auto;min-width:44px;min-height:36px;padding:0 8px;border:1px solid var(--ink);background:transparent;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;font-size:10px;color:var(--mute)}
+#sheet button{background:transparent;border:0;cursor:pointer}
+#sheet{border:1px solid var(--ink);background:var(--card);color:var(--ink);max-height:calc(100dvh - 120px);overflow:auto;overscroll-behavior:contain}
+[data-theme=paper] #explodeBar{background:rgba(249,242,226,.66)}
 #sheetTab{display:none}
 .grp-h{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:40px;padding:0 12px;text-align:left;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--mute)}
 #sheetBody>*+*{border-top:1px solid var(--ink)}
@@ -36,13 +46,14 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
 #info b{display:block;font-size:14px;font-weight:500}
 #info span{color:var(--mute)}
 @media(max-width:720px){
-  #dock{left:10px;width:auto;max-width:calc(100vw - 16px);flex-direction:row;flex-wrap:wrap;align-items:flex-start;gap:8px}
-  #expandBtn{width:auto;min-height:44px;min-width:44px;padding:0 14px;border-bottom:1px solid var(--ink);background:rgba(20,26,70,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-  #sheet{position:relative;width:auto;max-height:none;overflow:visible;border:0;background:transparent}
+  #dock{left:10px;right:10px;width:auto;max-width:none;gap:8px}
+  #explodeBar{border-bottom:1px solid var(--ink)}
+  #fullBtn{min-height:44px}
+  #sheet{position:relative;align-self:flex-start;width:auto;max-height:none;overflow:visible;border:0;background:transparent}
   #sheetTab{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid var(--ink);background:rgba(20,26,70,.78);color:var(--ink);letter-spacing:.12em;text-transform:uppercase;font-size:11px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
   #sheetBody{display:none}
-  #sheet.open #sheetBody{display:block;position:absolute;top:52px;left:0;width:min(210px,calc(100vw - 20px));max-height:min(46dvh,360px);overflow:auto;background:rgba(20,26,70,.76);border:1px solid var(--ink);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-  [data-theme=paper] #expandBtn,[data-theme=paper] #sheetTab,[data-theme=paper] #sheet.open #sheetBody{background:rgba(249,242,226,.76)}
+  #sheet.open #sheetBody{display:block;position:absolute;top:52px;left:0;width:min(240px,calc(100vw - 20px));max-height:min(72dvh,520px);overflow:auto;background:rgba(20,26,70,.76);border:1px solid var(--ink);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);scrollbar-width:thin}
+  [data-theme=paper] #sheetTab,[data-theme=paper] #sheet.open #sheetBody{background:rgba(249,242,226,.76)}
   #sheetBody .grp-h{min-height:44px;padding:0 10px;font-size:10px}
   #sheetBody .opts button{min-height:44px;padding:4px 8px;font-size:12px}
   #info{font-size:15px;padding:12px 14px;max-width:calc(100vw - 20px)}
@@ -55,7 +66,11 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
 <div id="wash" aria-hidden="true"></div>
 <div id="watermark" aria-hidden="true"><svg viewBox="0 0 512 512"><g fill="none" stroke-width="18" stroke-linecap="round" class="ink"><circle cx="256" cy="256" r="168"/><circle cx="256" cy="256" r="112" stroke-width="10" opacity="0.55"/><path d="M256 168 l28 58 64 8 -46 44 12 62 -58 -32 -58 32 12 -62 -46 -44 64 -8 z" class="star"/></g></svg></div>
 <div id="dock">
-  <button id="expandBtn" type="button" aria-pressed="false">Expand</button>
+  <div id="explodeBar">
+    <label for="ex">Explode</label>
+    <input id="ex" type="range" min="0" max="1" step="0.01" value="0" aria-label="Explode">
+    <button id="fullBtn" type="button" aria-pressed="false" aria-label="Fullscreen">Full</button>
+  </div>
   <div id="sheet">
     <button id="sheetTab" type="button" aria-expanded="false" aria-controls="sheetBody">Controls</button>
     <div id="sheetBody">
@@ -73,11 +88,10 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
       <button type="button" data-view="front">Front</button>
       <button type="button" data-view="side">Side</button>
       <button type="button" data-view="iso" aria-checked="true">Iso</button>
-      <button type="button" data-view="exploded" data-full>Exploded</button>
     </div></div>
   </section>
-  <section class="grp" id="statusGroup">
-    <button class="grp-h" type="button" aria-expanded="false"><span>Status</span><i aria-hidden="true">+</i></button>
+  <section class="grp open" id="statusGroup">
+    <button class="grp-h" type="button" aria-expanded="true"><span>Status</span><i aria-hidden="true">–</i></button>
     <div class="grp-b"><div class="opts" role="group" aria-label="Status">
       <button type="button" data-state="running">Running</button>
       <button type="button" data-state="dock" aria-checked="true">Dock</button>
@@ -89,4 +103,4 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
   </div>
 </div>
 <div id="info"></div>
-<script type="module" src="app.js?v3d"></script></body></html>
+<script type="module" src="app.js?v3e"></script></body></html>

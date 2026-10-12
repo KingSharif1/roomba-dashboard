@@ -193,14 +193,13 @@ for(const k in parts)base[k]=parts[k].position.y;
 function explode(t){for(const k in parts){if(k==='lidarhead')continue;parts[k].position.y=base[k]+(LAYER[k]||0)*t;}}
 
 const VIEWS={
-  front:{pos:[0,320,-980],explode:0},
-  top:{pos:[80,1280,40],explode:0},
-  side:{pos:[1100,300,30],explode:0},
-  iso:{pos:[-560,470,-520],explode:0},
-  exploded:{pos:[-720,680,-700],explode:1}
+  front:{pos:[0,320,-980]},
+  top:{pos:[80,1280,40]},
+  side:{pos:[1100,300,30]},
+  iso:{pos:[-560,470,-520]}
 };
 let currentView='iso';
-let explodeT=q.has('ex')?+q.get('ex'):0;
+let explodeT=q.has('ex')?Math.max(0,Math.min(1,+q.get('ex')||0)):0;
 let explodeGoal=explodeT;
 let tween=null;
 const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
@@ -208,7 +207,6 @@ function flyTo(name){
   const v=VIEWS[name];if(!v)return;
   currentView=name;
   tween={t:0,p0:cam.position.clone(),p1:new THREE.Vector3(v.pos[0],v.pos[1],v.pos[2])};
-  explodeGoal=v.explode||0;
   document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.view===name)));
 }
 
@@ -249,19 +247,28 @@ document.querySelectorAll('.grp-h').forEach(btn=>{
 document.querySelectorAll('[data-model]').forEach(b=>b.addEventListener('click',()=>setModelView(b.dataset.model)));
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>flyTo(b.dataset.view)));
 document.querySelectorAll('[data-state]').forEach(b=>b.addEventListener('click',()=>setState(b.dataset.state)));
-const expandBtn=document.getElementById('expandBtn');
-function syncExpand(){
+const fullBtn=document.getElementById('fullBtn');
+function syncFull(){
   const on=!!document.fullscreenElement;
-  expandBtn.textContent=on?'Exit':'Expand';
-  expandBtn.setAttribute('aria-pressed',String(on));
+  fullBtn.textContent=on?'Exit':'Full';
+  fullBtn.setAttribute('aria-pressed',String(on));
+  fullBtn.setAttribute('aria-label',on?'Exit fullscreen':'Fullscreen');
 }
-expandBtn.addEventListener('click',()=>{
+fullBtn.addEventListener('click',()=>{
   const el=document.documentElement;
   if(document.fullscreenElement){if(document.exitFullscreen)document.exitFullscreen();}
   else if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
   else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
 });
-document.addEventListener('fullscreenchange',syncExpand);
+document.addEventListener('fullscreenchange',syncFull);
+const ex=document.getElementById('ex');
+ex.value=String(explodeT);
+ex.addEventListener('input',()=>{
+  explodeGoal=Math.max(0,Math.min(1,+ex.value||0));
+  explodeT=explodeGoal;
+  explode(explodeT);
+});
+const explodeBar=document.getElementById('explodeBar');
 const sheet=document.getElementById('sheet');
 const sheetTab=document.getElementById('sheetTab');
 const mobileSheet=()=>matchMedia('(max-width:720px)').matches;
@@ -273,7 +280,7 @@ function setSheet(open){
 sheetTab.addEventListener('click',()=>{if(mobileSheet())setSheet(!sheet.classList.contains('open'));});
 addEventListener('pointerdown',e=>{
   if(!mobileSheet()||!sheet.classList.contains('open'))return;
-  if(sheet.contains(e.target)||expandBtn.contains(e.target))return;
+  if(sheet.contains(e.target)||explodeBar.contains(e.target))return;
   setSheet(false);
 });
 sheet.addEventListener('keydown',e=>{
