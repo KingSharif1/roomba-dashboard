@@ -17,10 +17,10 @@ const pm=new THREE.PMREMGenerator(r);const envTex=pm.fromScene(new RoomEnvironme
 const sun=new THREE.DirectionalLight(0xfff4e0,2.2);sun.position.set(-260,520,-200);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-300,right:300,top:300,bottom:-300});scene.add(sun);
 const f=new THREE.DirectionalLight(0xffffff,1.1);f.position.set(300,300,350);scene.add(f);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(3000,3000),new THREE.ShadowMaterial({opacity:.18}));ground.rotation.x=-Math.PI/2;ground.position.y=-75;ground.receiveShadow=true;scene.add(ground);
-const grid=new THREE.GridHelper(1400,56,0x4f8fd6,0x24507f);grid.position.y=-75;grid.visible=false;scene.add(grid);
+const grid=new THREE.GridHelper(1400,56,0x6d5cff,0x2a2f78);grid.position.y=-75;grid.visible=false;scene.add(grid);
 // blueprint materials
-const meshes=[];const bpFill=new THREE.MeshBasicMaterial({color:0x3d7fd9,transparent:true,opacity:.16,depthWrite:false});
-const edgeMat=new LineMaterial({color:0xe3f2ff,linewidth:1.5,transparent:true,opacity:.95,depthWrite:false});edgeMat.resolution.set(innerWidth,innerHeight);
+const meshes=[];const bpFill=new THREE.MeshBasicMaterial({color:0x6a5cff,transparent:true,opacity:.17,depthWrite:false});
+const edgeMat=new LineMaterial({color:0xe6e4ff,linewidth:1.5,transparent:true,opacity:.95,depthWrite:false});edgeMat.resolution.set(innerWidth,innerHeight);
 const _ms=[];root.traverse(o=>{if(o.isMesh)_ms.push(o);});_ms.forEach(o=>{if(o.geometry.type==='RingGeometry')o.userData.noHL=true;{o.userData.solid=o.material;const e=new LineSegments2(new LineSegmentsGeometry().fromEdgesGeometry(new THREE.EdgesGeometry(o.geometry,25)),edgeMat);e.visible=false;e.raycast=()=>{};o.add(e);o.userData.edge=e;meshes.push(o);}
 });
 let bp=false;
@@ -33,7 +33,7 @@ function explode(t){for(const k in parts){if(k==='lidarhead')continue;parts[k].p
 ex.oninput=()=>explode(+ex.value);
 // picking
 const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();let hover=null,locked=null;
-const box=new THREE.Box3Helper(new THREE.Box3(),0xe8590c);box.visible=false;scene.add(box);
+const box=new THREE.Box3Helper(new THREE.Box3(),0xff7a59);box.visible=false;scene.add(box);
 const tb=new THREE.Box3();function fit(k){box.box.makeEmpty();parts[k].updateWorldMatrix(true,true);parts[k].traverse(o=>{if(o.isMesh&&o.userData.solid&&!o.userData.noHL){tb.setFromObject(o);box.box.union(tb);}});}
 function partOf(o){while(o&&!o.userData.part)o=o.parent;let k=o&&o.userData.part;return k==='lidarhead'?'lidar':k;}
 function pick(e){const b=r.domElement.getBoundingClientRect();mouse.set((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1);ray.setFromCamera(mouse,cam);
@@ -44,7 +44,7 @@ let down;r.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.client
 r.domElement.addEventListener('pointerup',e=>{if(Math.hypot(e.clientX-down[0],e.clientY-down[1])>4)return;const k=pick(e);locked=(k&&k!==locked)?k:null;show(locked||k);});
 // highlight via emissive pulse on selected part
 const hl=new Map();
-function setHL(k){for(const[m,mat]of hl){m.material=bp?bpFill:mat;}hl.clear();if(!k)return;parts[k].traverse(o=>{if(o.isMesh&&o.userData.solid&&!o.userData.noHL){hl.set(o,o.userData.solid);const c=(Array.isArray(o.userData.solid)?o.userData.solid[2]:o.userData.solid).clone();if(c.emissive){c.emissive=new THREE.Color(0xe8590c);c.emissiveIntensity=.55;}else c.color=new THREE.Color(0xe8590c);c.opacity=Math.max(c.opacity,.5);if(bp){c.transparent=true;c.opacity=.6;}o.material=c;}});}
+function setHL(k){for(const[m,mat]of hl){m.material=bp?bpFill:mat;}hl.clear();if(!k)return;parts[k].traverse(o=>{if(o.isMesh&&o.userData.solid&&!o.userData.noHL){hl.set(o,o.userData.solid);const c=(Array.isArray(o.userData.solid)?o.userData.solid[2]:o.userData.solid).clone();if(c.emissive){c.emissive=new THREE.Color(0xff7a59);c.emissiveIntensity=.55;}else c.color=new THREE.Color(0xff7a59);c.opacity=Math.max(c.opacity,.5);if(bp){c.transparent=true;c.opacity=.6;}o.material=c;}});}
 let lastHL=null;
 function resize(){r.setSize(innerWidth,innerHeight);edgeMat.resolution.set(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();}addEventListener('resize',resize);resize();
 const clock=new THREE.Clock();
