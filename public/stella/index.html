@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stella — a Roomba 694 home robot</title>
+<style>
+:root{--ink:#1b2430;--mute:#5d6875;--line:#c9d3dd;--blue:#2b5d8f;--red:#b4232a;--paper:#f7f5ef}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.6 Georgia,"Times New Roman",serif;
+background-image:linear-gradient(rgba(43,93,143,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(43,93,143,.07) 1px,transparent 1px),linear-gradient(rgba(43,93,143,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(43,93,143,.035) 1px,transparent 1px);
+background-size:100px 100px,100px 100px,20px 20px,20px 20px}
+.mono,h1,h2,th,figcaption,.tb,.note,nav,.tag{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 20px 60px}
+header{border:1.5px solid var(--ink);display:grid;grid-template-columns:1fr auto;background:rgba(247,245,239,.92)}
+header .t{padding:14px 18px}
+h1{font-size:30px;letter-spacing:.06em;margin:0}
+.sub{color:var(--mute);font-size:13px;font-family:ui-monospace,Menlo,monospace}
+.tb{border-left:1.5px solid var(--ink);font-size:11.5px;display:grid;grid-template-columns:auto auto}
+.tb div{padding:5px 10px;border-bottom:1px solid var(--ink)}
+.tb div:nth-child(odd){color:var(--mute);border-right:1px solid var(--ink)}
+.tb div:nth-last-child(-n+2){border-bottom:0}
+nav{font-size:12.5px;margin:14px 0 0;display:flex;flex-wrap:wrap;gap:6px 16px}
+nav a{color:var(--blue);text-decoration:none}
+section{margin-top:44px;position:relative}
+h2{font-size:17px;letter-spacing:.04em;text-transform:uppercase;border-bottom:1.5px solid var(--ink);padding-bottom:4px;margin:0 0 14px}
+h2 span{color:var(--red)}
+p{margin:.4em 0 .9em;max-width:62ch}
+.grid{display:grid;grid-template-columns:1fr 230px;gap:28px}
+.note{font-size:12px;color:var(--mute);border-left:2px solid var(--red);padding:2px 0 2px 10px;align-self:start}
+.note b{color:var(--ink)}
+figure{margin:0;border:1px solid var(--ink);background:#fff}
+figcaption{font-size:12px;padding:7px 10px;border-top:1px solid var(--ink);color:var(--mute)}
+figcaption b{color:var(--ink)}
+.viewer{height:min(72vh,620px);display:block;width:100%;border:0;background:var(--paper)}
+figure img{display:block;width:100%;height:auto}
+table{width:100%;border-collapse:collapse;font-size:14.5px;background:rgba(255,255,255,.7)}
+th{font-size:11.5px;text-align:left;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);font-weight:600}
+th,td{border:1px solid var(--line);padding:6px 9px;vertical-align:top}
+td.n{font-family:ui-monospace,Menlo,monospace;color:var(--mute);width:2.6em}
+.scroll{overflow-x:auto}
+ol.log{list-style:none;padding:0;margin:0;border-left:1.5px solid var(--ink)}
+ol.log li{padding:0 0 16px 18px;position:relative}
+ol.log li:before{content:"";position:absolute;left:-6px;top:8px;width:9px;height:9px;background:var(--paper);border:1.5px solid var(--ink)}
+ol.log li.bad:before{background:var(--red);border-color:var(--red)}
+.tag{font-size:12px;color:var(--blue);display:block}
+.chain{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#fff;border:1px dashed var(--ink);padding:10px 12px;overflow-x:auto;white-space:nowrap}
+.figs{display:grid;gap:24px}
+a{color:var(--blue)}
+footer{margin-top:50px;border-top:1.5px solid var(--ink);padding-top:10px;font:12px ui-monospace,Menlo,monospace;color:var(--mute);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+@media (max-width:760px){
+ body{font-size:16px}.wrap{padding:16px 12px 40px}
+ header{grid-template-columns:1fr}.tb{border-left:0;border-top:1.5px solid var(--ink)}
+ h1{font-size:24px}.grid{grid-template-columns:1fr;gap:12px}
+ .viewer{height:440px}table{font-size:13.5px}
+}
+</style></head><body><div class="wrap">
+
+<header>
+ <div class="t"><h1>STELLA</h1><div class="sub">Roomba 694 → home robot · technical notes</div>
+ <nav><a href="#s1">1 Overview</a><a href="#s2">2 Additions</a><a href="#s3">3 Figures</a><a href="#s4">4 Bill of materials</a><a href="#s5">5 Build log</a><a href="#s6">6 Credits</a></nav></div>
+ <div class="tb"><div>DWG</div><div>STL-001</div><div>REV</div><div>C · 2026-10-12</div><div>BY</div><div>K. Sharif</div><div>STATUS</div><div>Pi rebuild</div><div>SRC</div><div><a href="https://github.com/KingSharif1/stella">github/stella</a></div></div>
+</header>
+
+<section id="s0">
+ <figure><iframe class="viewer" src="/3d/index.html?paper" title="Stella 3D model" loading="lazy"></iframe>
+ <figcaption><b>Fig. 1</b> — Interactive model. Drag to rotate · scroll to zoom · tap a part · explode slider. Made by Grok.</figcaption></figure>
+</section>
+
+<section id="s1"><h2><span>1.</span> Overview</h2>
+ <div class="grid"><div>
+ <p>Stella is a Roomba 694 turned into a home robot. The Roomba still drives, docks and cleans. A clear deck on top carries a computer, a lidar, a camera and a voice.</p>
+ <p>She talks to the Roomba over its 7-pin serial port (iRobot Open Interface) and runs on the Roomba's own battery.</p>
+ </div><div class="note"><b>Base</b><br>Roomba 694<br>Li-ion 14.4 V (16.8 V full)<br>OI serial · 115200 baud</div></div>
+</section>
+
+<section id="s2"><h2><span>2.</span> What we added</h2>
+ <div class="scroll"><table>
+ <tr><th>Sys</th><th>Part</th><th>Job</th></tr>
+ <tr><td class="n">2.1</td><td>Raspberry Pi 4 · ROS 2 Jazzy</td><td>Brain: driving, mapping, voice</td></tr>
+ <tr><td class="n">2.2</td><td>RPLIDAR C1</td><td>360° scans → room map (slam_toolbox)</td></tr>
+ <tr><td class="n">2.3</td><td>Pi Camera Module</td><td>Sees ahead</td></tr>
+ <tr><td class="n">2.4</td><td>Arduino Mega 2560 + shield</td><td>Reflexes; serial link to the Roomba</td></tr>
+ <tr><td class="n">2.5</td><td>16x2 LCD</td><td>Status at a glance</td></tr>
+ <tr><td class="n">2.6</td><td>MPU6050</td><td>Heading and tilt</td></tr>
+ <tr><td class="n">2.7</td><td>Speaker + USB mic</td><td>Voice — wake word "Stella"</td></tr>
+ <tr><td class="n">2.8</td><td>Fuse · cutoff · rocker · 5 A buck</td><td>Clean 5.15 V from the Roomba battery</td></tr>
+ </table></div>
+ <p style="margin-top:16px" class="mono"><small>2.8 Power chain</small></p>
+ <div class="chain">battery + → 3 A fuse → XH-M609 cutoff (12.8 V off / 13.4 V on) → rocker → DROK 5 A buck @ 5.15 V → USB-C → Pi 4 → USB → Mega · lidar · mic</div>
+ <div class="grid" style="margin-top:12px"><p>Power is tapped straight from the battery. The data cable's power pins sit behind a ~200 mA fuse inside the Roomba; Pi + lidar need ~1 A.</p><div class="note"><b>Rule</b><br>Never power the Pi from a power bank or laptop USB.</div></div>
+</section>
+
+<section id="s3"><h2><span>3.</span> Figures</h2>
+ <div class="figs">
+ <figure><a href="fig-layout.jpg"><img src="fig-layout.jpg" alt="Stella layout: 3D views and parts key" loading="lazy"></a><figcaption><b>Fig. 2</b> — Layout: 3D, top and side views with parts key. Made by Grok.</figcaption></figure>
+ <figure><a href="fig-wiring.jpg"><img src="fig-wiring.jpg" alt="Stella wiring diagram" loading="lazy"></a><figcaption><b>Fig. 3</b> — Wiring: power chain, serial, I2C, USB, LCD pins. Made by Grok.</figcaption></figure>
+ </div>
+</section>
+
+<section id="s4"><h2><span>4.</span> Bill of materials</h2>
+ <div class="scroll"><table>
+ <tr><th>#</th><th>Part</th><th>Spec</th><th>Role</th></tr>
+ <tr><td class="n">01</td><td>Roomba 694</td><td>Li-ion 14.4 V pack</td><td>Body, wheels, battery</td></tr>
+ <tr><td class="n">02</td><td>Main board</td><td>Used 600-series</td><td>Roomba controller (OI works)</td></tr>
+ <tr><td class="n">03</td><td>Data cable</td><td>7-pin mini-DIN, Adafruit #2438</td><td>Roomba ↔ Mega serial</td></tr>
+ <tr><td class="n">04</td><td>Arduino Mega 2560</td><td>Elegoo + proto shield</td><td>Reflexes, sensors</td></tr>
+ <tr><td class="n">05</td><td>Raspberry Pi 4</td><td>4 GB, Vilros kit + case</td><td>Brain</td></tr>
+ <tr><td class="n">06</td><td>Pi Camera Module</td><td>Stock ribbon, 2 standoffs</td><td>Vision</td></tr>
+ <tr><td class="n">07</td><td>RPLIDAR C1</td><td>USB adapter</td><td>Mapping</td></tr>
+ <tr><td class="n">08</td><td>MPU6050</td><td>I2C, on shield</td><td>Heading</td></tr>
+ <tr><td class="n">09</td><td>16x2 LCD</td><td>Pins 22–27</td><td>Status</td></tr>
+ <tr><td class="n">10</td><td>XH-M609</td><td>Low-voltage cutoff</td><td>Battery protection</td></tr>
+ <tr><td class="n">11</td><td>Rocker switch</td><td>At power-box edge</td><td>Main on/off</td></tr>
+ <tr><td class="n">12</td><td>DROK buck</td><td>Adjustable 5 A, set 5.15 V</td><td>Pi power</td></tr>
+ <tr><td class="n">13</td><td>Inline fuse</td><td>3 A</td><td>Short protection</td></tr>
+ <tr><td class="n">14</td><td>Acrylic plate</td><td>10 in, 1/8 in</td><td>Deck</td></tr>
+ <tr><td class="n">15</td><td>M2.5 standoffs</td><td>35 mm stacks</td><td>Lidar posts</td></tr>
+ <tr><td class="n">16</td><td>VHB 5952 pads</td><td>—</td><td>Plate → Roomba, no drilling</td></tr>
+ <tr><td class="n">17</td><td>ASHATA speaker</td><td>3.5 mm jack</td><td>Voice out</td></tr>
+ <tr><td class="n">18</td><td>JOUNIVO JV808</td><td>USB mic</td><td>Voice in</td></tr>
+ <tr><td class="n">19</td><td>USB-C cable</td><td>Stripped, 20 AWG</td><td>Buck → Pi</td></tr>
+ </table></div>
+</section>
+
+<section id="s5"><h2><span>5.</span> Build log</h2>
+ <ol class="log">
+ <li class="bad"><span class="tag">SEP · problem</span>The original Wi-Fi main board's firmware blocked the serial port. Power and ground fine, serial pins at 0 V.</li>
+ <li><span class="tag">2026-09-23 · fix</span>Ordered a used 600-series main board (~$22).</li>
+ <li><span class="tag">2026-09-29 · breakthrough</span>Replacement board + correct 7-pin cable: the Roomba talks. Green wire identified as BRC (grounding it drops the baud to 19200). ROS 2 driver drives the Roomba and publishes odometry.</li>
+ <li><span class="tag">2026-09-29 · lidar</span>RPLIDAR C1 running in ROS 2, health OK.</li>
+ <li class="bad"><span class="tag">2026-10-11 · problem</span>The Pi 4 died after running on laptop USB and a power bank: under-voltage and throttling at 85 °C.</li>
+ <li><span class="tag">2026-10-11 · fix</span>Replacement Pi 4 ordered. Power redesigned: battery tap → fuse → cutoff → rocker → 5 A buck at 5.15 V.</li>
+ <li><span class="tag">2026-10-11 · deck</span>10 in plate, lidar centered on 35 mm posts, Pi at the back, speaker + mic ordered.</li>
+ <li><span class="tag">next</span>Rebuild on the new Pi → mount lidar → first map → voice.</li>
+ </ol>
+</section>
+
+<section id="s6"><h2><span>6.</span> Credits</h2>
+ <div class="grid"><div>
+ <p>Built by King Sharif with his agents — Claude, Grok, Muse.</p>
+ <div class="scroll"><table>
+ <tr><th>Who</th><th>Made</th></tr>
+ <tr><td>King Sharif</td><td>The robot: design calls, wiring, soldering, testing</td></tr>
+ <tr><td>Claude</td><td>Hardware + Pi work with King: serial debugging, ROS 2 setup, Pi diagnosis</td></tr>
+ <tr><td>Grok</td><td>3D model + viewer, layout and wiring diagrams, docs, this page</td></tr>
+ <tr><td>Muse</td><td>Living logo, voice plan (offline "Stella" wake word), repo setup</td></tr>
+ </table></div></div>
+ <div class="note"><b>Source</b><br><a href="https://github.com/KingSharif1/stella">github.com/KingSharif1/stella</a></div></div>
+</section>
+
+<footer><span>STELLA · STL-001 · REV C</span><span><a href="https://github.com/KingSharif1/stella">GitHub</a></span></footer>
+</div></body></html>

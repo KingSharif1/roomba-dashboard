@@ -50,3 +50,4 @@ r.setAnimationLoop(()=>{const dt=clock.getDelta();if(spinning){parts.lidarhead.r
  const cur=locked||hover;if(cur!==lastHL){setHL(cur);lastHL=cur;}if(cur)fit(cur);
  ctl.update();r.render(scene,cam);});
 const q=new URLSearchParams(location.search);if(q.has('bp'))setMode(true);if(q.has('ex'))explode(+q.get('ex')),ex.value=q.get('ex');if(q.has('sel')){locked=q.get('sel');show(locked);}
+if(q.has('paper')){document.body.style.background='#f7f5ef';}
