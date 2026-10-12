@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Square } from "lucide-react";
+import { useV3Robot } from "@/lib/v3/store";
 
 const SPEEDS = [25, 50, 75, 100];
 
 export function V3DrivePanel() {
+  const { state, drive, setSpeed } = useV3Robot();
+  const { speed } = state;
   const [mode, setMode] = useState<"pad" | "stick">("pad");
-  const [speed, setSpeed] = useState(50);
 
   const dirBtn =
     "w-14 h-14 rounded-lg border flex items-center justify-center hover:opacity-75 active:scale-95 transition-all";
@@ -39,25 +41,26 @@ export function V3DrivePanel() {
       {mode === "pad" ? (
         <div className="grid grid-cols-3 gap-2 w-fit mx-auto">
           <span />
-          <button aria-label="Forward" className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
+          <button aria-label="Forward" onClick={() => drive("up")} className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
             <ChevronUp className="w-6 h-6" />
           </button>
           <span />
-          <button aria-label="Left" className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
+          <button aria-label="Left" onClick={() => drive("left")} className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
             <ChevronLeft className="w-6 h-6" />
           </button>
           <button
             aria-label="Stop"
+            onClick={() => drive("stop")}
             className={dirBtn}
             style={{ borderColor: "var(--v3-coral)", background: "rgba(255,122,92,0.1)" }}
           >
             <Square className="w-4 h-4" style={{ color: "var(--v3-coral)" }} fill="currentColor" />
           </button>
-          <button aria-label="Right" className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
+          <button aria-label="Right" onClick={() => drive("right")} className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
             <ChevronRight className="w-6 h-6" />
           </button>
           <span />
-          <button aria-label="Back" className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
+          <button aria-label="Back" onClick={() => drive("down")} className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
             <ChevronDown className="w-6 h-6" />
           </button>
           <span />
@@ -74,7 +77,7 @@ export function V3DrivePanel() {
                 background: "var(--v3-coral)",
                 left: "50%",
                 top: "50%",
-                transform: "translate(-50%,-50%)",
+                transform: `translate(calc(-50% + ${state.dx * 0.5}px), calc(-50% + ${state.dy * 0.5}px))`,
               }}
             />
           </div>

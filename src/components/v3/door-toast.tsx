@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { X, DoorClosed } from "lucide-react";
-import type { DoorBlockedEvent } from "@/lib/v3/types";
+import { useV3Robot } from "@/lib/v3/store";
 
 // Door-blocked toast: shows the server-built message verbatim, deduped by
-// event id, stays until dismissed.
-export function V3DoorToast({ event }: { event: DoorBlockedEvent | null }) {
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+// event id, stays until dismissed. Only renders when an event fires at
+// runtime (e.g. tapping Kitchen while its door is closed) — never on load.
+export function V3DoorToast() {
+  const { state, dismissDoorEvent } = useV3Robot();
+  const event = state.doorEvent;
 
-  if (!event || dismissed.has(event.id)) return null;
+  if (!event) return null;
 
   return (
     <div
@@ -24,7 +25,7 @@ export function V3DoorToast({ event }: { event: DoorBlockedEvent | null }) {
       <DoorClosed className="w-5 h-5 shrink-0" style={{ color: "var(--v3-amber)" }} />
       <p className="flex-1 text-sm">{event.message}</p>
       <button
-        onClick={() => setDismissed((s) => new Set(s).add(event.id))}
+        onClick={dismissDoorEvent}
         aria-label="Dismiss"
         className="p-1.5 rounded-lg hover:opacity-70"
       >

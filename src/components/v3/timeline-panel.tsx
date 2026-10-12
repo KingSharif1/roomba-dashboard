@@ -1,9 +1,13 @@
 "use client";
 
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { demoTimeline } from "@/lib/v3/demo";
+import { useV3Robot } from "@/lib/v3/store";
 
 export function V3TimelinePanel() {
+  const { state, dismissTimeline } = useV3Robot();
+  const visible = demoTimeline.filter((ev) => !state.timelineHidden.has(ev.id));
+
   return (
     <div className="v3-panel p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -13,8 +17,13 @@ export function V3TimelinePanel() {
         </div>
       </div>
       <div className="flex flex-col gap-3">
-        {demoTimeline.map((ev) => (
-          <div key={ev.id} className="flex gap-3">
+        {visible.length === 0 && (
+          <p className="text-sm" style={{ color: "var(--v3-muted)" }}>
+            All caught up — nothing new.
+          </p>
+        )}
+        {visible.map((ev) => (
+          <div key={ev.id} className="flex gap-3 group">
             <div
               className="w-0.5 rounded shrink-0"
               style={{ background: ev.kind === "alert" ? "var(--v3-mint)" : "var(--v3-coral)" }}
@@ -31,7 +40,8 @@ export function V3TimelinePanel() {
                   {ev.actions.map((a) => (
                     <button
                       key={a}
-                      className="px-2.5 py-1 text-[11px] rounded border"
+                      onClick={() => dismissTimeline(ev.id)}
+                      className="px-2.5 py-1 text-[11px] rounded border hover:opacity-80"
                       style={{ borderColor: "var(--v3-border)", color: "var(--v3-muted)" }}
                     >
                       {a}
@@ -40,9 +50,18 @@ export function V3TimelinePanel() {
                 </div>
               )}
             </div>
-            {ev.kind === "run" && (
-              <ChevronRight className="w-4 h-4 shrink-0 mt-1" style={{ color: "var(--v3-muted)" }} />
-            )}
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <button
+                aria-label={`Dismiss ${ev.title}`}
+                onClick={() => dismissTimeline(ev.id)}
+                className="p-1 rounded hover:opacity-70"
+              >
+                <X className="w-3.5 h-3.5" style={{ color: "var(--v3-muted)" }} />
+              </button>
+              {ev.kind === "run" && (
+                <ChevronRight className="w-4 h-4 mt-0.5" style={{ color: "var(--v3-muted)" }} />
+              )}
+            </div>
           </div>
         ))}
       </div>
