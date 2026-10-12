@@ -2,6 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Video, VideoOff } from "lucide-react";
+import { useRobotMode } from "@/hooks/use-robot-mode";
 
 interface CameraViewProps {
   streamUrl?: string;
@@ -9,15 +10,23 @@ interface CameraViewProps {
 }
 
 export function CameraView({ connected }: CameraViewProps) {
+  const demo = useRobotMode();
+  // No real stream in demo mode — read offline/gray until a real camera connects.
+  const live = connected && !demo;
   return (
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Camera</CardTitle>
         <div className="flex items-center gap-1 text-xs">
-          {connected ? (
+          {live ? (
             <>
               <Video className="w-3 h-3 text-accent" />
               <span className="text-accent">LIVE</span>
+            </>
+          ) : demo ? (
+            <>
+              <VideoOff className="w-3 h-3 text-muted" />
+              <span className="text-muted">OFFLINE</span>
             </>
           ) : (
             <>
@@ -29,7 +38,7 @@ export function CameraView({ connected }: CameraViewProps) {
       </CardHeader>
       <CardContent>
         <div className="relative aspect-video bg-surface-light rounded border border-border overflow-hidden">
-          {connected ? (
+          {live ? (
             <>
               {/* Placeholder static noise effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-surface to-surface-light flex items-center justify-center">

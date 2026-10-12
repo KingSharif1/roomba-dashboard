@@ -119,13 +119,14 @@ body {
 .lm-low .lm-puck { fill: var(--mark-orange); }
 .lm-stopped .lm-led { stroke: var(--mark-red); }
 .lm-stopped .lm-puck { fill: var(--mark-red); }
-.lm-fault .lm-led { stroke: var(--mark-red); animation: lm-blink .6s steps(2, jump-none) infinite; }
+.lm-fault .lm-led { stroke: var(--mark-red); animation: lm-fault-pulse 1s ease-in-out infinite; filter: drop-shadow(0 0 6px var(--mark-red)); }
 .lm-offline .lm-body,
 .lm-offline .lm-led { stroke: var(--mark-gray); }
 .lm-offline .lm-puck { fill: var(--mark-gray); }
 @keyframes lm-spin { to { transform: rotate(360deg); } }
 @keyframes lm-breathe { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
 @keyframes lm-blink { 0% { opacity: 1; } 100% { opacity: .1; } }
+@keyframes lm-fault-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) {
   .live-mark * { animation: none !important; }
 }

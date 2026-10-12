@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Square } from "lucide-react";
 import type { RobotStatus } from "@/lib/types";
 import * as robot from "@/lib/robot";
+import { useRobotMode } from "@/hooks/use-robot-mode";
+import { emitToastOps } from "@/lib/toast-store";
 
 type Dir = "up" | "down" | "left" | "right";
 
@@ -28,7 +30,9 @@ export function DrivePad({ status }: DrivePadProps) {
   const [speed, setSpeed] = useState(0.15); // m/s
   const [active, setActive] = useState<Dir | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const enabled = status.connected;
+  const demo = useRobotMode();
+  // Quietly disabled in demo mode — no scary copy, just a toast on keypress.
+  const enabled = status.connected && !demo;
 
   const velocity = useCallback(
     (d: Dir): [number, number] => {
@@ -86,6 +90,10 @@ export function DrivePad({ status }: DrivePadProps) {
       const d = KEYS[e.key];
       if (d && !e.repeat) {
         e.preventDefault();
+        if (demo) {
+          emitToastOps([{ type: "push", key: "drive:demo", tone: "error", message: "Demo mode — connect the real robot to drive" }]);
+          return;
+        }
         go(d);
       }
     };
@@ -100,7 +108,7 @@ export function DrivePad({ status }: DrivePadProps) {
       window.removeEventListener("keyup", onUp);
       window.removeEventListener("blur", emergency);
     };
-  }, [emergency, go, halt]);
+  }, [demo, emergency, go, halt]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: stop an active drive when the robot disconnects
