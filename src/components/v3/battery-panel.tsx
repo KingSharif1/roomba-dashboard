@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { BatteryCharging } from "lucide-react";
 import { demoBatteryHistory, demoBatteryDetail } from "@/lib/v3/demo";
 import { useV3Robot } from "@/lib/v3/store";
+import { V3Collapsible } from "./collapsible-card";
 
 export function V3BatteryPanel() {
   const { state } = useV3Robot();
@@ -38,11 +39,11 @@ export function V3BatteryPanel() {
   ];
 
   return (
-    <div className="v3-panel p-4 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="v3-panel-title">Battery</span>
-        <ChevronDown className="w-4 h-4" style={{ color: "var(--v3-muted)" }} />
-      </div>
+    <V3Collapsible
+      icon={<BatteryCharging className="w-4 h-4" />}
+      title="Battery"
+      summary={`${battery}%${charging ? " · charging" : ""}`}
+    >
       <div className="relative w-40 h-40 mx-auto">
         <svg viewBox="0 0 128 128" className="w-full h-full -rotate-90">
           <circle cx="64" cy="64" r={R} fill="none" stroke="#2c2e56" strokeWidth="11" />
@@ -76,6 +77,6 @@ export function V3BatteryPanel() {
           </div>
         ))}
       </dl>
-    </div>
+    </V3Collapsible>
   );
 }

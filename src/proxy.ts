@@ -1,15 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { updateSession } from "@/lib/supabase/middleware";
 
 /**
- * Refreshes the Supabase session cookie when auth is configured.
- * Does not force login: visitors stay on the dashboard in demo mode.
- * Live robot authorization happens in the route handlers, not here.
+ * Pass-through proxy. Auth model: Tailscale membership IS the authentication —
+ * there is no login, no sessions, no password. The dashboard probes the Pi
+ * over the tailnet (see docs/TAILSCALE.md); anyone on the tailnet gets LIVE,
+ * everyone else gets DEMO.
  */
 export async function proxy(request: NextRequest) {
-  if (!isSupabaseConfigured()) return NextResponse.next();
-  return updateSession(request);
+  return NextResponse.next();
 }
 
 export const config = {

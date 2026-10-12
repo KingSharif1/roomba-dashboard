@@ -1,50 +1,53 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { SprayCan } from "lucide-react";
 import { demoRooms, demoRoomClean } from "@/lib/v3/demo";
 import { useV3Robot } from "@/lib/v3/store";
+import { V3Collapsible } from "./collapsible-card";
 
 const SHOWN = ["living-room", "kitchen", "dining", "setup-room", "bedroom", "hallway"];
 
 export function V3CleanPanel() {
   const { state, selectRoom, cleanMode } = useV3Robot();
-  const { targetRooms } = state;
-  const [mode, setMode] = useState<"all" | "stop" | "dock">("all");
+  const { targetRooms, mode } = state;
+  const [cleanBtn, setCleanBtn] = useState<"all" | "stop" | "dock">("all");
 
   const pickMode = (m: "all" | "stop" | "dock") => {
-    setMode(m);
+    setCleanBtn(m);
     cleanMode(m);
   };
 
   const cleanFor = (id: string) =>
     demoRoomClean.find((c) => c.roomId === id)?.lastCleaned ?? "—";
 
+  const modeWord = mode === "cleaning" ? "cleaning" : mode === "docked" ? "docked" : "idle";
+
   return (
-    <div className="v3-panel p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className="v3-panel-title">Clean</span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => pickMode("all")}
-            className={`px-3 py-1.5 text-xs font-semibold ${mode === "all" ? "v3-btn-coral" : "v3-btn-ghost"}`}
-          >
-            All rooms
-          </button>
-          <button
-            onClick={() => pickMode("stop")}
-            className={`px-3 py-1.5 text-xs font-semibold ${mode === "stop" ? "v3-btn-coral" : "v3-btn-ghost"}`}
-          >
-            Stop
-          </button>
-          <button
-            onClick={() => pickMode("dock")}
-            className={`px-3 py-1.5 text-xs font-semibold ${mode === "dock" ? "v3-btn-coral" : "v3-btn-ghost"}`}
-          >
-            Dock
-          </button>
-          <ChevronDown className="w-4 h-4" style={{ color: "var(--v3-muted)" }} />
-        </div>
+    <V3Collapsible
+      icon={<SprayCan className="w-4 h-4" />}
+      title="Clean"
+      summary={`${targetRooms.length} rooms · ${modeWord}`}
+    >
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => pickMode("all")}
+          className={`px-3 py-1.5 text-xs font-semibold ${cleanBtn === "all" ? "v3-btn-coral" : "v3-btn-ghost"}`}
+        >
+          All rooms
+        </button>
+        <button
+          onClick={() => pickMode("stop")}
+          className={`px-3 py-1.5 text-xs font-semibold ${cleanBtn === "stop" ? "v3-btn-coral" : "v3-btn-ghost"}`}
+        >
+          Stop
+        </button>
+        <button
+          onClick={() => pickMode("dock")}
+          className={`px-3 py-1.5 text-xs font-semibold ${cleanBtn === "dock" ? "v3-btn-coral" : "v3-btn-ghost"}`}
+        >
+          Dock
+        </button>
       </div>
       <div className="grid grid-cols-2 gap-2.5">
         {demoRooms
@@ -81,6 +84,6 @@ export function V3CleanPanel() {
             );
           })}
       </div>
-    </div>
+    </V3Collapsible>
   );
 }

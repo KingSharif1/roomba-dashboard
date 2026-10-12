@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   async headers() {
     return [
+      { source: "/", headers: noCache },
       { source: "/stella/:path*", headers: noCache },
       { source: "/3d/:path*", headers: noCache },
     ];
@@ -19,6 +20,12 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       { source: "/stella", destination: "/stella/index.html", permanent: false },
+    ];
+  },
+  async rewrites() {
+    return [
+      // Grok's engineering-paper landing page serves at the root.
+      { source: "/", destination: "/stella/index.html" },
     ];
   },
 };

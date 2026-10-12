@@ -1,21 +1,19 @@
 "use client";
 
-import { ChevronDown, ChevronRight, X } from "lucide-react";
-import { demoTimeline } from "@/lib/v3/demo";
+import { Clock, ChevronRight, X } from "lucide-react";
 import { useV3Robot } from "@/lib/v3/store";
+import { V3Collapsible } from "./collapsible-card";
 
 export function V3TimelinePanel() {
   const { state, dismissTimeline } = useV3Robot();
-  const visible = demoTimeline.filter((ev) => !state.timelineHidden.has(ev.id));
+  const visible = state.timeline.filter((ev) => !state.timelineHidden.has(ev.id));
 
   return (
-    <div className="v3-panel p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className="v3-panel-title">Timeline</span>
-        <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: "var(--v3-coral)" }}>
-          All <ChevronDown className="w-3.5 h-3.5" style={{ color: "var(--v3-muted)" }} />
-        </div>
-      </div>
+    <V3Collapsible
+      icon={<Clock className="w-4 h-4" />}
+      title="Timeline"
+      summary={`${visible.length} events`}
+    >
       <div className="flex flex-col gap-3">
         {visible.length === 0 && (
           <p className="text-sm" style={{ color: "var(--v3-muted)" }}>
@@ -65,6 +63,6 @@ export function V3TimelinePanel() {
           </div>
         ))}
       </div>
-    </div>
+    </V3Collapsible>
   );
 }
