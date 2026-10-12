@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const noCache = [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }];
+const longCache = [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }];
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost"],
@@ -8,8 +9,9 @@ const nextConfig: NextConfig = {
     return [
       { source: "/", headers: noCache },
       { source: "/stella/:path*", headers: noCache },
+      { source: "/3d/:path*", headers: longCache },
       { source: "/3d", headers: noCache },
-      { source: "/3d/:path*", headers: noCache },
+      { source: "/3d/index.html", headers: noCache },
     ];
   },
   async redirects() {

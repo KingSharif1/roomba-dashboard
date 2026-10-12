@@ -7,6 +7,16 @@ function setTheme(t){root.dataset.theme=t;localStorage.setItem('stella-theme',t)
  const f=document.querySelector('iframe.viewer');if(f&&f.contentWindow)f.contentWindow.postMessage({theme:t},'*');}
 setTheme(localStorage.getItem('stella-theme')||'paper');
 btn.onclick=()=>setTheme(root.dataset.theme==='dark'?'paper':'dark');
+const viewer=document.querySelector('iframe.viewer');
+if(viewer&&viewer.dataset.src&&!viewer.getAttribute('src')){
+  const arm=()=>{viewer.src=viewer.dataset.src;};
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(es=>{
+      if(es.some(e=>e.isIntersecting)){arm();io.disconnect();}
+    },{rootMargin:'240px'});
+    io.observe(viewer);
+  }else arm();
+}
 /* ---------- layout (top view, mm; front = left; robot's right = top) ---------- */
 const L=[
  ['tape','Tape pads','VHB · plate → cover',g=>{for(const a of[45,135,225,315]){const x=95*Math.cos(a*Math.PI/180),z=95*Math.sin(a*Math.PI/180);el('rect',{x:x-12,y:z-12,width:24,height:24,class:'sh',fill:'#f1a7a7'},g);}}],

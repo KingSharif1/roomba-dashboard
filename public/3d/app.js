@@ -1,3 +1,4 @@
+// The page loads viewer.js, the minified bundle of this module.
 import * as THREE from './three.module.js';
 import {OrbitControls} from './OrbitControls.js';
 import {LineSegments2} from './LineSegments2.js';
@@ -93,6 +94,8 @@ function installWipe(mat,hex,alpha){
   const uBlueA={value:alpha};
   mat.userData.wasTransparent=!!mat.transparent;
   mat.userData.wasDepthWrite=mat.depthWrite!==false;
+  // Alpha is driven by uMix, so this program is compiled once and never rebuilt.
+  if(alpha<0.95)mat.transparent=true;
   mat.onBeforeCompile=(shader)=>{
     shader.uniforms.uMix=wipeU.uMix;
     shader.uniforms.uResolution=wipeU.uResolution;
@@ -115,7 +118,6 @@ function installWipe(mat,hex,alpha){
 }
 
 const meshes=[];
-const solidMats=[];
 const edgeMat=new LineMaterial({color:0xe7fbff,linewidth:1.5,transparent:true,opacity:0.001,depthWrite:false});
 edgeMat.resolution.set(innerWidth,innerHeight);
 const seen=new Set();
@@ -139,7 +141,6 @@ for(const o of pending){
     const op=mat.opacity===undefined?1:mat.opacity;
     const faint=op<0.3;
     installWipe(mat,faint?0x7ef6ff:0x14386e,faint?Math.min(0.5,Math.max(op,0.12)):0.22);
-    if(!faint)solidMats.push(mat);
   }
 }
 root.traverse(o=>{
@@ -153,39 +154,58 @@ root.traverse(o=>{
   }
 });
 
-let edgesOn=false,blended=false,envOff=false;
-function syncEdges(v){
-  const on=v>0.02;
-  if(on===edgesOn)return;
-  edgesOn=on;
-  for(const m of meshes)if(m.userData.edge)m.userData.edge.visible=on;
-}
-function syncBlend(v){
-  const on=v>0.62;
-  if(on===blended)return;
-  blended=on;
-  for(const mat of solidMats){
-    mat.transparent=on?true:mat.userData.wasTransparent;
-    mat.depthWrite=on?false:mat.userData.wasDepthWrite;
-    mat.needsUpdate=true;
-  }
-}
-function syncEnv(v){
-  const off=v>0.82;
-  if(off===envOff)return;
-  envOff=off;
-  scene.environment=off?null:envTex;
-  r.toneMapping=off?THREE.NoToneMapping:THREE.ACESFilmicToneMapping;
-  grid.visible=off;
-  ground.visible=!off;
-}
+let edgesOn=false,envOff=false;
 function applyMix(v){
   wipeU.uMix.value=v;
   wash.style.transform='scaleX('+v+')';
   edgeMat.opacity=0.001+v*0.94;
-  syncEdges(v);
-  syncBlend(v);
-  syncEnv(v);
+  const edges=v>0.02;
+  if(edges!==edgesOn){
+    edgesOn=edges;
+    for(const m of meshes)if(m.userData.edge)m.userData.edge.visible=edges;
+  }
+  const sheet=v>0.82;
+  if(sheet!==envOff){
+    envOff=sheet;
+    grid.visible=sheet;
+    ground.visible=!sheet;
+  }
+}
+// Real materials stay on the meshes. Blueprint clones exist so their programs
+// are compiled up front; the wipe itself only writes uMix.
+const blueprintMats=new Map();
+function blueprintOf(src){
+  let bp=blueprintMats.get(src);
+  if(bp)return bp;
+  bp=src.clone();
+  bp.transparent=true;
+  bp.depthWrite=false;
+  const op=src.opacity===undefined?1:src.opacity;
+  bp.opacity=op<0.3?Math.min(0.5,Math.max(op,0.12)):0.22;
+  if(bp.color)bp.color=new THREE.Color(op<0.3?0x7ef6ff:0x14386e);
+  if(bp.emissive){bp.emissive=new THREE.Color(0x14386e);bp.emissiveIntensity=0.4;}
+  installWipe(bp,op<0.3?0x7ef6ff:0x14386e,bp.opacity);
+  blueprintMats.set(src,bp);
+  return bp;
+}
+function prewarm(){
+  scene.updateMatrixWorld(true);
+  cam.updateMatrixWorld();
+  applyMix(0);
+  r.compile(scene,cam);
+  r.render(scene,cam);
+  const saved=[];
+  for(const m of meshes){
+    const src=m.userData.solid;
+    if(!src||src.isShadowMaterial)continue;
+    saved.push([m,m.material]);
+    m.material=Array.isArray(src)?src.map(blueprintOf):blueprintOf(src);
+  }
+  applyMix(1);
+  r.compile(scene,cam);
+  r.render(scene,cam);
+  for(const pair of saved)pair[0].material=pair[1];
+  applyMix(0);
 }
 
 const base={};
@@ -262,11 +282,35 @@ fullBtn.addEventListener('click',()=>{
 });
 document.addEventListener('fullscreenchange',syncFull);
 const ex=document.getElementById('ex');
-ex.value=String(explodeT);
-ex.addEventListener('input',()=>{
-  explodeGoal=Math.max(0,Math.min(1,+ex.value||0));
-  explodeT=explodeGoal;
-  explode(explodeT);
+function paintExplode(t){
+  const n=Math.max(0,Math.min(1,+t||0));
+  explodeGoal=n;
+  explodeT=n;
+  explode(n);
+  ex.style.setProperty('--p',(n*100)+'%');
+  ex.setAttribute('aria-valuenow',String(Math.round(n*100)));
+}
+function explodeFromX(clientX){
+  const r=ex.getBoundingClientRect();
+  if(!r.width)return;
+  paintExplode((clientX-r.left)/r.width);
+}
+paintExplode(explodeT);
+ex.addEventListener('pointerdown',e=>{
+  if(e.button!=null&&e.button!==0)return;
+  explodeFromX(e.clientX);
+  try{ex.setPointerCapture(e.pointerId);}catch(err){}
+});
+ex.addEventListener('pointermove',e=>{
+  if(!ex.hasPointerCapture(e.pointerId))return;
+  explodeFromX(e.clientX);
+});
+ex.addEventListener('keydown',e=>{
+  const step=e.shiftKey?0.1:0.02;
+  if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();paintExplode(explodeT+step);}
+  else if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();paintExplode(explodeT-step);}
+  else if(e.key==='Home'){e.preventDefault();paintExplode(0);}
+  else if(e.key==='End'){e.preventDefault();paintExplode(1);}
 });
 const explodeBar=document.getElementById('explodeBar');
 const sheet=document.getElementById('sheet');
@@ -391,12 +435,22 @@ addEventListener('message',e=>{const t=e.data&&e.data.theme;if(t==='dark'||t==='
 addEventListener('storage',e=>{if(e.key==='stella-theme')applyTheme(e.newValue);});
 
 const clock=new THREE.Clock();
+prewarm();
 if(q.has('mix'))applyMix(Math.max(0,Math.min(1,+q.get('mix'))));
 else if(q.has('bp'))setModelView('blueprint');
 else applyMix(0);
 if(q.has('sel')){locked=q.get('sel');show(locked);}
 explode(explodeT);
 
+let revealed=false;
+function reveal(){
+  if(revealed)return;
+  revealed=true;
+  const boot=document.getElementById('boot');
+  if(!boot)return;
+  boot.classList.add('done');
+  boot.setAttribute('aria-busy','false');
+}
 r.setAnimationLoop(()=>{
   const dt=Math.min(0.05,clock.getDelta());
   const t=clock.elapsedTime;
@@ -431,5 +485,6 @@ r.setAnimationLoop(()=>{
   if(cur)fit(cur);
   ctl.update();
   r.render(scene,cam);
+  reveal();
 });
 window.__stella3d=true;
