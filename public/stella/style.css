@@ -1,5 +1,5 @@
-:root{--paper:#efe6d2;--card:#f9f2e2;--ink:#2a2119;--mute:#76695a;--line:#d8cbb2;--grid:rgba(120,90,50,.09);--grid2:rgba(120,90,50,.04);--accent:#c2410c;--blue:#7a4a1e;--pw:#c2410c;--data:#2f5d8a;--gnd:#2a2119;--sense:#4d7c3a;--hl:#e8590c;--node:#fbf5e8;--glow:rgba(194,65,12,.18)}
-[data-theme=dark]{--paper:#0c0f2e;--card:#141a46;--ink:#e9e7ff;--mute:#9ea3d8;--line:#2b3375;--grid:rgba(130,140,255,.11);--grid2:rgba(130,140,255,.045);--accent:#ff7a59;--blue:#ffb38a;--pw:#ff6f7d;--data:#7aa2ff;--gnd:#d9dcff;--sense:#5eead4;--hl:#ff7a59;--node:#11163d;--glow:rgba(255,90,140,.28)}
+:root{--paper:#efe6d2;--card:#f9f2e2;--ink:#2a2119;--mute:#76695a;--line:#d8cbb2;--grid:rgba(120,90,50,.09);--grid2:rgba(120,90,50,.04);--accent:#c2410c;--blue:#7a4a1e;--pw:#c2410c;--data:#2f5d8a;--gnd:#2a2119;--sense:#4d7c3a;--hl:#e8590c;--node:#fbf5e8;--glow:rgba(194,65,12,.18);--logo-tile:#1c1a16;--logo-ink:#e8e0cf}
+[data-theme=dark]{--paper:#0c0f2e;--card:#141a46;--ink:#e9e7ff;--mute:#9ea3d8;--line:#2b3375;--grid:rgba(130,140,255,.11);--grid2:rgba(130,140,255,.045);--accent:#ff7a59;--blue:#ffb38a;--pw:#ff6f7d;--data:#7aa2ff;--gnd:#d9dcff;--sense:#5eead4;--hl:#ff7a59;--node:#11163d;--glow:rgba(255,90,140,.28);--logo-tile:#f7f3ea;--logo-ink:#2b2620}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--paper);color:var(--ink);font:19px/1.65 "Newsreader",Georgia,serif;transition:background .4s,color .4s;
@@ -10,6 +10,13 @@ a{color:var(--blue)}
 header{border:1.5px solid var(--ink);display:grid;grid-template-columns:1fr auto;background:var(--card)}
 header .t{padding:14px 18px}
 h1{font-size:34px;letter-spacing:.08em;margin:0;font-weight:500}
+/* inline vector logo — tile/ink follow the theme via CSS vars */
+.logo-mark{width:46px;height:46px;border-radius:11px;vertical-align:-13px;margin-right:14px}
+.lm-tile{fill:var(--logo-tile)}
+.lm-ink{stroke:var(--logo-ink)}
+.lm-fill{fill:var(--logo-ink);stroke:none}
+/* wordmark in the signature font — presence to match the footer */
+.wordmark{font-family:'La Belle Aurore',cursive;font-size:48px;font-weight:400;letter-spacing:0;vertical-align:baseline}
 .sub{color:var(--mute);font-size:13.5px;font-family:"IBM Plex Mono",monospace}
 .tb{border-left:1.5px solid var(--ink);font-size:11.5px;display:grid;grid-template-columns:auto auto}
 .tb div{padding:5px 10px;border-bottom:1px solid var(--ink)}
