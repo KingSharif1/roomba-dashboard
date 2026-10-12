@@ -196,7 +196,7 @@ test("sign-in, session loss, and a voluntary logout", () => {
     TOAST.notOwner,
   );
   assert.deepEqual(accessTransitionOps("owner", { role: "visitor", email: null }, true), []);
-  const restored = accessTransitionOps("visitor", { role: "owner", email: "sharifahmed.dev@gmail.com" }, false);
+  const restored = accessTransitionOps("visitor", { role: "owner", email: "owner@example.com" }, false);
   assert.deepEqual(restored.map((op) => op.type === "resolve" && op.key), [TOAST_KEY.owner, TOAST_KEY.session]);
 });
 
