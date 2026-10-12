@@ -110,8 +110,11 @@ html.static .rv,html.static .card{transition:none!important}
 footer.big{margin-top:90px;position:relative;border-top:1.5px solid var(--ink);background:var(--card);overflow:hidden}
 footer.big:before{content:"";position:absolute;inset:0;background:radial-gradient(60% 120% at 85% 0%,var(--glow),transparent 70%);pointer-events:none}
 footer.big .in{max-width:1080px;margin:0 auto;padding:56px 20px 26px;position:relative;display:grid;grid-template-columns:1.4fr 1fr;gap:40px}
-footer.big .mark{font:500 clamp(64px,13vw,168px)/.85 "IBM Plex Mono",monospace;letter-spacing:.04em;color:transparent;-webkit-text-stroke:1.2px var(--ink);margin:0 0 18px;opacity:.9}
 footer.big .cred{font:italic 22px/1.45 "Newsreader",Georgia,serif;max-width:30ch;margin:0}
+/* the mark is the signature now: big cursive, writes itself out left-to-right */
+footer.big .mark{font-family:'La Belle Aurore',cursive;font-size:clamp(76px,15vw,168px);line-height:1;color:var(--ink);margin:0 0 16px;clip-path:inset(0 100% 0 0);animation:markwrite 2.4s cubic-bezier(.6,0,.3,1) .5s forwards}
+@keyframes markwrite{to{clip-path:inset(0 0 0 0)}}
+@media(prefers-reduced-motion:reduce){footer.big .mark{animation:none;clip-path:none}}
 footer.big .cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;font:13px/1.9 "IBM Plex Mono",monospace;align-content:start}
 footer.big h4{font:500 11px "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:0 0 6px;border-bottom:1px solid var(--line);padding-bottom:4px}
 footer.big ul{list-style:none;margin:0;padding:0}
