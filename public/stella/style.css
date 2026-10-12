@@ -111,7 +111,8 @@ ol.tl li.win:before{background:var(--sense);border-color:var(--sense)}
  .wiringwrap{overflow-x:visible}
 .wiringwrap svg{width:100%;height:auto;min-width:0}
 @media (max-width:700px){
- .layout .legend{font-size:13px;columns:1;gap:6px}
+ .layout .legend{font-size:12px;columns:2;column-gap:12px;gap:6px}
+ .layout .legend>div{padding:4px 8px;break-inside:avoid}
  .layout .legend div{margin-bottom:4px}
  #s3 figure{margin-bottom:8px}
 }
