@@ -1,22 +1,28 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Stella · 3D exploded view</title>
+<script>{const _k='stella-theme',_t=new URLSearchParams(location.search).get('theme');if(_t&&/^(dark|paper)$/.test(_t))localStorage.setItem(_k,_t);document.documentElement.dataset.theme=localStorage.getItem(_k)||'dark'}</script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0c0f2e;--card:#141a46;--ink:#e9e7ff;--mute:#9ea3d8;--line:#2a2f78;--acc:#ff7a59;--ok:#5eead4}
-html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:12px "IBM Plex Mono",monospace;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0c0f2e;--card:#141a46;--ink:#e9e7ff;--mute:#9ea3d8;--line:#2a2f78;--acc:#ff7a59;--ok:#5eead4;--chip:rgba(20,26,70,.78)}
+[data-theme=paper]{--bg:#efe6d2;--card:#f9f2e2;--ink:#2a2119;--mute:#76695a;--line:#d8cbb2;--acc:#c2410c;--ok:#4d7c3a;--chip:rgba(249,242,226,.88)}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:12px "IBM Plex Mono",monospace;-webkit-tap-highlight-color:transparent;transition:background .4s,color .4s}
 #app{position:fixed;inset:0}
 #stage{position:absolute;inset:0}
 #stage canvas{display:block;width:100%!important;height:100%!important}
 svg.lead{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)}
-.tag{position:absolute;padding:6px 10px;border-radius:8px;background:rgba(20,26,70,.82);backdrop-filter:blur(10px);border:1px solid rgba(233,231,255,.25);white-space:nowrap;transition:opacity .4s;transform:translate(-50%,-100%);font-size:12px;pointer-events:none;z-index:5}
+.tag{position:absolute;padding:6px 10px;border-radius:8px;background:var(--chip);backdrop-filter:blur(10px);border:1px solid rgba(233,231,255,.25);white-space:nowrap;transition:opacity .4s;transform:translate(-50%,-100%);font-size:12px;pointer-events:none;z-index:5}
 .tag b{font-weight:500}.tag span{color:var(--mute);margin-left:6px}
 /* top bar */
 #topbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(12px + env(safe-area-inset-top)) 16px 0;pointer-events:none;z-index:10}
-.brand{pointer-events:auto;display:flex;align-items:center;gap:10px;font-weight:500;letter-spacing:.18em;font-size:11px;color:var(--mute);background:rgba(20,26,70,.72);border:1px solid var(--line);border-radius:999px;padding:8px 16px 8px 8px;backdrop-filter:blur(10px)}
+.brand{pointer-events:auto;display:flex;align-items:center;gap:10px;font-weight:500;letter-spacing:.18em;font-size:11px;color:var(--mute);background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:8px 16px 8px 8px;backdrop-filter:blur(10px)}
 .brand img{width:30px;height:30px;border-radius:8px;display:block}
+/* theme toggle — same language as the landing page */
+#themeBtn{pointer-events:auto;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:9px 14px;font:inherit;font-size:11px;cursor:pointer;min-height:44px;white-space:nowrap}
+#themeBtn:active{transform:scale(.96)}
+#topRight{display:flex;align-items:center;gap:8px;pointer-events:none}
 /* bottom control bar: view presets + robot state */
 #controls{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:15;pointer-events:auto}
-.ctl-group{display:flex;gap:4px;background:rgba(20,26,70,.82);border:1px solid var(--line);border-radius:999px;padding:5px;backdrop-filter:blur(10px);box-shadow:0 4px 24px rgba(0,0,0,.35)}
+.ctl-group{display:flex;gap:4px;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:5px;backdrop-filter:blur(10px);box-shadow:0 4px 24px rgba(0,0,0,.35)}
 .ctl-group button{border:0;background:transparent;color:var(--mute);font:inherit;font-size:11px;letter-spacing:.04em;padding:9px 13px;border-radius:999px;cursor:pointer;white-space:nowrap;min-height:40px}
 .ctl-group button:active{transform:scale(.96)}
 .ctl-group button.on{background:var(--acc);color:#1a0f0a;font-weight:500}
@@ -26,12 +32,12 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
   .ctl-group button{padding:8px 10px;font-size:10px}
 }
 /* battery badge — always visible, toggles the parts panel */
-#batBadge{pointer-events:auto;display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 14px 8px 10px;border-radius:14px;border:1px solid var(--line);background:rgba(20,26,70,.82);backdrop-filter:blur(10px);color:var(--ink);font:inherit;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,.35)}
+#batBadge{pointer-events:auto;display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 14px 8px 10px;border-radius:14px;border:1px solid var(--line);background:var(--chip);backdrop-filter:blur(10px);color:var(--ink);font:inherit;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,.35)}
 #batBadge:active{transform:scale(.97)}
 #batBadge svg{display:block}
 #batBadge b{font-size:17px;font-weight:500;min-width:3ch;text-align:right}
 /* parts panel */
-#panel{position:absolute;top:0;right:0;bottom:0;width:min(320px,86vw);background:rgba(20,26,70,.94);backdrop-filter:blur(14px);border-left:1.5px solid var(--line);display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));z-index:20;transition:transform .35s cubic-bezier(.32,.72,.35,1);box-shadow:-12px 0 40px rgba(0,0,0,.4)}
+#panel{position:absolute;top:0;right:0;bottom:0;width:min(320px,86vw);background:var(--chip);backdrop-filter:blur(14px);border-left:1.5px solid var(--line);display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));z-index:20;transition:transform .35s cubic-bezier(.32,.72,.35,1);box-shadow:-12px 0 40px rgba(0,0,0,.4)}
 #panel.closed{transform:translateX(105%)}
 .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .panel-head h4{margin:0;font:500 11px "IBM Plex Mono";letter-spacing:.16em;color:var(--mute)}
@@ -47,7 +53,7 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
 .bat .meta b{font-size:26px;font-weight:500;display:block;line-height:1.1}
 .bat .meta span{color:var(--mute);font-size:11px}
 /* hint */
-#hint{position:absolute;left:16px;bottom:calc(14px + env(safe-area-inset-bottom));color:var(--mute);font-size:11px;background:rgba(20,26,70,.72);border:1px solid var(--line);padding:8px 12px;border-radius:999px;z-index:5;pointer-events:none}
+#hint{position:absolute;left:16px;bottom:calc(14px + env(safe-area-inset-bottom));color:var(--mute);font-size:11px;background:var(--chip);border:1px solid var(--line);padding:8px 12px;border-radius:999px;z-index:5;pointer-events:none}
 #fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:32px;color:var(--mute);z-index:50}
 @media(max-width:720px){
   .tag{font-size:11px;padding:5px 8px}
@@ -61,11 +67,14 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
   <svg class="lead" id="leaders"><line id="ln"/><circle id="dt" r="3.5"/></svg>
   <div class="tag" id="tag" style="opacity:0"></div>
   <header id="topbar">
-    <div class="brand"><img src="/brand/stella-paper-mark.svg" alt="Stella logo">STELLA · 3D</div>
-    <button id="batBadge" aria-label="Battery status — tap to show parts" aria-expanded="false">
-      <svg id="badgeGlyph" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"></svg>
-      <b id="pct">–</b>
-    </button>
+    <div class="brand"><img id="brandLogo" src="/brand/stella-paper-mark.svg" alt="Stella logo">STELLA · 3D</div>
+    <div id="topRight">
+      <button id="themeBtn" aria-label="Toggle theme">◐ paper</button>
+      <button id="batBadge" aria-label="Battery status — tap to show parts" aria-expanded="false">
+        <svg id="badgeGlyph" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"></svg>
+        <b id="pct">–</b>
+      </button>
+    </div>
   </header>
   <aside id="panel" class="closed" aria-label="Parts list">
     <div class="panel-head"><h4>PARTS</h4><button id="collapseBtn" aria-label="Close parts panel">✕</button></div>
@@ -120,15 +129,21 @@ const batt = battColor(PCT);
 const battCss = '#'+batt.getHexString();
 
 /* ---------- battery glyphs (SVG) ---------- */
-function glyphSVG(pct, color){
+function glyphSVG(pct, color, stroke){
+  stroke = stroke || '#e9e7ff';
   const w = 26, fill = Math.max(0, Math.min(w, w*pct/100));
-  return `<rect x="1" y="1" width="28" height="18" rx="4" fill="none" stroke="#e9e7ff" stroke-opacity=".55" stroke-width="1.6"/>`+
-    `<rect x="30.5" y="6.5" width="3" height="7" rx="1.5" fill="#e9e7ff" fill-opacity=".55"/>`+
+  return `<rect x="1" y="1" width="28" height="18" rx="4" fill="none" stroke="${stroke}" stroke-opacity=".55" stroke-width="1.6"/>`+
+    `<rect x="30.5" y="6.5" width="3" height="7" rx="1.5" fill="${stroke}" fill-opacity=".55"/>`+
     `<rect x="4" y="4" width="${fill.toFixed(1)}" height="12" rx="2" fill="${color}"/>`;
 }
-badgeGlyph.innerHTML = glyphSVG(PCT, battCss);
-cardGlyph.innerHTML = glyphSVG(PCT, battCss);
-cardGlyph.setAttribute('viewBox','0 0 34 20');
+function paintGlyphs(){
+  const paper = document.documentElement.dataset.theme === 'paper';
+  const stroke = paper ? '#2a2119' : '#e9e7ff';
+  badgeGlyph.innerHTML = glyphSVG(PCT, battCss, stroke);
+  cardGlyph.innerHTML = glyphSVG(PCT, battCss, stroke);
+  cardGlyph.setAttribute('viewBox','0 0 34 20');
+}
+paintGlyphs();
 pct.textContent = PCT+'%';
 pct2.textContent = PCT+'%';
 pct.style.color = battCss;
@@ -170,6 +185,30 @@ const battLight = new THREE.PointLight(batt.getHex(), 9000, 2200, 1.8); battLigh
 const fillMat = new THREE.MeshBasicMaterial({color: batt.clone(), transparent:true, opacity:0.10, depthWrite:false});
 const edgeMat = new THREE.LineBasicMaterial({color: 0xdfe0ff, transparent:true, opacity:0.85});
 const accentMat = new THREE.LineBasicMaterial({color: batt.clone(), transparent:true, opacity:0.9});
+
+/* wireframe colors follow the theme: light edges on midnight Tokyo, dark edges on paper */
+function applySceneTheme(){
+  const paper = document.documentElement.dataset.theme === 'paper';
+  edgeMat.color.set(paper ? 0x4a4238 : 0xdfe0ff);
+  edgeMat.opacity = paper ? 0.9 : 0.85;
+}
+applySceneTheme();
+
+/* ---------- theme toggle: midnight Tokyo <-> paper minimal, persisted ---------- */
+const themeBtn = document.getElementById('themeBtn');
+function setTheme(t){
+  document.documentElement.dataset.theme = t;
+  localStorage.setItem('stella-theme', t);
+  themeBtn.textContent = t === 'dark' ? '◐ paper' : '◑ blueprint';
+  // cream tile blends into paper — use the dark mark on light backgrounds
+  document.getElementById('brandLogo').src =
+    t === 'paper' ? '/brand/stella-paper-dark.svg' : '/brand/stella-paper-mark.svg';
+  paintGlyphs();
+  applySceneTheme();
+}
+setTheme(document.documentElement.dataset.theme || 'dark');
+themeBtn.addEventListener('click', ()=>
+  setTheme(document.documentElement.dataset.theme === 'dark' ? 'paper' : 'dark'));
 
 function wire(geo, opts){
   opts = opts || {};
@@ -371,7 +410,7 @@ function explodeAmount(t){
   return 1-ease((t-(CYCLE-4))/4);
 }
 
-function frame(t, dt){
+function frame(t, delta){
   const tt = t % CYCLE;
   const e = explodeHold !== null ? explodeHold : (reduce ? 1 : explodeAmount(tt));
 
@@ -386,7 +425,7 @@ function frame(t, dt){
     model.rotation.y = Math.sin(t*0.3)*0.05;
     model.rotation.z = 0;
   } else if(robotState === 'moving' && !reduce){
-    for(const w of wheels) w.rotation.x += dt*7;
+    for(const w of wheels) w.rotation.x += delta*7;
     model.position.y = Math.abs(Math.sin(t*7))*16;
     model.rotation.z = Math.sin(t*7)*0.03;
     model.rotation.y = 0;
@@ -413,7 +452,7 @@ function frame(t, dt){
 
   // camera: preset tween (smooth, eased) — user drag cancels it
   if(camTween){
-    camTween.t = Math.min(1, camTween.t + dt/1.15);
+    camTween.t = Math.min(1, camTween.t + delta/1.15);
     const k = easeIO(camTween.t);
     // shortest-path azimuth
     let dAz = camTween.az1 - camTween.az0;
@@ -468,5 +507,5 @@ function frame(t, dt){
 }
 
 if(FIX !== null){ frame(FIX, 0); document.title='ready'; }
-else { const t0 = performance.now(); let last = t0; (function loop(now){ const dt = Math.min(0.05, (now-last)/1000); last = now; frame((now-t0)/1000, dt); requestAnimationFrame(loop); })(t0); }
+else { const t0 = performance.now(); let last = t0; (function loop(now){ const d = Math.min(0.05, (now-last)/1000); last = now; frame((now-t0)/1000, d); requestAnimationFrame(loop); })(t0); }
 </script></body></html>
