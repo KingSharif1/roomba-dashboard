@@ -109,15 +109,23 @@ ol.tl li.win:before{background:var(--sense);border-color:var(--sense)}
  .cards{gap:10px}.card{padding:12px 10px}.card p{font-size:14px}
  .layout .legend{columns:1}
  .wiringwrap svg{min-width:720px}
+.zoomctl{display:flex;gap:6px;margin-top:8px;justify-content:flex-end}
+.zoomctl button{font:12px "IBM Plex Mono",monospace;border:1px solid var(--ink);background:var(--card);color:var(--ink);border-radius:8px;padding:8px 14px;cursor:pointer;min-height:40px}
+.zoomctl button:active{transform:scale(.96)}
+@media (max-width:700px){
+ .layout .legend{font-size:13px;columns:1;gap:6px}
+ .layout .legend div{margin-bottom:4px}
+ #s3 figure{margin-bottom:8px}
+}
  section{margin-top:50px}
 }
 html.static .rv,html.static .card{transition:none!important}
 .hint{display:none}@media (max-width:600px){.hint{display:inline}}
 
-footer.big{margin-top:90px;position:relative;border-top:1.5px solid var(--ink);background:var(--card);overflow:hidden}
+footer.big{margin-top:90px;position:relative;background:var(--card);overflow:visible}
 footer.big:before{content:"";position:absolute;inset:0;background:radial-gradient(60% 120% at 85% 0%,var(--glow),transparent 70%);pointer-events:none}
 footer.big .in{max-width:1080px;margin:0 auto;padding:56px 20px 26px;position:relative;display:grid;grid-template-columns:1.4fr 1fr;gap:40px}
-footer.big .cred{font:italic 17px/1.5 "Newsreader",Georgia,serif;max-width:32ch;margin:0;color:var(--mute)}
+footer.big .cred{font:italic 14px/1.4 "Newsreader",Georgia,serif;margin:0;color:var(--mute);white-space:nowrap}
 /* the mark is the signature now: big cursive, writes itself out, occasional RGB-split glitch */
 footer.big .mark{font-family:'La Belle Aurore',cursive;font-size:clamp(104px,20vw,240px);line-height:1;color:var(--ink);margin:0 0 16px;clip-path:inset(0 100% 0 0);animation:markwrite 2.4s cubic-bezier(.6,0,.3,1) .5s forwards,markglitch 9s linear 3.5s infinite}
 footer.big .mark:hover{text-shadow:-4px 0 rgba(255,0,60,.65),4px 0 rgba(0,229,255,.65)}
@@ -131,4 +139,4 @@ footer.big a{text-decoration:none;color:var(--ink)}footer.big a:hover{color:var(
 footer.big .tb2{grid-column:1/-1;display:flex;flex-wrap:wrap;border:1px solid var(--ink);font:11.5px "IBM Plex Mono",monospace;margin-top:10px}
 footer.big .tb2 span{padding:7px 12px;border-right:1px solid var(--ink);color:var(--mute)}footer.big .tb2 span b{color:var(--ink);font-weight:500;margin-left:6px}
 footer.big .tb2 span:last-child{border-right:0;margin-left:auto}
-@media (max-width:700px){footer.big .in{grid-template-columns:1fr;gap:26px;padding:40px 14px 76px}footer.big .cred{font-size:19px}footer.big .tb2 span:last-child{margin-left:0}}
+@media (max-width:700px){footer.big .in{grid-template-columns:1fr;gap:26px;padding:40px 14px 76px}footer.big .cred{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}footer.big .tb2 span:last-child{margin-left:0}}
