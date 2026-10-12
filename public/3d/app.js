@@ -1,7 +1,7 @@
 import * as THREE from './three.module.js';
 import {OrbitControls} from './OrbitControls.js';
 import {LineSegments2} from './LineSegments2.js';import {LineSegmentsGeometry} from './LineSegmentsGeometry.js';import {LineMaterial} from './LineMaterial.js';import {RoomEnvironment} from './RoomEnvironment.js';
-import {root,parts,wheels} from './model.js';
+import {root,parts,wheels} from './model.js?v3b';
 const INFO={roomba:['Roomba 694','drives, docks, holds the battery'],wheels:['drive wheels','move Stella (Roomba motors)'],tape:['tape pads','hold the plate to the cover'],plate:['10" clear plate','deck for everything'],
 posts:['35 mm posts','lift the lidar above the stack'],lidar:['RPLIDAR C1','scans the room 360° for mapping'],lidarhead:['RPLIDAR C1','scans the room 360° for mapping'],
 pi:['Raspberry Pi 4','the brain: ROS 2, mapping, voice'],speaker:['ASHATA speaker','Stella\'s voice'],mic:['JOUNIVO mic','hears commands'],camera:['Pi Camera','sees ahead'],

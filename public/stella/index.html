@@ -5,7 +5,7 @@
 <script>{const q=new URLSearchParams(location.search).get('theme');if(q)localStorage.setItem('stella-theme',q);document.documentElement.dataset.theme=localStorage.getItem('stella-theme')||'paper'}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v3b">
 </head><body id="top">
 <button id="theme" aria-label="Toggle theme">◑ blueprint</button>
 <div class="wrap">
@@ -17,7 +17,7 @@
 </header>
 
 <section class="rv" style="margin-top:28px">
- <figure><iframe class="viewer" src="/3d/index.html?embed" title="Stella 3D model" loading="lazy"></iframe>
+ <figure><iframe class="viewer" src="/3d/index.html?embed&v3b" title="Stella 3D model" loading="lazy"></iframe>
  <figcaption><b>Fig. 1</b> — Stella as built. Drag to rotate · scroll to zoom · tap a part · slide to explode.</figcaption></figure>
 </section>
 
@@ -123,5 +123,5 @@
  </div>
  <div class="tb2"><span>DWG<b>STL-001</b></span><span>REV<b>E · 2026-10-12</b></span><span>SCALE<b>1:1</b></span><span>SHEET<b>1 / 1</b></span><span>kingsharif.com</span></div>
 </div></footer>
-<script src="page.js"></script>
+<script src="page.js?v3b"></script>
 </body></html>
