@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/", headers: noCache },
       { source: "/stella/:path*", headers: noCache },
+      { source: "/3d", headers: noCache },
       { source: "/3d/:path*", headers: noCache },
     ];
   },
@@ -19,13 +20,15 @@ const nextConfig: NextConfig = {
         destination: "https://stella.kingsharif.com/:path*",
         permanent: false,
       },
-      { source: "/stella", destination: "/stella/index.html", permanent: false },
     ];
   },
   async rewrites() {
     return [
       // Grok's engineering-paper landing page serves at the root.
       { source: "/", destination: "/stella/index.html" },
+      // 3D showcase: clean URL stays in the address bar (rewrite, not redirect).
+      { source: "/3d", destination: "/3d/index.html" },
+      { source: "/stella", destination: "/stella/index.html" },
     ];
   },
 };
