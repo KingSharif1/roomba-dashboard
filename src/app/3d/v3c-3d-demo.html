@@ -55,7 +55,7 @@ html[data-embed] #viewPresets,html[data-embed] #panel,html[data-embed] #batBadge
 #batBadge svg{display:block}
 #batBadge b{font-size:17px;font-weight:500;min-width:3ch;text-align:right}
 /* parts panel */
-#panel{position:absolute;top:0;right:0;bottom:0;width:min(320px,86vw);background:var(--chip);backdrop-filter:blur(14px);border-left:1.5px solid var(--line);display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));z-index:20;transition:transform .35s cubic-bezier(.32,.72,.35,1);box-shadow:-12px 0 40px rgba(0,0,0,.4)}
+#panel{position:absolute;top:0;right:0;bottom:0;width:min(320px,86vw);background:var(--chip);backdrop-filter:blur(14px);border-left:1.5px solid var(--line);display:flex;flex-direction:column;padding:calc(72px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));z-index:20;transition:transform .35s cubic-bezier(.32,.72,.35,1);box-shadow:-12px 0 40px rgba(0,0,0,.4)}
 #panel.closed{transform:translateX(105%)}
 .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .panel-head h4{margin:0;font:500 11px "IBM Plex Mono";letter-spacing:.16em;color:var(--mute)}
@@ -81,7 +81,7 @@ html[data-embed] #viewPresets,html[data-embed] #panel,html[data-embed] #batBadge
   #batBadge b{font-size:14px}
   .brand{font-size:10px;padding:8px 12px}
   #hint{display:none}
-  #panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:62dvh;border-left:0;border-top:1.5px solid var(--line);border-radius:20px 20px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.45)}
+  #panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:62dvh;border-left:0;border-top:1.5px solid var(--line);border-radius:20px 20px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.45);padding-top:14px}
   #panel.closed{transform:translateY(105%)}
 }
 </style></head><body>
