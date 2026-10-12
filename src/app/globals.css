@@ -241,6 +241,19 @@ body {
 }
 .v3-pulse { animation: v3-pulse 2s ease-in-out infinite; }
 
+/* map svg: fills container on mobile (cropped slice), natural aspect on desktop */
+.v3-map-svg { height: 100%; }
+@media (min-width: 768px) {
+  .v3-map-svg { height: auto; aspect-ratio: 400 / 320; }
+}
+
+/* camera feed drift — subtle horizontal pan so the thumbnail feels live */
+@keyframes v3-cam-drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-8%); }
+}
+.v3-cam-drift { animation: v3-cam-drift 9s ease-in-out infinite; width: 125% !important; }
+
 /* logo animations by robot status */
 @keyframes v3-logo-pulse {
   0%, 100% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(255,122,92,0.55)); }
@@ -254,6 +267,20 @@ body {
 }
 .v3-logo-charge { animation: v3-logo-breathe 3.6s ease-in-out infinite; }
 
+/* voice: fast attentive pulse while listening, warm talk rhythm while speaking */
+@keyframes v3-logo-listen {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(94,234,212,0.6)); }
+  50% { transform: scale(1.1); filter: drop-shadow(0 0 18px rgba(94,234,212,1)); }
+}
+.v3-logo-listen { animation: v3-logo-listen 0.9s ease-in-out infinite; }
+
+@keyframes v3-logo-speak {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(255,122,92,0.6)); }
+  25% { transform: scale(1.05); filter: drop-shadow(0 0 12px rgba(255,122,92,0.9)); }
+  75% { transform: scale(1.08); filter: drop-shadow(0 0 16px rgba(255,122,92,1)); }
+}
+.v3-logo-speak { animation: v3-logo-speak 1.1s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
-  .v3-toast, .v3-pulse, .v3-logo-clean, .v3-logo-charge { animation: none !important; }
+  .v3-toast, .v3-pulse, .v3-logo-clean, .v3-logo-charge, .v3-logo-listen, .v3-logo-speak, .v3-cam-drift { animation: none !important; }
 }

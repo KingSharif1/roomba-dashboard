@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Minus, Crosshair, Expand } from "lucide-react";
+import { useRef, useState } from "react";
+import { Plus, Minus, Crosshair, Expand, ChevronUp } from "lucide-react";
 import { demoRooms } from "@/lib/v3/demo";
 import { modeLabel, useV3Robot } from "@/lib/v3/store";
 
@@ -37,16 +37,40 @@ const cleanPath =
 
 export function V3FloorMap() {
   const { state } = useV3Robot();
-  const { location, mode, runMinutes, heading, speed, dx, dy } = state;
+  const { location, mode, runMinutes, heading, speed, dx, dy, mx, my, voice, voiceLine } = state;
   const [view, setView] = useState<"bird" | "fp">("bird");
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
   const stella = zoneById[location.roomId ?? "living-room"] ?? zoneById["living-room"];
-  const mx = stella.x + 62 + dx;
-  const my = stella.y + 50 + dy;
+  // Animated marker: glides along the cleaning path in the living room,
+  // snaps to the room zone center elsewhere. Manual drive offsets apply.
+  const inLiving = (location.roomId ?? "living-room") === "living-room";
+  const baseX = inLiving ? mx : stella.x + 62;
+  const baseY = inLiving ? my : stella.y + 50;
+  const markX = baseX + dx;
+  const markY = baseY + dy;
   const isCleaning = mode === "cleaning";
 
+  // Drag-to-pan on the map
+  const drag = useRef<{ sx: number; sy: number; px: number; py: number } | null>(null);
+  const onPointerDown = (e: React.PointerEvent) => {
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    drag.current = { sx: e.clientX, sy: e.clientY, px: pan.x, py: pan.y };
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!drag.current) return;
+    const vb = 400 / (e.currentTarget as Element).getBoundingClientRect().width;
+    setPan({
+      x: drag.current.px + (e.clientX - drag.current.sx) * vb,
+      y: drag.current.py + (e.clientY - drag.current.sy) * vb,
+    });
+  };
+  const onPointerUp = () => {
+    drag.current = null;
+  };
+
   return (
-    <div className="v3-panel relative overflow-hidden">
+    <div className="v3-panel relative overflow-hidden h-full flex flex-col">
       {/* Stella status card (top-left overlay) — compact on mobile */}
       <div className="absolute top-3 left-3 z-10 v3-chip px-2.5 sm:px-3 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-3">
         <div
@@ -72,6 +96,28 @@ export function V3FloorMap() {
           </div>
         </div>
       </div>
+
+      {/* Voice status chip — shows while listening/speaking (demo) */}
+      {(voice === "listening" || voice === "speaking") && (
+        <div
+          className="absolute top-[104px] sm:top-3 left-1/2 -translate-x-1/2 z-20 v3-chip px-4 py-2 flex items-center gap-2 max-w-[calc(100%-6rem)]"
+          style={{ borderColor: "var(--v3-mint)" }}
+          role="status"
+        >
+          <span className="flex gap-1 items-center" aria-hidden>
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="w-1.5 h-1.5 rounded-full v3-pulse"
+                style={{ background: "var(--v3-mint)", animationDelay: `${i * 0.25}s` }}
+              />
+            ))}
+          </span>
+          <span className="text-sm truncate">
+            {voice === "listening" ? "Listening…" : voiceLine ?? "Speaking…"}
+          </span>
+        </div>
+      )}
 
       {/* View toggle (top-right) — drops below the status card on mobile */}
       <div className="absolute top-[68px] sm:top-3 right-3 z-10 flex rounded-lg overflow-hidden border"
@@ -114,15 +160,19 @@ export function V3FloorMap() {
         </button>
       </div>
 
-      {/* Map */}
+      {/* Map — drag to pan, buttons to zoom; fills its container */}
       <svg
         viewBox="0 0 400 320"
-        className="w-full block"
-        style={{ aspectRatio: "400 / 320" }}
+        preserveAspectRatio="xMidYMid slice"
+        className="v3-map-svg w-full block touch-none cursor-grab active:cursor-grabbing flex-1 min-h-0"
         role="img"
         aria-label="Floor plan map"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
       >
-        <g style={{ transform: `scale(${zoom})`, transformOrigin: "200px 160px" }}>
+        <g style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: "200px 160px" }}>
         <defs>
           <radialGradient id="cleanGlow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#ff7a5c" stopOpacity="0.25" />
@@ -181,10 +231,10 @@ export function V3FloorMap() {
           opacity="0.8"
         />
 
-        {/* Stella marker — moves with DRIVE controls */}
-        <g style={{ transition: "transform 0.25s ease-out" }}>
-          <circle cx={mx} cy={my} r="9" fill={isCleaning ? "#ff7a5c" : "#5eead4"} />
-          <circle cx={mx} cy={my} r="14" fill="none"
+        {/* Stella marker — glides along the path, drive offsets apply */}
+        <g style={{ transition: "cx 0.7s linear, cy 0.7s linear" }}>
+          <circle cx={markX} cy={markY} r="9" fill={isCleaning ? "#ff7a5c" : "#5eead4"} />
+          <circle cx={markX} cy={markY} r="14" fill="none"
             stroke={isCleaning ? "#ff7a5c" : "#5eead4"} opacity="0.4" />
         </g>
         </g>
@@ -262,11 +312,12 @@ export function V3FloorMap() {
         <div className="absolute top-1 left-2 text-[10px] flex items-center gap-1 z-10">
           <span className="w-1.5 h-1.5 rounded-full bg-white v3-pulse" /> live
         </div>
-        {/* simulated camera frame */}
-        <div className="w-full h-full flex">
+        {/* simulated camera frame — subtle drift so it feels live */}
+        <div className="w-full h-full flex v3-cam-drift">
           <div className="w-1/3" style={{ background: "#3a2c22" }} />
           <div className="w-1/3" style={{ background: "#5a5a6e" }} />
           <div className="w-1/3" style={{ background: "#2c2c40" }} />
+          <div className="w-1/3 shrink-0" style={{ background: "#3a2c22" }} />
         </div>
         <div className="absolute bottom-1 right-1 z-10">
           <Expand className="w-3 h-3" style={{ color: "var(--v3-muted)" }} />

@@ -66,6 +66,8 @@ export const demoRobot: DemoRobotState = {
   runMinutes: 18,
   heading: "NE",
   speed: 50,
+  voice: "idle",
+  voiceLine: null,
 };
 
 export const demoBatteryHistory: number[] = [

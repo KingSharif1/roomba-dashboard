@@ -1,40 +1,41 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Square } from "lucide-react";
+import { ChevronUp, ChevronLeft, ChevronRight, Square, Joystick } from "lucide-react";
 import { useV3Robot } from "@/lib/v3/store";
+import { V3Collapsible } from "./collapsible-card";
 
 const SPEEDS = [25, 50, 75, 100];
 
 export function V3DrivePanel() {
   const { state, drive, setSpeed } = useV3Robot();
-  const { speed } = state;
+  const { speed, heading } = state;
   const [mode, setMode] = useState<"pad" | "stick">("pad");
 
   const dirBtn =
     "w-14 h-14 rounded-lg border flex items-center justify-center hover:opacity-75 active:scale-95 transition-all";
 
   return (
-    <div className="v3-panel p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className="v3-panel-title">Drive</span>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: "var(--v3-border)" }}>
-            {(["pad", "stick"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className="px-3 py-1.5 text-xs font-semibold capitalize"
-                style={{
-                  background: mode === m ? "var(--v3-coral)" : "transparent",
-                  color: mode === m ? "#1a0f0a" : "var(--v3-text)",
-                }}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-          <ChevronDown className="w-4 h-4" style={{ color: "var(--v3-muted)" }} />
+    <V3Collapsible
+      icon={<Joystick className="w-4 h-4" />}
+      title="Drive"
+      summary={`${speed}% · ${heading}`}
+    >
+      <div className="flex items-center gap-2 ml-auto">
+        <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: "var(--v3-border)" }}>
+          {(["pad", "stick"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className="px-3 py-1.5 text-xs font-semibold capitalize"
+              style={{
+                background: mode === m ? "var(--v3-coral)" : "transparent",
+                color: mode === m ? "#1a0f0a" : "var(--v3-text)",
+              }}
+            >
+              {m}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -61,7 +62,7 @@ export function V3DrivePanel() {
           </button>
           <span />
           <button aria-label="Back" onClick={() => drive("down")} className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
-            <ChevronDown className="w-6 h-6" />
+            <ChevronUp className="w-6 h-6 rotate-180" />
           </button>
           <span />
         </div>
@@ -115,6 +116,6 @@ export function V3DrivePanel() {
           ))}
         </div>
       </div>
-    </div>
+    </V3Collapsible>
   );
 }

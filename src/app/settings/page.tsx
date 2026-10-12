@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
 import { useRobot } from "@/hooks/use-robot";
 import { useRobotMode } from "@/hooks/use-robot-mode";
 import * as robot from "@/lib/robot";
@@ -25,8 +24,6 @@ import {
 } from "lucide-react";
 
 type SecurityStatus = {
-  supabase: "checking" | "connected" | "error";
-  auth: "checking" | "authenticated" | "unauthenticated";
   robot: "checking" | "connected" | "api-only" | "mock" | "error";
 };
 
@@ -37,36 +34,12 @@ export default function SettingsPage() {
   const [testing, setTesting] = useState(false);
   const { connection } = useRobot();
   const [security, setSecurity] = useState<SecurityStatus>({
-    supabase: "checking",
-    auth: "checking",
     robot: "checking",
   });
   const mockMode = useRobotMode();
 
   const checkSecurityStatus = async () => {
-    const supabase = createClient();
-    
-    // Check Supabase connection
-    try {
-      await supabase.from("_dummy_check").select("*").limit(1);
-      // A response, including "table does not exist", means the project is reachable.
-      setSecurity(prev => ({ ...prev, supabase: "connected" }));
-    } catch {
-      setSecurity(prev => ({ ...prev, supabase: "error" }));
-    }
-
-    // Check auth status
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      setSecurity(prev => ({ 
-        ...prev, 
-        auth: user ? "authenticated" : "unauthenticated" 
-      }));
-    } catch {
-      setSecurity(prev => ({ ...prev, auth: "unauthenticated" }));
-    }
-
-    // Check robot connection
+    // Check robot connection (Tailscale membership is the auth — no login)
     if (robot.isMockMode()) {
       setSecurity(prev => ({ ...prev, robot: "mock" }));
     } else {
@@ -224,56 +197,6 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3 text-sm">
-              {/* Supabase Connection */}
-              <div className="flex items-center justify-between">
-                <span className="text-muted">Supabase Database</span>
-                <div className="flex items-center gap-2">
-                  {security.supabase === "checking" && (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-muted" />
-                      <span className="text-muted">Checking...</span>
-                    </>
-                  )}
-                  {security.supabase === "connected" && (
-                    <>
-                      <CheckCircle className="w-4 h-4 text-accent" />
-                      <span className="text-accent">Connected</span>
-                    </>
-                  )}
-                  {security.supabase === "error" && (
-                    <>
-                      <XCircle className="w-4 h-4 text-danger" />
-                      <span className="text-danger">Not configured</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Auth Status */}
-              <div className="flex items-center justify-between">
-                <span className="text-muted">Authentication</span>
-                <div className="flex items-center gap-2">
-                  {security.auth === "checking" && (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-muted" />
-                      <span className="text-muted">Checking...</span>
-                    </>
-                  )}
-                  {security.auth === "authenticated" && (
-                    <>
-                      <CheckCircle className="w-4 h-4 text-accent" />
-                      <span className="text-accent">Logged in</span>
-                    </>
-                  )}
-                  {security.auth === "unauthenticated" && (
-                    <>
-                      <AlertCircle className="w-4 h-4 text-warning" />
-                      <span className="text-warning">Not logged in</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
               {/* Robot Connection */}
               <div className="flex items-center justify-between">
                 <span className="text-muted">Robot Connection</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useV3Robot } from "@/lib/v3/store";
 
 function Toggle({ on, onChange, label, hint }: { on: boolean; onChange: (v: boolean) => void; label: string; hint?: string }) {
   return (
@@ -23,6 +24,7 @@ function Toggle({ on, onChange, label, hint }: { on: boolean; onChange: (v: bool
 }
 
 export function V3SettingsView() {
+  const { state, setSoundTrigger } = useV3Robot();
   const [auto, setAuto] = useState(true);
   const [notify, setNotify] = useState(true);
   const [learning, setLearning] = useState(true);
@@ -38,6 +40,15 @@ export function V3SettingsView() {
       <div className="v3-panel px-4 divide-y" style={{ borderColor: "var(--v3-border-soft)" }}>
         <span className="v3-panel-title block pt-4 pb-1">Notifications</span>
         <Toggle on={notify} onChange={setNotify} label="Door-blocked alerts" hint="Ping when a closed door blocks a run" />
+      </div>
+      <div className="v3-panel px-4 divide-y" style={{ borderColor: "var(--v3-border-soft)" }}>
+        <span className="v3-panel-title block pt-4 pb-1">Voice</span>
+        <Toggle
+          on={state.soundTrigger}
+          onChange={setSoundTrigger}
+          label="Sound-triggered recording"
+          hint="Auto-record on loud sudden noises; ignores music and speech. Off by default — no audio is captured yet (UI preview)."
+        />
       </div>
       <div className="v3-panel px-4 divide-y" style={{ borderColor: "var(--v3-border-soft)" }}>
         <span className="v3-panel-title block pt-4 pb-1">Robot</span>

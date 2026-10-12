@@ -12,7 +12,19 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
 .tag b{font-weight:500}.tag span{color:var(--mute);margin-left:6px}
 /* top bar */
 #topbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(12px + env(safe-area-inset-top)) 16px 0;pointer-events:none;z-index:10}
-.brand{pointer-events:auto;font-weight:500;letter-spacing:.18em;font-size:11px;color:var(--mute);background:rgba(20,26,70,.72);border:1px solid var(--line);border-radius:999px;padding:10px 16px;backdrop-filter:blur(10px)}
+.brand{pointer-events:auto;display:flex;align-items:center;gap:10px;font-weight:500;letter-spacing:.18em;font-size:11px;color:var(--mute);background:rgba(20,26,70,.72);border:1px solid var(--line);border-radius:999px;padding:8px 16px 8px 8px;backdrop-filter:blur(10px)}
+.brand img{width:30px;height:30px;border-radius:8px;display:block}
+/* bottom control bar: view presets + robot state */
+#controls{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:15;pointer-events:auto}
+.ctl-group{display:flex;gap:4px;background:rgba(20,26,70,.82);border:1px solid var(--line);border-radius:999px;padding:5px;backdrop-filter:blur(10px);box-shadow:0 4px 24px rgba(0,0,0,.35)}
+.ctl-group button{border:0;background:transparent;color:var(--mute);font:inherit;font-size:11px;letter-spacing:.04em;padding:9px 13px;border-radius:999px;cursor:pointer;white-space:nowrap;min-height:40px}
+.ctl-group button:active{transform:scale(.96)}
+.ctl-group button.on{background:var(--acc);color:#1a0f0a;font-weight:500}
+.ctl-group button.on-state{background:rgba(94,234,212,.16);color:var(--ok)}
+@media(max-width:720px){
+  #controls{bottom:calc(10px + env(safe-area-inset-bottom));gap:6px;max-width:calc(100vw - 20px);overflow-x:auto}
+  .ctl-group button{padding:8px 10px;font-size:10px}
+}
 /* battery badge — always visible, toggles the parts panel */
 #batBadge{pointer-events:auto;display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 14px 8px 10px;border-radius:14px;border:1px solid var(--line);background:rgba(20,26,70,.82);backdrop-filter:blur(10px);color:var(--ink);font:inherit;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,.35)}
 #batBadge:active{transform:scale(.97)}
@@ -49,7 +61,7 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
   <svg class="lead" id="leaders"><line id="ln"/><circle id="dt" r="3.5"/></svg>
   <div class="tag" id="tag" style="opacity:0"></div>
   <header id="topbar">
-    <div class="brand">STELLA · 3D</div>
+    <div class="brand"><img src="/brand/stella-paper-mark.svg" alt="Stella logo">STELLA · 3D</div>
     <button id="batBadge" aria-label="Battery status — tap to show parts" aria-expanded="false">
       <svg id="badgeGlyph" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"></svg>
       <b id="pct">–</b>
@@ -64,6 +76,14 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
     </div>
   </aside>
   <div id="hint">drag to orbit · scroll to zoom</div>
+  <div id="controls">
+    <div class="ctl-group" role="group" aria-label="Camera views">
+      <button data-view="front">Front</button><button data-view="top">Top</button><button data-view="side">Side</button><button data-view="threeq" class="on">¾</button><button data-view="exploded">Exploded</button>
+    </div>
+    <div class="ctl-group" role="group" aria-label="Robot state">
+      <button data-state="charger" class="on-state">Charger</button><button data-state="idle">Idle</button><button data-state="moving">Moving</button>
+    </div>
+  </div>
   <div id="fallback"><p>WebGL or the 3D library failed to load.<br>Check your connection and reload.</p></div>
 </div>
 <script>
@@ -163,10 +183,13 @@ function wire(geo, opts){
 /* ---------- Stella model (clean primitives, vertical stack) ---------- */
 const parts = {};   // name -> Group
 const baseY = {};   // name -> assembled y
+const wheels = [];  // wheel groups (spin around X when moving)
+const model = new THREE.Group();   // whole robot — states bob/spin this
+scene.add(model);
 
 function addPart(name, group, y){
   group.position.y = y;
-  scene.add(group);
+  model.add(group);
   parts[name] = group; baseY[name] = y;
   return group;
 }
@@ -191,6 +214,7 @@ function makeWheel(){
   const w = new THREE.Group();
   const wl = makeWheel(); wl.position.x = -150; w.add(wl);
   const wr = makeWheel(); wr.position.x =  150; w.add(wr);
+  wheels.push(wl, wr);
   const axle = wire(new THREE.CylinderGeometry(8, 8, 300, 12), {fill:false});
   axle.rotation.z = Math.PI/2; w.add(axle);
   addPart('wheels', w, -78);
@@ -213,7 +237,7 @@ addPart('mega', wire(new THREE.BoxGeometry(102, 16, 54)), 84);
 /* raspberry pi 4 */
 {
   const pi = wire(new THREE.BoxGeometry(86, 12, 58), {accent:true});
-  parts['pi'] = pi; baseY['pi'] = 104; pi.position.y = 104; scene.add(pi);
+  parts['pi'] = pi; baseY['pi'] = 104; pi.position.y = 104; model.add(pi);
   pi.position.x = -8; pi.position.z = -6;
 }
 /* pi camera: board + lens */
@@ -223,13 +247,13 @@ addPart('mega', wire(new THREE.BoxGeometry(102, 16, 54)), 84);
   const lens = wire(new THREE.CylinderGeometry(11, 13, 16, 20), {threshold:12});
   lens.position.y = 10; c.add(lens);
   c.position.set(66, 122, -52);
-  parts['camera'] = c; baseY['camera'] = 122; scene.add(c);
+  parts['camera'] = c; baseY['camera'] = 122; model.add(c);
 }
 /* 16x2 lcd */
 {
   const l = wire(new THREE.BoxGeometry(82, 9, 38));
   l.position.set(-58, 122, 58);
-  parts['lcd'] = l; baseY['lcd'] = 122; scene.add(l);
+  parts['lcd'] = l; baseY['lcd'] = 122; model.add(l);
 }
 /* rplidar c1 tower */
 {
@@ -238,11 +262,57 @@ addPart('mega', wire(new THREE.BoxGeometry(102, 16, 54)), 84);
   const head = wire(new THREE.CylinderGeometry(30, 30, 12, 28), {threshold:12, accent:true});
   head.position.y = 24; l.add(head);
   l.position.y = 148;
-  parts['lidar'] = l; baseY['lidar'] = 148; scene.add(l);
+  parts['lidar'] = l; baseY['lidar'] = 148; model.add(l);
 }
 
 /* explode map: clean vertical layers, even 82-unit spacing; wheels drop below */
 const LIFT = {wheels:-110, roomba:0, plate:82, buck:164, xh:164, mega:246, pi:328, camera:410, lcd:410, lidar:492};
+
+/* ---------- ground effects: charge pad ring + motion rings ---------- */
+const chargeRing = new THREE.Mesh(
+  new THREE.RingGeometry(210, 236, 64),
+  new THREE.MeshBasicMaterial({color: batt.clone(), transparent:true, opacity:0.35, side:THREE.DoubleSide, depthWrite:false})
+);
+chargeRing.rotation.x = -Math.PI/2; chargeRing.position.y = -148; scene.add(chargeRing);
+
+const motionRings = [];
+for(let i=0;i<3;i++){
+  const r = new THREE.Mesh(
+    new THREE.RingGeometry(190, 202, 64),
+    new THREE.MeshBasicMaterial({color: batt.clone(), transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false})
+  );
+  r.rotation.x = -Math.PI/2; r.position.y = -146; r.visible = false;
+  scene.add(r); motionRings.push(r);
+}
+
+/* ---------- view presets + robot state ---------- */
+let robotState = 'charger';        // charger | idle | moving
+let explodeHold = null;            // null = auto loop, 0/1 = manual hold
+let camTween = null;
+const easeIO = x => x<.5 ? 2*x*x : 1-Math.pow(-2*x+2,2)/2;
+const VIEWS = {
+  front:    {az: 0,            el: 0.30, dist: 1320},
+  top:      {az: 0.8,          el: 1.32, dist: 1520},
+  side:     {az: Math.PI/2,    el: 0.30, dist: 1320},
+  threeq:   {az: 0.8,          el: 0.42, dist: 1250},
+  exploded: {az: 0.8,          el: 0.52, dist: 1800, explode: 1},
+};
+function flyTo(name){
+  const v = VIEWS[name]; if(!v) return;
+  camTween = {az0: tAz, el0: tEl, d0: tDist, az1: v.az, el1: v.el, d1: v.dist, t: 0};
+  explodeHold = (v.explode !== undefined) ? v.explode : null;
+  document.querySelectorAll('#controls [data-view]').forEach(b=>
+    b.classList.toggle('on', b.dataset.view === name));
+}
+function setState(s){
+  robotState = s;
+  document.querySelectorAll('#controls [data-state]').forEach(b=>
+    b.classList.toggle('on-state', b.dataset.state === s));
+}
+document.querySelectorAll('#controls [data-view]').forEach(b=>
+  b.addEventListener('click', ()=> flyTo(b.dataset.view)));
+document.querySelectorAll('#controls [data-state]').forEach(b=>
+  b.addEventListener('click', ()=> setState(b.dataset.state)));
 
 /* ---------- parts list ---------- */
 const SHOW = [
@@ -269,14 +339,14 @@ let az = 0.8, el = 0.42, dist = 1250, tAz = az, tEl = el, tDist = dist;
 let dragging=false, px=0, py=0, pinch=0;
 const elc = renderer.domElement;
 elc.style.touchAction='none';
-elc.addEventListener('pointerdown', e=>{dragging=true;px=e.clientX;py=e.clientY;elc.setPointerCapture(e.pointerId);});
+elc.addEventListener('pointerdown', e=>{dragging=true;camTween=null;px=e.clientX;py=e.clientY;elc.setPointerCapture(e.pointerId);});
 elc.addEventListener('pointermove', e=>{
   if(!dragging) return;
   tAz -= (e.clientX-px)*0.005; tEl = Math.max(0.08, Math.min(1.2, tEl-(e.clientY-py)*0.004));
   px=e.clientX; py=e.clientY;
 });
 addEventListener('pointerup', ()=> dragging=false);
-elc.addEventListener('wheel', e=>{e.preventDefault(); tDist = Math.max(700, Math.min(2400, tDist + e.deltaY));}, {passive:false});
+elc.addEventListener('wheel', e=>{e.preventDefault();camTween=null;tDist = Math.max(700, Math.min(2400, tDist + e.deltaY));}, {passive:false});
 
 /* ---------- resize ---------- */
 function resize(){
@@ -301,26 +371,73 @@ function explodeAmount(t){
   return 1-ease((t-(CYCLE-4))/4);
 }
 
-function frame(t){
+function frame(t, dt){
   const tt = t % CYCLE;
-  const e = reduce ? 1 : explodeAmount(tt);
+  const e = explodeHold !== null ? explodeHold : (reduce ? 1 : explodeAmount(tt));
 
   for(const k in parts){
     parts[k].position.y = baseY[k] + (LIFT[k]||0)*e;
   }
 
+  /* robot state behaviors */
+  const isCharging = robotState === 'charger' && CHARGING;
+  if(robotState === 'idle' && !reduce){
+    model.position.y = Math.sin(t*1.1)*10;
+    model.rotation.y = Math.sin(t*0.3)*0.05;
+    model.rotation.z = 0;
+  } else if(robotState === 'moving' && !reduce){
+    for(const w of wheels) w.rotation.x += dt*7;
+    model.position.y = Math.abs(Math.sin(t*7))*16;
+    model.rotation.z = Math.sin(t*7)*0.03;
+    model.rotation.y = 0;
+  } else {
+    model.position.y *= 0.9; model.rotation.y *= 0.9; model.rotation.z *= 0.9;
+  }
+
+  /* charge pad pulse */
+  chargeRing.visible = isCharging;
+  if(isCharging && !reduce){
+    chargeRing.material.opacity = 0.28 + 0.18*Math.sin(t*3.2);
+    const s = 1 + 0.04*Math.sin(t*3.2);
+    chargeRing.scale.set(s, s, 1);
+  }
+  /* motion rings while driving */
+  motionRings.forEach((r, i)=>{
+    r.visible = robotState === 'moving' && !reduce;
+    if(!r.visible) return;
+    const ph = ((t*0.9) + i/3) % 1;
+    const s = 1 + ph*1.6;
+    r.scale.set(s, s, 1);
+    r.material.opacity = 0.45*(1-ph);
+  });
+
+  // camera: preset tween (smooth, eased) — user drag cancels it
+  if(camTween){
+    camTween.t = Math.min(1, camTween.t + dt/1.15);
+    const k = easeIO(camTween.t);
+    // shortest-path azimuth
+    let dAz = camTween.az1 - camTween.az0;
+    if(dAz > Math.PI) dAz -= 2*Math.PI;
+    if(dAz < -Math.PI) dAz += 2*Math.PI;
+    tAz = camTween.az0 + dAz*k;
+    tEl = camTween.el0 + (camTween.el1 - camTween.el0)*k;
+    tDist = camTween.d0 + (camTween.d1 - camTween.d0)*k;
+    if(camTween.t >= 1) camTween = null;
+  }
+
   // camera dollies out as the stack separates
   const want = 1150 + 620*e;
   if(reduce){ az=0.8; }
-  else { tAz += 0.00045; }
-  az += (tAz-az)*0.06; el += (tEl-el)*0.08; dist += (Math.max(want,tDist)-dist)*0.05;
+  else if(!camTween){ tAz += 0.00045; }
+  // smooth damping on orbit (drag to orbit, scroll to zoom)
+  az += (tAz-az)*0.07; el += (tEl-el)*0.09; dist += (Math.max(want,tDist)-dist)*0.06;
   const cx = Math.cos(az)*Math.cos(el)*dist, cy = Math.sin(el)*dist + 170, cz = Math.sin(az)*Math.cos(el)*dist;
   cam.position.set(cx, cy, cz); cam.lookAt(0, 190, 0);
 
   // charging pulse on the battery-tinted glow
-  const pulse = (CHARGING && !reduce) ? 0.035*Math.sin(t*3.2) : 0;
+  const pulse = (isCharging && !reduce) ? 0.05*Math.sin(t*3.2) : 0;
   fillMat.opacity = 0.10 + pulse + 0.06*e;
-  battLight.intensity = 9000 + (CHARGING && !reduce ? 2600*Math.sin(t*3.2)*0.5+1300 : 0);
+  battLight.intensity = 9000 + (isCharging && !reduce ? 2600*Math.sin(t*3.2)*0.5+1300 : 0);
 
   renderer.render(scene, cam);
 
@@ -350,6 +467,6 @@ function frame(t){
   } else { tag.style.opacity=0;ln.style.opacity=dt.style.opacity=0; }
 }
 
-if(FIX !== null){ frame(FIX); document.title='ready'; }
-else { const t0 = performance.now(); (function loop(){ frame((performance.now()-t0)/1000); requestAnimationFrame(loop); })(); }
+if(FIX !== null){ frame(FIX, 0); document.title='ready'; }
+else { const t0 = performance.now(); let last = t0; (function loop(now){ const dt = Math.min(0.05, (now-last)/1000); last = now; frame((now-t0)/1000, dt); requestAnimationFrame(loop); })(t0); }
 </script></body></html>

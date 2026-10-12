@@ -34,6 +34,10 @@ export interface DoorBlockedEvent {
 
 export type RobotMode = "cleaning" | "docked" | "idle" | "returning";
 
+/** Voice pipeline state. UI-only in demo; the real audio pipeline
+ *  (Pi mic → STT → intent → TTS) wires into the actions below later. */
+export type VoiceState = "idle" | "listening" | "speaking";
+
 export interface DemoRobotState {
   mode: RobotMode;
   battery: number; // 0-100
@@ -42,4 +46,7 @@ export interface DemoRobotState {
   runMinutes: number;
   heading: string;
   speed: number; // 0-100
+  voice: VoiceState;
+  /** demo transcript line shown while speaking */
+  voiceLine: string | null;
 }
