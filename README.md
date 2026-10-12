@@ -64,6 +64,12 @@ Ground rule: make it work before making it pretty.
 | XH-M609 low-voltage cutoff | Battery protection (~12.8 V) | On hand |
 | Cheap USB power bank / laptop USB | Pi power during testing | ❌ Under-voltage. Never again |
 
+### Build layout
+
+![Stella build layout: side and top view with all 19 parts](docs/images/stella-layout.png)
+
+*How the current build stacks on the Roomba (side + top view, all 19 parts, sizes approximate). Diagram made by Grok.*
+
 ### Lessons learned
 
 - **7-pin vs 8-pin.** The Roomba's serial port is a 7-pin mini-DIN. An 8-pin plug can seem to fit and still never work. Count the wires after cutting, and trace them with a meter, not by color.
@@ -78,6 +84,10 @@ Ground rule: make it work before making it pretty.
 - **The dock can't charge and power the load at once.** Switch the add-on electronics off to charge.
 
 ### Wiring diagram (description)
+
+![Stella wiring diagram: power chain, fuse options, mini-DIN pin colors, USB ports](docs/images/stella-wiring.png)
+
+*Power chain, fuse Option A (use) / Option B (avoid), mini-DIN pin colors and USB ports for the current build. Diagram made by Grok.*
 
 - **Data:** Roomba 7-pin mini-DIN → Arduino Mega. Roomba TXD (black) → Mega RX1 (pin 19). Roomba RXD (brown) → Mega TX1 (pin 18). Both grounds (yellow, orange) → Mega GND. Vpwr (purple, red) → nothing, never the Mega or Pi. BRC (green) → not connected. Shield taped off. No level shifter needed.
 - **Power (planned):** Roomba battery + → 3 A inline fuse → XH-M609 cutoff (off at 12.8 V, back on at ~13.4 V) → rocker switch → 5 A buck set to 5.1 V → USB-C → Pi 4. The Pi's USB powers the Mega and the RPLIDAR C1. The camera is on the Pi's ribbon port. All grounds go back to battery −.
