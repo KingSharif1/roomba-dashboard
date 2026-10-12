@@ -91,18 +91,6 @@ const Wr=[
 function wiring(host){
  const w=document.createElement('div');w.className='scroll wiringwrap';host.appendChild(w);
  const svg=el('svg',{viewBox:'0 0 1000 1000',role:'img','aria-label':'Wiring diagram'});w.appendChild(svg);
- // zoom controls: fit / zoom in / zoom out
- const zc=document.createElement('div');zc.className='zoomctl';
- zc.innerHTML='<button data-z="fit" aria-label="Fit to width">⤢</button><button data-z="out" aria-label="Zoom out">−</button><button data-z="in" aria-label="Zoom in">+</button>';
- host.appendChild(zc);
- let zw=720;
- const applyZ=()=>{svg.style.minWidth=zw+'px';};
- zc.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-  const z=b.dataset.z;
-  if(z==='fit')zw=w.clientWidth;
-  else if(z==='in')zw=Math.min(1600,zw+180);
-  else zw=Math.max(w.clientWidth,zw-180);
-  applyZ();});
  el('rect',{x:16,y:166,width:280,height:526,fill:'none',stroke:'var(--pw)','stroke-dasharray':'7 5',rx:8,opacity:.7},svg);
  tx(svg,290,686,'POWER BOX','warn',{'font-size':11,'text-anchor':'end'});
  tx(svg,11,430,'GND returns to battery −','mute',{'font-size':11,transform:'rotate(-90 8 430)','text-anchor':'middle'});
@@ -132,3 +120,11 @@ const items=document.querySelectorAll('.rv,.card');
 if(reduce||location.search.includes('static')||!('IntersectionObserver' in window))items.forEach(e=>e.classList.add('in'));
 else{const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const d=+(e.target.dataset.d||0);setTimeout(()=>e.target.classList.add('in'),d);io.unobserve(e.target);}}),{threshold:.12});
  document.querySelectorAll('.cards .card').forEach((c,i)=>{c.classList.add('rv');c.dataset.d=i%4*110;});items.forEach(e=>io.observe(e));document.querySelectorAll('.cards .card').forEach(e=>io.observe(e));}
+/* footer signature: write-on + glitch, replays every time you scroll to the bottom */
+const mark=document.querySelector('footer.big .mark');
+if(mark&&'IntersectionObserver' in window){
+ const mio=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){mark.classList.remove('play');void mark.offsetWidth;mark.classList.add('play');}
+ }),{threshold:.4});
+ mio.observe(mark);
+}else if(mark){mark.classList.add('play');}
