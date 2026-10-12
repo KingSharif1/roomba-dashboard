@@ -11,7 +11,15 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    return [{ source: "/stella", destination: "/stella/index.html", permanent: false }];
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "roomba-dashboard.vercel.app" }],
+        destination: "https://stella.kingsharif.com/:path*",
+        permanent: false,
+      },
+      { source: "/stella", destination: "/stella/index.html", permanent: false },
+    ];
   },
 };
 
