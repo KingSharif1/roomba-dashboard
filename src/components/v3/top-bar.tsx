@@ -1,9 +1,24 @@
 "use client";
 
 import { Settings } from "lucide-react";
-import type { DemoRobotState } from "@/lib/v3/types";
+import { modeLabel, useV3Robot } from "@/lib/v3/store";
+import type { RobotMode } from "@/lib/v3/types";
 
-export function V3TopBar({ robot }: { robot: DemoRobotState }) {
+function logoAnimClass(mode: RobotMode): string {
+  switch (mode) {
+    case "cleaning":
+      return "v3-logo-clean";
+    case "docked":
+      return "v3-logo-charge";
+    default:
+      return "";
+  }
+}
+
+export function V3TopBar({ onSettings }: { onSettings?: () => void }) {
+  const { state } = useV3Robot();
+  const { mode, battery, location } = state;
+
   return (
     <header className="flex items-center justify-between px-4 md:px-6 h-16 border-b shrink-0"
       style={{ borderColor: "var(--v3-border-soft)", background: "var(--v3-bg)" }}>
@@ -13,16 +28,17 @@ export function V3TopBar({ robot }: { robot: DemoRobotState }) {
           alt="Stella"
           width={40}
           height={40}
-          className="w-10 h-10 rounded-[10px] shrink-0"
+          className={`w-10 h-10 rounded-[10px] shrink-0 border ${logoAnimClass(mode)}`}
+          style={{ borderColor: "var(--v3-coral)" }}
         />
         <div>
           <h1 className="text-xl font-bold tracking-[0.25em]">STELLA</h1>
           <p className="text-xs flex items-center gap-1.5" style={{ color: "var(--v3-muted)" }}>
             <span
               className="w-1.5 h-1.5 rounded-full v3-pulse"
-              style={{ background: robot.mode === "cleaning" ? "var(--v3-coral)" : "var(--v3-mint)" }}
+              style={{ background: mode === "cleaning" ? "var(--v3-coral)" : mode === "docked" ? "var(--v3-mint)" : "var(--v3-muted)" }}
             />
-            {robot.mode === "cleaning" ? "Cleaning" : robot.mode} · {robot.location.label}
+            {modeLabel(mode)} · {location.label}
           </p>
         </div>
       </div>
@@ -30,17 +46,21 @@ export function V3TopBar({ robot }: { robot: DemoRobotState }) {
         <div className="flex items-center gap-2 text-sm">
           <div
             className="w-8 h-4 rounded-sm border flex items-center p-0.5"
-            style={{ borderColor: "var(--v3-mint)" }}
+            style={{ borderColor: mode === "docked" ? "var(--v3-mint)" : "var(--v3-coral)" }}
           >
             <div
               className="h-full rounded-sm"
-              style={{ width: `${robot.battery}%`, background: "var(--v3-mint)" }}
+              style={{
+                width: `${battery}%`,
+                background: mode === "docked" ? "var(--v3-mint)" : "var(--v3-coral)",
+              }}
             />
           </div>
-          <span className="mono font-semibold">{robot.battery}%</span>
+          <span className="mono font-semibold">{battery}%</span>
         </div>
         <button
           aria-label="Settings"
+          onClick={onSettings}
           className="w-9 h-9 rounded-full border flex items-center justify-center hover:opacity-80"
           style={{ borderColor: "var(--v3-border)" }}
         >

@@ -20,7 +20,7 @@ const display = Schibsted_Grotesk({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://roomba.kingsharif.com"),
+  metadataBase: new URL("https://stella.kingsharif.com"),
   title: "Stella — robot dashboard",
   description: "Stella — robot dashboard",
   manifest: "/manifest.json",

@@ -3,13 +3,19 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { demoRooms, demoRoomClean } from "@/lib/v3/demo";
+import { useV3Robot } from "@/lib/v3/store";
+
+const SHOWN = ["living-room", "kitchen", "dining", "setup-room", "bedroom", "hallway"];
 
 export function V3CleanPanel() {
-  const [selected, setSelected] = useState<string[]>(["living-room"]);
+  const { state, selectRoom, cleanMode } = useV3Robot();
+  const { targetRooms } = state;
   const [mode, setMode] = useState<"all" | "stop" | "dock">("all");
 
-  const toggle = (id: string) =>
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  const pickMode = (m: "all" | "stop" | "dock") => {
+    setMode(m);
+    cleanMode(m);
+  };
 
   const cleanFor = (id: string) =>
     demoRoomClean.find((c) => c.roomId === id)?.lastCleaned ?? "—";
@@ -20,19 +26,19 @@ export function V3CleanPanel() {
         <span className="v3-panel-title">Clean</span>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setMode("all")}
+            onClick={() => pickMode("all")}
             className={`px-3 py-1.5 text-xs font-semibold ${mode === "all" ? "v3-btn-coral" : "v3-btn-ghost"}`}
           >
             All rooms
           </button>
           <button
-            onClick={() => setMode("stop")}
+            onClick={() => pickMode("stop")}
             className={`px-3 py-1.5 text-xs font-semibold ${mode === "stop" ? "v3-btn-coral" : "v3-btn-ghost"}`}
           >
             Stop
           </button>
           <button
-            onClick={() => setMode("dock")}
+            onClick={() => pickMode("dock")}
             className={`px-3 py-1.5 text-xs font-semibold ${mode === "dock" ? "v3-btn-coral" : "v3-btn-ghost"}`}
           >
             Dock
@@ -42,14 +48,14 @@ export function V3CleanPanel() {
       </div>
       <div className="grid grid-cols-2 gap-2.5">
         {demoRooms
-          .filter((r) => ["living-room", "kitchen", "dining", "setup-room", "bedroom", "hallway"].includes(r.id))
+          .filter((r) => SHOWN.includes(r.id))
           .map((room) => {
-            const active = selected.includes(room.id);
+            const active = targetRooms.includes(room.id);
             return (
               <button
                 key={room.id}
-                onClick={() => toggle(room.id)}
-                className="rounded-lg border p-2.5 text-left transition-all"
+                onClick={() => selectRoom(room.id)}
+                className="rounded-lg border p-2.5 text-left transition-all active:scale-[0.98]"
                 style={{
                   borderColor: active ? "var(--v3-coral)" : "var(--v3-border-soft)",
                   background: active ? "rgba(255,122,92,0.07)" : "transparent",

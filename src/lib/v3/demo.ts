@@ -14,7 +14,7 @@ export const demoRooms: Room[] = [
   { id: "bathroom", name: "Bath" },
   { id: "closet", name: "Closet" },
   { id: "setup-room", name: "Setup Room" },
-  { id: "hallway", name: "Hall" },
+  { id: "hallway", name: "Hallway" },
   { id: "living-room", name: "Living" },
   { id: "dining", name: "Dining" },
   { id: "kitchen", name: "Kitchen" },
@@ -71,6 +71,17 @@ export const demoRobot: DemoRobotState = {
 export const demoBatteryHistory: number[] = [
   78, 77, 76, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61,
 ];
+
+export const demoBatteryDetail = {
+  voltage: 16.4,
+  charging: false,
+  timeToEmptyMin: 52,
+  timeToFullMin: 38,
+  health: 92,
+  cycles: 214,
+  lastFullCharge: "Oct 11 · 11:42 PM",
+  capacityMah: 3350,
+};
 
 export interface RoomCleanInfo {
   roomId: string;

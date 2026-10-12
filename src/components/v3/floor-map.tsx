@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Plus, Minus, Crosshair, Expand } from "lucide-react";
-import type { DemoRobotState } from "@/lib/v3/types";
+import { demoRooms } from "@/lib/v3/demo";
+import { modeLabel, useV3Robot } from "@/lib/v3/store";
 
 // Simplified floor-plan geometry for the SVG. Room names come from demo data;
 // the SVG only draws zones — no coordinates cross the UI boundary as data.
@@ -28,22 +29,28 @@ const zones: Zone[] = [
 ];
 
 const zoneById = Object.fromEntries(zones.map((z) => [z.id, z]));
+const nameById = Object.fromEntries(demoRooms.map((r) => [r.id, r.name]));
 
 // Dotted cleaning path through the living room (decorative SVG path)
 const cleanPath =
   "M 235 205 L 265 185 L 280 160 L 260 148 L 225 155 L 215 185 L 235 205 Z M 240 240 L 235 275 L 255 288 L 270 272";
 
-export function V3FloorMap({ robot }: { robot: DemoRobotState }) {
+export function V3FloorMap() {
+  const { state } = useV3Robot();
+  const { location, mode, runMinutes, heading, speed, dx, dy } = state;
   const [view, setView] = useState<"bird" | "fp">("bird");
   const [zoom, setZoom] = useState(1);
-  const stella = zoneById[robot.location.roomId ?? "living-room"] ?? zoneById["living-room"];
+  const stella = zoneById[location.roomId ?? "living-room"] ?? zoneById["living-room"];
+  const mx = stella.x + 62 + dx;
+  const my = stella.y + 50 + dy;
+  const isCleaning = mode === "cleaning";
 
   return (
     <div className="v3-panel relative overflow-hidden">
-      {/* Stella status card (top-left overlay) */}
-      <div className="absolute top-3 left-3 z-10 v3-chip px-3 py-2 flex items-center gap-3">
+      {/* Stella status card (top-left overlay) — compact on mobile */}
+      <div className="absolute top-3 left-3 z-10 v3-chip px-2.5 sm:px-3 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-3">
         <div
-          className="w-9 h-9 rounded-full"
+          className="w-7 h-7 sm:w-9 sm:h-9 rounded-full shrink-0"
           style={{ background: "radial-gradient(circle at 35% 35%, #c7cbe8, #6b6e94)" }}
         />
         <div>
@@ -51,26 +58,29 @@ export function V3FloorMap({ robot }: { robot: DemoRobotState }) {
             <span className="font-semibold text-sm">Stella</span>
             <span
               className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-              style={{ background: "rgba(255,122,92,0.18)", color: "var(--v3-coral)" }}
+              style={{
+                background: isCleaning ? "rgba(255,122,92,0.18)" : "rgba(94,234,212,0.15)",
+                color: isCleaning ? "var(--v3-coral)" : "var(--v3-mint)",
+              }}
             >
-              Cleaning
+              {modeLabel(mode)}
             </span>
           </div>
-          <div className="text-xs mt-0.5" style={{ color: "var(--v3-muted)" }}>
-            Room <span className="text-white font-medium">{robot.location.label}</span>
-            <span className="mx-2">·</span>Run <span className="text-white font-medium">{robot.runMinutes} min</span>
+          <div className="hidden sm:block text-xs mt-0.5" style={{ color: "var(--v3-muted)" }}>
+            Room <span className="text-white font-medium">{location.label}</span>
+            <span className="mx-2">·</span>Run <span className="text-white font-medium">{runMinutes} min</span>
           </div>
         </div>
       </div>
 
-      {/* View toggle (top-right) */}
-      <div className="absolute top-3 right-3 z-10 flex rounded-lg overflow-hidden border"
+      {/* View toggle (top-right) — drops below the status card on mobile */}
+      <div className="absolute top-[68px] sm:top-3 right-3 z-10 flex rounded-lg overflow-hidden border"
         style={{ borderColor: "var(--v3-border)" }}>
         {(["bird", "fp"] as const).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
-            className="px-3 py-1.5 text-xs font-medium"
+            className="px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium"
             style={{
               background: view === v ? "var(--v3-coral)" : "var(--v3-surface)",
               color: view === v ? "#1a0f0a" : "var(--v3-text)",
@@ -79,10 +89,17 @@ export function V3FloorMap({ robot }: { robot: DemoRobotState }) {
             {v === "bird" ? "Bird's-eye" : "First-person"}
           </button>
         ))}
+        <a
+          href="/3d"
+          className="px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium flex items-center gap-1 border-l"
+          style={{ borderColor: "var(--v3-border)", background: "var(--v3-surface)", color: "var(--v3-mint)" }}
+        >
+          3D
+        </a>
       </div>
 
       {/* Zoom controls */}
-      <div className="absolute right-3 top-16 z-10 flex flex-col rounded-lg overflow-hidden border"
+      <div className="absolute right-3 top-40 sm:top-16 z-10 flex flex-col rounded-lg overflow-hidden border"
         style={{ borderColor: "var(--v3-border)", background: "var(--v3-surface)" }}>
         <button aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(2, z + 0.2))}
           className="p-2 hover:opacity-70 border-b" style={{ borderColor: "var(--v3-border-soft)" }}>
@@ -127,8 +144,8 @@ export function V3FloorMap({ robot }: { robot: DemoRobotState }) {
               width={z.w}
               height={z.h}
               fill={z.floor === "carpet" ? "url(#carpetDots)" : "transparent"}
-              stroke={z.id === robot.location.roomId ? "#ff7a5c" : "#5a5d8f"}
-              strokeWidth={z.id === robot.location.roomId ? 2 : 1.2}
+              stroke={z.id === location.roomId ? "#ff7a5c" : "#5a5d8f"}
+              strokeWidth={z.id === location.roomId ? 2 : 1.2}
               opacity={0.9}
             />
             <text
@@ -140,7 +157,7 @@ export function V3FloorMap({ robot }: { robot: DemoRobotState }) {
               letterSpacing="1.5"
               style={{ textTransform: "uppercase" }}
             >
-              {z.id === "bathroom" ? "bath" : z.id === "setup-room" ? "setup" : z.id.replace("-", " ")}
+              {(nameById[z.id] ?? z.id).toUpperCase()}
             </text>
           </g>
         ))}
@@ -164,22 +181,23 @@ export function V3FloorMap({ robot }: { robot: DemoRobotState }) {
           opacity="0.8"
         />
 
-        {/* Stella marker */}
-        <g>
-          <circle cx={stella.x + 62} cy={stella.y + 50} r="9" fill="#ff7a5c" />
-          <circle cx={stella.x + 62} cy={stella.y + 50} r="14" fill="none" stroke="#ff7a5c" opacity="0.4" />
+        {/* Stella marker — moves with DRIVE controls */}
+        <g style={{ transition: "transform 0.25s ease-out" }}>
+          <circle cx={mx} cy={my} r="9" fill={isCleaning ? "#ff7a5c" : "#5eead4"} />
+          <circle cx={mx} cy={my} r="14" fill="none"
+            stroke={isCleaning ? "#ff7a5c" : "#5eead4"} opacity="0.4" />
         </g>
         </g>
       </svg>
 
-      {/* Stella label chip */}
+      {/* Stella label chip — hidden on mobile to reduce crowding */}
       <div
-        className="absolute z-10 v3-chip px-2.5 py-1 flex items-center gap-1.5"
+        className="absolute z-10 v3-chip px-2.5 py-1 hidden sm:flex items-center gap-1.5"
         style={{ left: "56%", top: "38%" }}
       >
         <span className="w-2 h-2 rounded-full" style={{ background: "var(--v3-coral)" }} />
         <span className="font-medium">Stella</span>
-        <span style={{ color: "var(--v3-muted)" }}>{robot.location.label}</span>
+        <span style={{ color: "var(--v3-muted)" }}>{location.label}</span>
       </div>
 
       {/* Couch chip */}
@@ -191,27 +209,25 @@ export function V3FloorMap({ robot }: { robot: DemoRobotState }) {
         Couch moved <span style={{ color: "var(--v3-muted)" }}>spot cleaned</span>
       </div>
 
-      {/* Dock chip */}
+      {/* Dock chip — hidden on mobile */}
       <div
-        className="absolute z-10 v3-chip px-2.5 py-1 flex items-center gap-1.5"
+        className="absolute z-10 v3-chip px-2.5 py-1 hidden sm:flex items-center gap-1.5"
         style={{ right: "10%", top: "58%" }}
       >
         <span className="w-2 h-2 rounded-full" style={{ background: "var(--v3-mint)" }} />
         Dock
       </div>
 
-      {/* Next chip */}
-      <div
-        className="absolute z-10 v3-chip px-2.5 py-1 flex items-center gap-1.5"
-        style={{ right: "6%", bottom: "16%" }}
-      >
+      {/* Next chip — compact on mobile, moved left to clear the camera tile */}
+      <div className="absolute z-10 v3-chip px-2.5 py-1 flex items-center gap-1.5 left-3 bottom-[4.5rem] sm:left-auto sm:right-[6%] sm:bottom-[16%]">
         <span className="w-2 h-2 rounded-full" style={{ background: "var(--v3-mint)" }} />
-        Next · <span className="font-medium">Kitchen</span>
-        <span style={{ color: "var(--v3-muted)" }}>ETA 2 min</span>
+        <span className="hidden sm:inline">Next ·</span>
+        <span className="font-medium">Kitchen</span>
+        <span style={{ color: "var(--v3-muted)" }}>2 min</span>
       </div>
 
-      {/* Route chip (bottom-left) */}
-      <div className="absolute left-3 bottom-12 z-10 v3-chip px-3 py-2 flex items-center gap-2.5">
+      {/* Route chip (bottom-left) — desktop only, was clipping on 375px */}
+      <div className="absolute left-3 bottom-12 z-10 v3-chip px-3 py-2 hidden sm:flex items-center gap-2.5">
         <div
           className="w-9 h-9 rounded-full border flex items-center justify-center"
           style={{ borderColor: "var(--v3-border)" }}
@@ -219,15 +235,15 @@ export function V3FloorMap({ robot }: { robot: DemoRobotState }) {
           <span style={{ color: "var(--v3-coral)", fontSize: 16 }}>➤</span>
         </div>
         <div className="text-xs">
-          <div className="font-medium">{robot.location.label} → Kitchen</div>
+          <div className="font-medium">{location.label} → Kitchen</div>
           <div style={{ color: "var(--v3-muted)" }}>
-            heading {robot.heading} · speed {robot.speed}%
+            heading {heading} · speed {speed}%
           </div>
         </div>
       </div>
 
-      {/* Legend (bottom-center) */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 v3-chip px-3 py-1.5 flex items-center gap-3 text-[11px]"
+      {/* Legend (bottom-center) — compact on mobile */}
+      <div className="absolute bottom-3 left-3 sm:left-1/2 sm:-translate-x-1/2 z-10 v3-chip px-2.5 sm:px-3 py-1.5 flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px]"
         style={{ color: "var(--v3-muted)" }}>
         <span className="flex items-center gap-1">
           <span className="w-3 h-3 rounded-sm border" style={{ borderColor: "#5a5d8f" }} /> Hardwood
@@ -240,8 +256,8 @@ export function V3FloorMap({ robot }: { robot: DemoRobotState }) {
         </span>
       </div>
 
-      {/* Live camera thumbnail (bottom-right) */}
-      <div className="absolute right-3 bottom-3 z-10 w-32 h-24 rounded-lg overflow-hidden border"
+      {/* Live camera thumbnail (bottom-right) — smaller on mobile */}
+      <div className="absolute right-3 bottom-3 z-10 w-20 h-14 sm:w-32 sm:h-24 rounded-lg overflow-hidden border"
         style={{ borderColor: "var(--v3-border)", background: "#0c0d1f" }}>
         <div className="absolute top-1 left-2 text-[10px] flex items-center gap-1 z-10">
           <span className="w-1.5 h-1.5 rounded-full bg-white v3-pulse" /> live

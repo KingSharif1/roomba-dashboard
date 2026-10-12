@@ -241,6 +241,19 @@ body {
 }
 .v3-pulse { animation: v3-pulse 2s ease-in-out infinite; }
 
+/* logo animations by robot status */
+@keyframes v3-logo-pulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(255,122,92,0.55)); }
+  50% { transform: scale(1.07); filter: drop-shadow(0 0 14px rgba(255,122,92,0.95)); }
+}
+.v3-logo-clean { animation: v3-logo-pulse 2.2s ease-in-out infinite; }
+
+@keyframes v3-logo-breathe {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(94,234,212,0.45)); }
+  50% { transform: scale(1.04); filter: drop-shadow(0 0 12px rgba(94,234,212,0.85)); }
+}
+.v3-logo-charge { animation: v3-logo-breathe 3.6s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
-  .v3-toast, .v3-pulse { animation: none !important; }
+  .v3-toast, .v3-pulse, .v3-logo-clean, .v3-logo-charge { animation: none !important; }
 }

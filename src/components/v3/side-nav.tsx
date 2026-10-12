@@ -2,14 +2,22 @@
 
 import { Home, Clock, Lightbulb, Settings } from "lucide-react";
 
-const items = [
+export type V3View = "home" | "history" | "learning" | "settings";
+
+const items: { id: V3View; label: string; icon: typeof Home; badge: number }[] = [
   { id: "home", label: "Home", icon: Home, badge: 0 },
   { id: "history", label: "History", icon: Clock, badge: 0 },
   { id: "learning", label: "Learning", icon: Lightbulb, badge: 2 },
   { id: "settings", label: "Settings", icon: Settings, badge: 0 },
 ];
 
-export function V3SideNav({ active = "home" }: { active?: string }) {
+export function V3SideNav({
+  active = "home",
+  onNavigate,
+}: {
+  active?: V3View;
+  onNavigate?: (v: V3View) => void;
+}) {
   return (
     <>
       {/* Desktop sidebar */}
@@ -23,6 +31,7 @@ export function V3SideNav({ active = "home" }: { active?: string }) {
           return (
             <button
               key={item.id}
+              onClick={() => onNavigate?.(item.id)}
               className="relative w-12 h-14 rounded-lg flex flex-col items-center justify-center gap-1 text-[10px]"
               style={{
                 color: isActive ? "var(--v3-coral)" : "var(--v3-muted)",
@@ -55,6 +64,7 @@ export function V3SideNav({ active = "home" }: { active?: string }) {
           return (
             <button
               key={item.id}
+              onClick={() => onNavigate?.(item.id)}
               className="relative flex flex-col items-center gap-0.5 px-4 py-1 text-[10px]"
               style={{ color: isActive ? "var(--v3-coral)" : "var(--v3-muted)" }}
             >
