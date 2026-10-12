@@ -1,5 +1,5 @@
-:root{--paper:#efe6d2;--card:#f9f2e2;--ink:#2a2119;--mute:#76695a;--line:#d8cbb2;--grid:rgba(120,90,50,.09);--grid2:rgba(120,90,50,.04);--accent:#c2410c;--blue:#7a4a1e;--pw:#c2410c;--data:#2f5d8a;--gnd:#2a2119;--sense:#4d7c3a;--hl:#e8590c;--node:#fbf5e8;--glow:rgba(194,65,12,.18)}
-[data-theme=dark]{--paper:#0c0f2e;--card:#141a46;--ink:#e9e7ff;--mute:#9ea3d8;--line:#2b3375;--grid:rgba(130,140,255,.11);--grid2:rgba(130,140,255,.045);--accent:#ff7a59;--blue:#ffb38a;--pw:#ff6f7d;--data:#7aa2ff;--gnd:#d9dcff;--sense:#5eead4;--hl:#ff7a59;--node:#11163d;--glow:rgba(255,90,140,.28)}
+:root{--paper:#efe6d2;--card:#f9f2e2;--ink:#2a2119;--mute:#76695a;--line:#d8cbb2;--grid:rgba(120,90,50,.09);--grid2:rgba(120,90,50,.04);--accent:#c2410c;--blue:#7a4a1e;--pw:#c2410c;--data:#2f5d8a;--gnd:#2a2119;--sense:#4d7c3a;--hl:#e8590c;--node:#fbf5e8;--glow:rgba(194,65,12,.18);--logo-tile:#1c1a16;--logo-ink:#e8e0cf}
+[data-theme=dark]{--paper:#0c0f2e;--card:#141a46;--ink:#e9e7ff;--mute:#9ea3d8;--line:#2b3375;--grid:rgba(130,140,255,.11);--grid2:rgba(130,140,255,.045);--accent:#ff7a59;--blue:#ffb38a;--pw:#ff6f7d;--data:#7aa2ff;--gnd:#d9dcff;--sense:#5eead4;--hl:#ff7a59;--node:#11163d;--glow:rgba(255,90,140,.28);--logo-tile:#f7f3ea;--logo-ink:#2b2620}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--paper);color:var(--ink);font:19px/1.65 "Newsreader",Georgia,serif;transition:background .4s,color .4s;
@@ -10,6 +10,13 @@ a{color:var(--blue)}
 header{border:1.5px solid var(--ink);display:grid;grid-template-columns:1fr auto;background:var(--card)}
 header .t{padding:14px 18px}
 h1{font-size:34px;letter-spacing:.08em;margin:0;font-weight:500}
+/* inline vector logo — tile/ink follow the theme via CSS vars */
+.logo-mark{width:46px;height:46px;border-radius:11px;vertical-align:-13px;margin-right:14px}
+.lm-tile{fill:var(--logo-tile)}
+.lm-ink{stroke:var(--logo-ink)}
+.lm-fill{fill:var(--logo-ink);stroke:none}
+/* wordmark in the signature font — presence to match the footer */
+.wordmark{font-family:'La Belle Aurore',cursive;font-size:48px;font-weight:400;letter-spacing:0;vertical-align:baseline}
 .sub{color:var(--mute);font-size:13.5px;font-family:"IBM Plex Mono",monospace}
 .tb{border-left:1.5px solid var(--ink);font-size:11.5px;display:grid;grid-template-columns:auto auto}
 .tb div{padding:5px 10px;border-bottom:1px solid var(--ink)}
@@ -110,8 +117,13 @@ html.static .rv,html.static .card{transition:none!important}
 footer.big{margin-top:90px;position:relative;border-top:1.5px solid var(--ink);background:var(--card);overflow:hidden}
 footer.big:before{content:"";position:absolute;inset:0;background:radial-gradient(60% 120% at 85% 0%,var(--glow),transparent 70%);pointer-events:none}
 footer.big .in{max-width:1080px;margin:0 auto;padding:56px 20px 26px;position:relative;display:grid;grid-template-columns:1.4fr 1fr;gap:40px}
-footer.big .mark{font:500 clamp(64px,13vw,168px)/.85 "IBM Plex Mono",monospace;letter-spacing:.04em;color:transparent;-webkit-text-stroke:1.2px var(--ink);margin:0 0 18px;opacity:.9}
-footer.big .cred{font:italic 22px/1.45 "Newsreader",Georgia,serif;max-width:30ch;margin:0}
+footer.big .cred{font:italic 17px/1.5 "Newsreader",Georgia,serif;max-width:32ch;margin:0;color:var(--mute)}
+/* the mark is the signature now: big cursive, writes itself out, occasional RGB-split glitch */
+footer.big .mark{font-family:'La Belle Aurore',cursive;font-size:clamp(104px,20vw,240px);line-height:1;color:var(--ink);margin:0 0 16px;clip-path:inset(0 100% 0 0);animation:markwrite 2.4s cubic-bezier(.6,0,.3,1) .5s forwards,markglitch 9s linear 3.5s infinite}
+footer.big .mark:hover{text-shadow:-4px 0 rgba(255,0,60,.65),4px 0 rgba(0,229,255,.65)}
+@keyframes markwrite{to{clip-path:inset(0 0 0 0)}}
+@keyframes markglitch{0%,92%,96.5%,100%{text-shadow:none;transform:none}93%{text-shadow:-4px 0 rgba(255,0,60,.65),4px 0 rgba(0,229,255,.65);transform:translateX(2px) skewX(-2deg)}94.5%{text-shadow:4px 0 rgba(255,0,60,.65),-4px 0 rgba(0,229,255,.65);transform:translateX(-2px)}95.5%{text-shadow:-2px 0 rgba(255,0,60,.5),2px 0 rgba(0,229,255,.5);transform:none}}
+@media(prefers-reduced-motion:reduce){footer.big .mark{animation:none;clip-path:none}}
 footer.big .cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;font:13px/1.9 "IBM Plex Mono",monospace;align-content:start}
 footer.big h4{font:500 11px "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:0 0 6px;border-bottom:1px solid var(--line);padding-bottom:4px}
 footer.big ul{list-style:none;margin:0;padding:0}

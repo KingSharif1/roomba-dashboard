@@ -34,7 +34,7 @@ export function V3TopBar({ onSettings }: { onSettings?: () => void }) {
       style={{ borderColor: "var(--v3-border-soft)", background: "var(--v3-bg)" }}>
       <div className="flex items-center gap-3">
         <span className={logoAnimClass(mode, voice)} style={{ display: "inline-flex", borderRadius: 10, border: "1px solid var(--v3-coral)" }}>
-          <StellaMark variant="light" size={38} />
+          <StellaMark size={38} />
         </span>
         <div>
           <h1 className="text-xl font-bold tracking-[0.25em] flex items-center gap-2">
