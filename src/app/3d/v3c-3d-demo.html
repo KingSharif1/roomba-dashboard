@@ -14,48 +14,68 @@
 <meta name="twitter:title" content="Stella — 3D Build">
 <meta name="twitter:description" content="Design demo of Stella, my Pi + Arduino upgraded Roomba. Not the live robot.">
 <meta name="twitter:image" content="https://stella.kingsharif.com/og/stella-3d.jpg">
-<script>{const _q=new URLSearchParams(location.search),_k='stella-theme',_t=_q.get('theme');if(_t&&/^(dark|paper)$/.test(_t))localStorage.setItem(_k,_t);document.documentElement.dataset.theme=localStorage.getItem(_k)||'dark';if(_q.has('embed'))document.documentElement.dataset.embed='1'}</script>
+<script>{const _q=new URLSearchParams(location.search),_k='stella-theme',_t=_q.get('theme');if(_t&&/^(dark|paper)$/.test(_t))localStorage.setItem(_k,_t);document.documentElement.dataset.theme=localStorage.getItem(_k)||'dark';if(_q.has('embed'))document.documentElement.dataset.embed='1';else if(matchMedia('(min-width:721px)').matches)document.documentElement.dataset.panel='open'}</script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0c0f2e;--card:#141a46;--ink:#e9e7ff;--mute:#9ea3d8;--line:#2a2f78;--acc:#ff7a59;--ok:#5eead4;--chip:rgba(20,26,70,.78)}
 [data-theme=paper]{--bg:#efe6d2;--card:#f9f2e2;--ink:#2a2119;--mute:#76695a;--line:#d8cbb2;--acc:#c2410c;--ok:#4d7c3a;--chip:rgba(249,242,226,.88)}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:12px "IBM Plex Mono",monospace;-webkit-tap-highlight-color:transparent;transition:background .4s,color .4s}
 #app{position:fixed;inset:0}
-#stage{position:absolute;inset:0}
+#stage{position:absolute;inset:0;z-index:1}
 #stage canvas{display:block;width:100%!important;height:100%!important}
 svg.lead{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)}
 .tag{position:absolute;padding:6px 10px;border-radius:8px;background:var(--chip);backdrop-filter:blur(10px);border:1px solid rgba(233,231,255,.25);white-space:nowrap;transition:opacity .4s;transform:translate(-50%,-100%);font-size:12px;pointer-events:none;z-index:5}
 .tag b{font-weight:500}.tag span{color:var(--mute);margin-left:6px}
-/* top bar */
-#topbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(12px + env(safe-area-inset-top)) 16px 0;pointer-events:none;z-index:30}
-.brand{pointer-events:auto;display:flex;align-items:center;font-weight:500;letter-spacing:.18em;font-size:11px;color:var(--mute);background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:10px 16px;backdrop-filter:blur(10px)}
-/* theme toggle — same language as the landing page */
-#themeBtn{pointer-events:auto;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:12px 18px;font:inherit;font-size:13px;cursor:pointer;min-height:48px;white-space:nowrap}
-#themeBtn:active{transform:scale(.96)}
-#topLeft{position:relative;display:flex;align-items:flex-start;pointer-events:none}
-#topRight{display:flex;align-items:center;gap:8px;pointer-events:none}
-/* bottom control bar: view presets + robot state */
-#controls{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));display:flex;gap:22px;flex-wrap:wrap;justify-content:center;z-index:15;pointer-events:auto;max-width:min(1120px,calc(100vw - 48px))}
-.ctl-group{display:flex;gap:8px;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:8px;backdrop-filter:blur(10px);box-shadow:0 4px 24px rgba(0,0,0,.35)}
-.ctl-group button{border:0;background:transparent;color:var(--mute);font:inherit;font-size:14px;letter-spacing:.03em;padding:12px 18px;border-radius:999px;cursor:pointer;white-space:nowrap;min-height:48px}
-.ctl-group button:active{transform:scale(.96)}
-.ctl-group button.on{background:var(--acc);color:#1a0f0a;font-weight:500}
-.ctl-group button.on-state{background:rgba(94,234,212,.16);color:var(--ok)}
-/* embed (landing Fig. 1): status + theme only. Position presets stay on /3d. */
-html[data-embed] #viewPresets,html[data-embed] #panel,html[data-embed] #batBadge,html[data-embed] #hint,html[data-embed] .brand{display:none!important}
+/* logo mark only — faint watermark behind the canvas, both /3d and the embed */
+#wash{position:absolute;inset:0;z-index:0;pointer-events:none;background:#071433;transform-origin:left center;transform:scaleX(0);will-change:transform}
+#watermark{position:absolute;left:16px;bottom:calc(16px + env(safe-area-inset-bottom));width:128px;height:128px;opacity:.07;pointer-events:none;z-index:0;color:var(--ink)}
+#watermark svg{display:block;width:100%;height:100%}
+#watermark .tile{fill:currentColor}
+#watermark .ink{stroke:currentColor;fill:none}
+#watermark .star{fill:currentColor;stroke:none}
+/* one control: trigger in the corner, menu opens under it and stays off the parts list */
+#menuWrap{position:absolute;top:calc(12px + env(safe-area-inset-top));right:16px;z-index:30;display:flex;flex-direction:column;align-items:flex-end;pointer-events:none;transition:right .22s ease}
+@media(min-width:721px){
+  html[data-panel="open"] #menuWrap{right:calc(min(320px, 86vw) + 52px)}
+}
+#menuBtn{pointer-events:auto;display:flex;align-items:center;gap:8px;max-width:min(220px,46vw);min-height:40px;padding:0 12px 0 14px;border-radius:999px;border:1px solid rgba(233,231,255,.2);background:rgba(16,20,58,.55);color:var(--ink);backdrop-filter:blur(16px) saturate(1.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 8px 28px rgba(0,0,0,.28);font:inherit;font-size:13px;cursor:pointer;touch-action:manipulation;transition:background .2s ease,border-color .2s ease,transform .2s ease}
+[data-theme=paper] #menuBtn{background:rgba(249,242,226,.7);border-color:rgba(42,33,25,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 8px 24px rgba(80,50,20,.12)}
+#menuBtn:active{transform:scale(.98)}
+#menuBtn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+#menuSummary{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#menuBtn .chev{flex:none;display:inline-block;transition:transform .2s ease}
+#menuWrap.open #menuBtn .chev{transform:rotate(180deg)}
+#menu{pointer-events:none;margin-top:8px;width:min(268px,calc(100vw - 128px));max-height:min(420px,calc(100dvh - 96px));overflow:auto;overscroll-behavior:contain;padding:6px;border-radius:18px;border:1px solid rgba(233,231,255,.18);background:rgba(16,20,58,.62);color:var(--ink);backdrop-filter:blur(18px) saturate(1.25);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 18px 44px rgba(0,0,0,.38);transform-origin:top right;opacity:0;transform:translateY(-6px) scale(.98);visibility:hidden;transition:opacity .2s ease,transform .22s ease,visibility .22s ease}
+[data-theme=paper] #menu{background:rgba(249,242,226,.78);border-color:rgba(42,33,25,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 16px 36px rgba(80,50,20,.14)}
+#menuWrap.open #menu{pointer-events:auto;opacity:1;transform:none;visibility:visible}
+.menu-group{padding:4px 4px 8px}
+.menu-group + .menu-group{border-top:1px solid var(--line);margin-top:2px}
+.menu-group p{margin:8px 8px 6px;font-size:10px;letter-spacing:.16em;color:var(--mute)}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opts button{flex:1 1 auto;min-width:44px;min-height:40px;padding:8px 12px;border:0;border-radius:999px;background:transparent;color:var(--mute);font:inherit;font-size:13px;cursor:pointer;touch-action:manipulation;transition:background .18s ease,color .18s ease,transform .18s ease}
+.opts button:hover{background:rgba(255,122,89,.1);color:var(--ink)}
+.opts button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.opts button:active{transform:scale(.98)}
+.opts button[aria-checked="true"]{background:rgba(255,122,89,.2);color:var(--ink)}
+[data-theme=paper] .opts button[aria-checked="true"]{background:rgba(194,65,12,.14)}
+/* landing embed: View and Status only. Position stays on /3d. */
+html[data-embed] #positionGroup,html[data-embed] #panel,html[data-embed] #batBadge,html[data-embed] #hint{display:none!important}
 @media(max-width:720px){
-  #controls{left:8px;right:8px;transform:none;width:auto;max-width:none;bottom:calc(8px + env(safe-area-inset-bottom));gap:6px;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .ctl-group{gap:2px;padding:3px}
-  .ctl-group button{padding:6px 9px;font-size:11px;min-height:40px;letter-spacing:.01em}
+  #menuWrap{right:12px}
+  #menuBtn,.opts button{min-height:44px}
+  #watermark{width:96px;height:96px;left:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  #menu,#menuBtn,#menuBtn .chev,#menuWrap{transition:none}
 }
 /* battery badge — absolutely placed beside the title, so it takes no flex space and stays off the parts list */
-#batBadge{position:absolute;left:calc(100% + 8px);top:0;z-index:1;pointer-events:auto;display:flex;align-items:center;gap:10px;width:max-content;min-height:48px;padding:8px 14px 8px 10px;border-radius:14px;border:1px solid var(--line);background:var(--chip);backdrop-filter:blur(10px);color:var(--ink);font:inherit;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,.35)}
+#batBadge{position:absolute;left:16px;top:calc(12px + env(safe-area-inset-top));z-index:16;pointer-events:auto;display:flex;align-items:center;gap:10px;width:max-content;min-height:44px;padding:8px 14px 8px 10px;border-radius:14px;border:1px solid var(--line);background:var(--chip);backdrop-filter:blur(10px);color:var(--ink);font:inherit;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,.35)}
 #batBadge:active{transform:scale(.97)}
 #batBadge svg{display:block}
 #batBadge b{font-size:17px;font-weight:500;min-width:3ch;text-align:right}
 /* parts panel */
-#panel{position:absolute;top:0;right:0;bottom:0;width:min(320px,86vw);background:var(--chip);backdrop-filter:blur(14px);border-left:1.5px solid var(--line);display:flex;flex-direction:column;padding:calc(72px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));z-index:20;transition:transform .35s cubic-bezier(.32,.72,.35,1);box-shadow:-12px 0 40px rgba(0,0,0,.4)}
+#panel{position:absolute;top:0;right:0;bottom:0;width:min(320px,86vw);background:var(--chip);backdrop-filter:blur(14px);border-left:1.5px solid var(--line);display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));z-index:20;transition:transform .35s cubic-bezier(.32,.72,.35,1);box-shadow:-12px 0 40px rgba(0,0,0,.4)}
 #panel.closed{transform:translateX(105%)}
 .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .panel-head h4{margin:0;font:500 11px "IBM Plex Mono";letter-spacing:.16em;color:var(--mute)}
@@ -71,36 +91,64 @@ html[data-embed] #viewPresets,html[data-embed] #panel,html[data-embed] #batBadge
 .bat .meta b{font-size:26px;font-weight:500;display:block;line-height:1.1}
 .bat .meta span{color:var(--mute);font-size:11px}
 /* hint */
-#hint{position:absolute;left:16px;bottom:calc(14px + env(safe-area-inset-bottom));color:var(--mute);font-size:11px;background:var(--chip);border:1px solid var(--line);padding:8px 12px;border-radius:999px;z-index:5;pointer-events:none}
+#hint{position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);color:var(--mute);font-size:11px;background:var(--chip);border:1px solid var(--line);padding:8px 12px;border-radius:999px;z-index:5;pointer-events:none;white-space:nowrap}
 #fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:32px;color:var(--mute);z-index:50}
 @media(max-width:720px){
   .tag{font-size:15px;padding:10px 14px;border-radius:12px}
   .tag span{font-size:13px}
-  #themeBtn{padding:6px 10px;font-size:11px;min-height:40px}
-  #batBadge{min-height:40px;padding:6px 10px 6px 8px;gap:6px}
+  #batBadge{left:12px;min-height:44px;padding:6px 10px 6px 8px;gap:6px}
   #batBadge b{font-size:14px}
-  .brand{font-size:10px;padding:8px 12px}
   #hint{display:none}
   #panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:62dvh;border-left:0;border-top:1.5px solid var(--line);border-radius:20px 20px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.45);padding-top:14px}
   #panel.closed{transform:translateY(105%)}
 }
 </style></head><body>
 <div id="app">
+  <div id="wash" aria-hidden="true"></div>
+  <div id="watermark" aria-hidden="true"><svg viewBox="0 0 512 512"><rect width="512" height="512" rx="112" class="tile"/><g fill="none" stroke-width="14" stroke-linecap="round" class="ink"><circle cx="256" cy="256" r="150"/><circle cx="256" cy="256" r="104" stroke-width="8" opacity="0.45"/><path d="M256 176 l24 52 56 6 -41 39 11 55 -50 -28 -50 28 11 -55 -41 -39 56 -6 z" class="star"/></g></svg></div>
   <div id="stage"></div>
   <svg class="lead" id="leaders"><line id="ln"/><circle id="dt" r="3.5"/></svg>
   <div class="tag" id="tag" style="opacity:0"></div>
-  <header id="topbar">
-    <div id="topLeft">
-      <div class="brand">STELLA · 3D</div>
-      <button id="batBadge" aria-label="Battery status — tap to show parts" aria-expanded="false">
-        <svg id="badgeGlyph" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"></svg>
-        <b id="pct">–</b>
-      </button>
+  <button id="batBadge" aria-label="Battery status — tap to show parts" aria-expanded="false">
+    <svg id="badgeGlyph" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"></svg>
+    <b id="pct">–</b>
+  </button>
+  <div id="menuWrap">
+    <button id="menuBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu">
+      <span id="menuSummary">Real · Charging</span><span class="chev" aria-hidden="true">▾</span>
+    </button>
+    <div id="menu" role="menu" aria-label="Model controls" aria-hidden="true">
+      <div class="menu-group" role="group" aria-label="View">
+        <p>View</p>
+        <div class="opts">
+          <button type="button" role="menuitemradio" data-model="real" aria-checked="true">Real</button>
+          <button type="button" role="menuitemradio" data-model="blueprint" aria-checked="false">Blueprint</button>
+        </div>
+      </div>
+      <div class="menu-group" role="group" aria-label="Status">
+        <p>Status</p>
+        <div class="opts">
+          <button type="button" role="menuitemradio" data-state="charger" aria-checked="true">Charging</button>
+          <button type="button" role="menuitemradio" data-state="idle" aria-checked="false">Idle</button>
+          <button type="button" role="menuitemradio" data-state="cleaning" aria-checked="false">Cleaning</button>
+          <button type="button" role="menuitemradio" data-state="moving" aria-checked="false">Moving</button>
+          <button type="button" role="menuitemradio" data-state="stuck" aria-checked="false">Stuck</button>
+        </div>
+      </div>
+      <div class="menu-group" id="positionGroup" role="group" aria-label="Position">
+        <p>Position</p>
+        <div class="opts">
+          <button type="button" role="menuitemradio" data-view="front" aria-checked="false">Front</button>
+          <button type="button" role="menuitemradio" data-view="top" aria-checked="false">Top</button>
+          <button type="button" role="menuitemradio" data-view="side" aria-checked="false">Side</button>
+          <button type="button" role="menuitemradio" data-view="threeq" aria-checked="true">¾</button>
+          <button type="button" role="menuitemradio" data-view="run" aria-checked="false">Run</button>
+          <button type="button" role="menuitemradio" data-view="dock" aria-checked="false">Dock</button>
+          <button type="button" role="menuitemradio" data-view="exploded" aria-checked="false">Exploded</button>
+        </div>
+      </div>
     </div>
-    <div id="topRight">
-      <button id="themeBtn" aria-label="Toggle theme">◐ paper</button>
-    </div>
-  </header>
+  </div>
   <aside id="panel" class="closed" aria-label="Parts list">
     <div class="panel-head"><h4>PARTS</h4><button id="collapseBtn" aria-label="Close parts panel">✕</button></div>
     <ul id="list"></ul>
@@ -110,14 +158,6 @@ html[data-embed] #viewPresets,html[data-embed] #panel,html[data-embed] #batBadge
     </div>
   </aside>
   <div id="hint">drag to orbit · scroll to zoom</div>
-  <div id="controls">
-    <div class="ctl-group" id="viewPresets" role="group" aria-label="Camera positions">
-      <button data-view="front">Front</button><button data-view="top">Top</button><button data-view="side">Side</button><button data-view="threeq" class="on">¾</button><button data-view="run">Run</button><button data-view="dock">Dock</button><button data-view="exploded">Exploded</button>
-    </div>
-    <div class="ctl-group" role="group" aria-label="Robot status">
-      <button data-state="charger" class="on-state">Charging</button><button data-state="idle">Idle</button><button data-state="cleaning">Cleaning</button><button data-state="moving">Moving</button><button data-state="stuck">Stuck</button>
-    </div>
-  </div>
   <div id="fallback"><p>WebGL or the 3D library failed to load.<br>Check your connection and reload.</p></div>
 </div>
 <script>
@@ -127,7 +167,6 @@ setTimeout(function(){ if(!window.__stella3d) document.getElementById('fallback'
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
-window.__stella3d = true;
 
 /* ---------- params ---------- */
 const q = new URLSearchParams(location.search);
@@ -179,6 +218,7 @@ const panel = document.getElementById('panel');
 const batBadge = document.getElementById('batBadge');
 function setPanel(open){
   panel.classList.toggle('closed', !open);
+  document.documentElement.dataset.panel = open ? 'open' : 'closed';
   batBadge.setAttribute('aria-expanded', String(open));
   batBadge.setAttribute('aria-label', open ? 'Battery status — tap to hide parts' : 'Battery status — tap to show parts');
 }
@@ -217,7 +257,44 @@ const fillMat = new THREE.MeshBasicMaterial({
 const edgeMat = new THREE.LineBasicMaterial({color: 0xdfe0ff, transparent:true, opacity:0.85});
 const accentMat = new THREE.LineBasicMaterial({color: batt.clone(), transparent:true, opacity:0.9});
 
-/* wireframe colors follow the theme: light edges on midnight Tokyo, dark edges on paper */
+/* Screen-space wipe. One shared progress drives every material, so the
+   color drain stays in lockstep without reallocating anything per frame. */
+const wipeU = {
+  uMix: { value: 0 },
+  uResolution: { value: new THREE.Vector2(1, 1) },
+};
+const blueLight = new THREE.Color(0x7ee7ff);
+let wipeKey = 0;
+function installWipe(material, blueHex, blueOpacity){
+  const key = 'wipe' + (++wipeKey);
+  const uBlueColor = { value: new THREE.Color(blueHex) };
+  const uBlueOpacity = { value: blueOpacity };
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uMix = wipeU.uMix;
+    shader.uniforms.uResolution = wipeU.uResolution;
+    shader.uniforms.uBlueColor = uBlueColor;
+    shader.uniforms.uBlueOpacity = uBlueOpacity;
+    shader.fragmentShader = 'uniform float uMix;uniform vec2 uResolution;uniform vec3 uBlueColor;uniform float uBlueOpacity;\n' + shader.fragmentShader;
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+      {
+        float x = gl_FragCoord.x / max(uResolution.x, 1.0);
+        float wiped = 1.0 - smoothstep(uMix - 0.08, uMix + 0.08, x);
+        diffuseColor.rgb = mix(diffuseColor.rgb, uBlueColor, wiped);
+        if (uBlueOpacity >= 0.0) diffuseColor.a = mix(diffuseColor.a, uBlueOpacity, wiped);
+      }`
+    );
+  };
+  material.customProgramCacheKey = () => key;
+  material.needsUpdate = true;
+}
+installWipe(fillMat, 0x1a4d86, 0.22);
+installWipe(edgeMat, 0xe7fbff, 1);
+installWipe(accentMat, 0x7ef6ff, 1);
+
+/* Real edges follow the page theme so the colored model stays readable
+   on midnight and on cream. Blueprint is a separate model look. */
 function applySceneTheme(){
   const paper = document.documentElement.dataset.theme === 'paper';
   edgeMat.color.set(paper ? 0x4a4238 : 0xdfe0ff);
@@ -225,20 +302,14 @@ function applySceneTheme(){
 }
 applySceneTheme();
 
-/* ---------- theme toggle: midnight Tokyo <-> paper minimal, persisted ---------- */
-const themeBtn = document.getElementById('themeBtn');
+/* Page theme (midnight / cream) is chrome only. The landing page posts it in. */
 function setTheme(t){
   document.documentElement.dataset.theme = t;
   localStorage.setItem('stella-theme', t);
-  themeBtn.textContent = t === 'dark' ? '◐ paper' : '◑ colored';
-  themeBtn.setAttribute('aria-label', t === 'dark' ? 'Switch to paper view' : 'Switch to colored view');
   paintGlyphs();
   applySceneTheme();
 }
 setTheme(document.documentElement.dataset.theme || 'dark');
-themeBtn.addEventListener('click', ()=>
-  setTheme(document.documentElement.dataset.theme === 'dark' ? 'paper' : 'dark'));
-// Landing Fig.1 posts its theme into this frame; same-origin storage is the backup.
 addEventListener('message', e=>{
   const t = e.data && e.data.theme;
   if(t === 'dark' || t === 'paper') setTheme(t);
@@ -316,6 +387,7 @@ addPart('roomba', wire(new THREE.CylinderGeometry(168, 176, 62, 56)), 0);
     color: batt.clone(), transparent:true, opacity:0.06, depthWrite:false,
     polygonOffset:true, polygonOffsetFactor:1, polygonOffsetUnits:1,
   });
+  installWipe(p.children[0].material, 0x163e78, 0.16);
   addPart('plate', p, 44);
 }
 /* small power parts on the deck */
@@ -360,27 +432,46 @@ addPart('mega', wire(new THREE.BoxGeometry(102, 16, 54)), 84);
 const LIFT = {wheels:-110, roomba:0, plate:82, buck:164, xh:164, mega:246, pi:328, camera:410, lcd:410, lidar:492};
 
 /* ---------- ground effects: charge pad ring + motion rings ---------- */
+const chargeMat = new THREE.MeshBasicMaterial({color: batt.clone(), transparent:true, opacity:0.35, side:THREE.DoubleSide, depthWrite:false});
+installWipe(chargeMat, 0x5ee7ff, -1);
 const chargeRing = new THREE.Mesh(
   new THREE.RingGeometry(210, 236, 64),
-  new THREE.MeshBasicMaterial({color: batt.clone(), transparent:true, opacity:0.35, side:THREE.DoubleSide, depthWrite:false})
+  chargeMat
 );
 chargeRing.rotation.x = -Math.PI/2; chargeRing.position.y = -148; scene.add(chargeRing);
 
 const motionRings = [];
 for(let i=0;i<3;i++){
+  const ringMat = new THREE.MeshBasicMaterial({color: batt.clone(), transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false});
+  installWipe(ringMat, 0x9af3ff, -1);
   const r = new THREE.Mesh(
     new THREE.RingGeometry(190, 202, 64),
-    new THREE.MeshBasicMaterial({color: batt.clone(), transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false})
+    ringMat
   );
   r.rotation.x = -Math.PI/2; r.position.y = -146; r.visible = false;
   scene.add(r); motionRings.push(r);
 }
 
 /* ---------- view presets + robot state ---------- */
-let robotState = 'charger';        // charger | idle | moving
+let robotState = 'charger';        // charger | idle | moving | cleaning | stuck
+let currentView = 'threeq';
+let modelView = 'real';            // real | blueprint — not the page theme
 let explodeHold = null;            // null = auto loop, 0/1 = manual hold
 let camTween = null;
 const easeIO = x => x<.5 ? 2*x*x : 1-Math.pow(-2*x+2,2)/2;
+const LOOK_SECONDS = 1.0;
+let lookFrom = 0, lookTo = 0, lookT0 = 0, lookBusy = false, nowSec = 0;
+const wash = document.getElementById('wash');
+function syncWash(v){ wash.style.transform = 'scaleX(' + v + ')'; }
+const VIEW_LABEL = {front:'Front', top:'Top', side:'Side', threeq:'¾', run:'Run', dock:'Dock', exploded:'Exploded'};
+const STATE_LABEL = {charger:'Charging', idle:'Idle', cleaning:'Cleaning', moving:'Moving', stuck:'Stuck'};
+function paintMenuSummary(){
+  const embed = document.documentElement.dataset.embed;
+  const view = modelView === 'blueprint' ? 'Blueprint' : 'Real';
+  const bits = embed ? [view, STATE_LABEL[robotState]] : [VIEW_LABEL[currentView] || '¾', view, STATE_LABEL[robotState]];
+  menuSummary.textContent = bits.join(' · ');
+  menuBtn.setAttribute('aria-label', 'Model controls, ' + bits.join(', '));
+}
 const VIEWS = {
   front:    {az: 0,            el: 0.30, dist: 1320},
   top:      {az: 0.8,          el: 1.32, dist: 1520},
@@ -392,20 +483,92 @@ const VIEWS = {
 };
 function flyTo(name){
   const v = VIEWS[name]; if(!v) return;
+  currentView = name;
   camTween = {az0: tAz, el0: tEl, d0: tDist, az1: v.az, el1: v.el, d1: v.dist, t: 0};
   explodeHold = (v.explode !== undefined) ? v.explode : null;
-  document.querySelectorAll('#controls [data-view]').forEach(b=>
-    b.classList.toggle('on', b.dataset.view === name));
+  document.querySelectorAll('[data-view]').forEach(b=>
+    b.setAttribute('aria-checked', String(b.dataset.view === name)));
+  paintMenuSummary();
 }
 function setState(s){
   robotState = s;
-  document.querySelectorAll('#controls [data-state]').forEach(b=>
-    b.classList.toggle('on-state', b.dataset.state === s));
+  document.querySelectorAll('[data-state]').forEach(b=>
+    b.setAttribute('aria-checked', String(b.dataset.state === s)));
+  paintMenuSummary();
 }
-document.querySelectorAll('#controls [data-view]').forEach(b=>
+function setModelView(name){
+  const nextName = name === 'blueprint' ? 'blueprint' : 'real';
+  const next = nextName === 'blueprint' ? 1 : 0;
+  modelView = nextName;
+  document.documentElement.dataset.model = nextName;
+  document.querySelectorAll('[data-model]').forEach(b=>
+    b.setAttribute('aria-checked', String(b.dataset.model === nextName)));
+  if(reduce || Math.abs(wipeU.uMix.value - next) < 0.001){
+    wipeU.uMix.value = next;
+    lookBusy = false;
+    syncWash(next);
+  } else {
+    lookFrom = wipeU.uMix.value;
+    lookTo = next;
+    lookT0 = nowSec;
+    lookBusy = true;
+  }
+  paintMenuSummary();
+}
+document.querySelectorAll('[data-view]').forEach(b=>
   b.addEventListener('click', ()=> flyTo(b.dataset.view)));
-document.querySelectorAll('#controls [data-state]').forEach(b=>
+document.querySelectorAll('[data-state]').forEach(b=>
   b.addEventListener('click', ()=> setState(b.dataset.state)));
+document.querySelectorAll('[data-model]').forEach(b=>
+  b.addEventListener('click', ()=> setModelView(b.dataset.model)));
+
+const menuWrap = document.getElementById('menuWrap');
+const menuBtn = document.getElementById('menuBtn');
+const menu = document.getElementById('menu');
+const menuSummary = document.getElementById('menuSummary');
+function menuItems(){
+  return [...menu.querySelectorAll('button')].filter(b => b.offsetParent !== null);
+}
+function setMenu(open){
+  menuWrap.classList.toggle('open', open);
+  menuBtn.setAttribute('aria-expanded', String(open));
+  menu.setAttribute('aria-hidden', String(!open));
+}
+menuBtn.addEventListener('click', (e)=>{
+  const open = !menuWrap.classList.contains('open');
+  setMenu(open);
+  if(open && e.detail === 0){
+    const items = menuItems();
+    const current = items.find(b => b.getAttribute('aria-checked') === 'true') || items[0];
+    if(current) current.focus();
+  }
+});
+addEventListener('pointerdown', (e)=>{
+  if(!menuWrap.contains(e.target)) setMenu(false);
+});
+addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && menuWrap.classList.contains('open')){
+    setMenu(false);
+    menuBtn.focus();
+  }
+});
+menu.addEventListener('keydown', (e)=>{
+  const items = menuItems();
+  const i = items.indexOf(document.activeElement);
+  if(i < 0) return;
+  if(e.key === 'ArrowDown' || e.key === 'ArrowRight'){
+    e.preventDefault();
+    items[(i + 1) % items.length].focus();
+  } else if(e.key === 'ArrowUp' || e.key === 'ArrowLeft'){
+    e.preventDefault();
+    items[(i - 1 + items.length) % items.length].focus();
+  } else if(e.key === 'Home'){
+    e.preventDefault(); items[0].focus();
+  } else if(e.key === 'End'){
+    e.preventDefault(); items[items.length - 1].focus();
+  }
+});
+paintMenuSummary();
 
 /* ---------- parts list ---------- */
 const SHOW = [
@@ -479,6 +642,7 @@ elc.addEventListener('pointerup', e=>{
 function resize(){
   const w = stage.clientWidth || innerWidth, h = stage.clientHeight || innerHeight;
   renderer.setSize(w, h, false);
+  wipeU.uResolution.value.set(renderer.domElement.width, renderer.domElement.height);
   cam.aspect = w/h; cam.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
@@ -513,6 +677,14 @@ function explodeAmount(t){
 }
 
 function frame(t, delta){
+  nowSec = t;
+  if(lookBusy){
+    const k = Math.min(1, (t - lookT0) / LOOK_SECONDS);
+    const v = lookFrom + (lookTo - lookFrom) * easeIO(k);
+    wipeU.uMix.value = v;
+    syncWash(v);
+    if(k >= 1){ wipeU.uMix.value = lookTo; syncWash(lookTo); lookBusy = false; }
+  }
   const tt = t % CYCLE;
   const e = explodeHold !== null ? explodeHold : (reduce ? 1 : explodeAmount(tt));
 
@@ -588,6 +760,7 @@ function frame(t, delta){
   // charging pulse on the battery-tinted glow
   const pulse = (isCharging && !reduce) ? 0.05*Math.sin(t*3.2) : 0;
   fillMat.opacity = 0.10 + pulse + 0.06*e;
+  battLight.color.copy(batt).lerp(blueLight, wipeU.uMix.value);
   battLight.intensity = 9000 + (isCharging && !reduce ? 2600*Math.sin(t*3.2)*0.5+1300 : 0);
 
   renderer.render(scene, cam);
@@ -649,4 +822,5 @@ function frame(t, delta){
 
 if(FIX !== null){ frame(FIX, 0); document.title='ready'; }
 else { const t0 = performance.now(); let last = t0; (function loop(now){ const d = Math.min(0.05, (now-last)/1000); last = now; frame((now-t0)/1000, d); requestAnimationFrame(loop); })(t0); }
+window.__stella3d = true;
 </script></body></html>
