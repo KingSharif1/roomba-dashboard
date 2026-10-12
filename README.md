@@ -90,7 +90,7 @@ Ground rule: make it work before making it pretty.
 *Power chain, fuse Option A (use) / Option B (avoid), mini-DIN pin colors and USB ports for the current build. Diagram made by Grok.*
 
 - **Data:** Roomba 7-pin mini-DIN → Arduino Mega. Roomba TXD (black) → Mega RX1 (pin 19). Roomba RXD (brown) → Mega TX1 (pin 18). Both grounds (yellow, orange) → Mega GND. Vpwr (purple, red) → nothing, never the Mega or Pi. BRC (green) → not connected. Shield taped off. No level shifter needed.
-- **Power (planned):** Roomba battery + → 3 A inline fuse → XH-M609 cutoff (off at 12.8 V, back on at ~13.4 V) → rocker switch → 5 A buck set to 5.1 V → USB-C → Pi 4. The Pi's USB powers the Mega and the RPLIDAR C1. The camera is on the Pi's ribbon port. All grounds go back to battery −.
+- **Power (planned):** Roomba battery + → 3 A inline fuse → XH-M609 cutoff (off at 12.8 V, back on at ~13.4 V) → rocker switch → DROK adjustable 5 A buck set to 5.15 V → USB-C → Pi 4. The Pi's USB powers the Mega and the RPLIDAR C1. The camera is on the Pi's ribbon port. All grounds go back to battery −.
 - **Motion sensor:** MPU6050 on the Mega (SDA pin 20, SCL pin 21, 5 V, GND).
 - **Robot stack:** Roomba Open Interface (serial, 115200) → Mega USB pass-through → Pi → ROS 2 `create_robot` driver + `rplidar_ros` → a small FastAPI service → this dashboard over a private network.
 
