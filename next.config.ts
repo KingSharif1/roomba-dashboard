@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/", headers: noCache },
       { source: "/stella/:path*", headers: noCache },
+      { source: "/3d", headers: noCache },
       { source: "/3d/:path*", headers: noCache },
     ];
   },
@@ -26,6 +27,8 @@ const nextConfig: NextConfig = {
     return [
       // Grok's engineering-paper landing page serves at the root.
       { source: "/", destination: "/stella/index.html" },
+      // One viewer: the Anatomy page, also at /3d (embed uses /3d?embed).
+      { source: "/3d", destination: "/3d/index.html" },
     ];
   },
 };
