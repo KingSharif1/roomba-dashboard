@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en" data-theme="paper"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stella — a Roomba 694 that learned to think</title>
+<meta name="description" content="How I turned a $40 Roomba 694 into Stella, a home robot with a Raspberry Pi 4, ROS 2, lidar, camera and voice.">
+<script>{const q=new URLSearchParams(location.search).get('theme');if(q)localStorage.setItem('stella-theme',q);document.documentElement.dataset.theme=localStorage.getItem('stella-theme')||'paper'}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v3b">
+</head><body id="top">
+<button id="theme" aria-label="Toggle theme">◑ blueprint</button>
+<div class="wrap">
+
+<header class="rv">
+ <div class="t"><h1>STELLA</h1><div class="sub">A Roomba 694 turned into a home robot · build notes</div>
+ <nav><a href="#s1">1 Story</a><a href="#s2">2 Additions</a><a href="#s3">3 Layout</a><a href="#s4">4 Wiring</a><a href="#s5">5 Timeline</a><a href="#s6">6 Parts</a><a href="#s7">7 Lessons</a><a href="#s8">8 Why Stella</a></nav></div>
+ <div class="tb"><div>DWG</div><div>STL-001</div><div>REV</div><div>E · 2026-10-12</div><div>BY</div><div>K. Sharif</div><div>STATUS</div><div>Pi rebuild</div><div>SRC</div><div><a href="https://github.com/KingSharif1/stella">github/stella</a></div></div>
+</header>
+
+<section class="rv" style="margin-top:28px">
+ <figure><iframe class="viewer" src="/3d/index.html?embed&v3b" title="Stella 3D model" loading="lazy"></iframe>
+ <figcaption><b>Fig. 1</b> — Stella as built. Drag to rotate · scroll to zoom · tap a part · slide to explode.</figcaption></figure>
+</section>
+
+<section id="s1"><h2 class="rv"><span>1.</span> The Roomba that kept hitting the same wall</h2>
+ <div class="grid"><div>
+ <p class="lede rv">I got a Roomba 694 off Facebook Marketplace. Then I watched it work.</p>
+ <p class="rv">It bumped into a wall, went around, came back, and bumped the same wall again. It wasn't smart at all.</p>
+ <p class="rv">The engineer in me knew a Raspberry Pi and an Arduino could make it way better. I used to love watching Pi and Arduino DIY videos. This time, with AI, I didn't have to watch five to ten videos just to figure out if I had the right model. I ordered the wire and got started.</p>
+ </div><div class="note rv"><b>Base</b><br>Roomba 694, $40<br>Li-ion 14.4 V (16.8 V full)<br>iRobot Open Interface<br>serial · 115200 baud</div></div>
+</section>
+
+<section id="s2"><h2 class="rv"><span>2.</span> What I added</h2>
+ <div class="cards">
+ <div class="card" data-n="2.1"><svg viewBox="0 0 48 48"><rect x="10" y="10" width="28" height="28" rx="3"/><rect class="a" x="17" y="17" width="14" height="14"/><path d="M16 4v6M24 4v6M32 4v6M16 38v6M24 38v6M32 38v6M4 16h6M4 24h6M4 32h6M38 16h6M38 24h6M38 32h6"/></svg><h3>Raspberry Pi 4</h3><p>The brain. Ubuntu, ROS 2 Jazzy, mapping and voice.</p></div>
+ <div class="card" data-n="2.2"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="7"/><circle class="a" cx="24" cy="24" r="16" stroke-dasharray="3 4"/><path class="a" d="M24 24 L40 14"/><path d="M14 40h20"/></svg><h3>RPLIDAR C1</h3><p>Spins 360° to map the apartment.</p></div>
+ <div class="card" data-n="2.3"><svg viewBox="0 0 48 48"><rect x="8" y="14" width="32" height="22" rx="3"/><circle class="a" cx="24" cy="25" r="7"/><path d="M17 14l3-5h8l3 5"/></svg><h3>Pi Camera</h3><p>Looks forward from just in front of the Pi.</p></div>
+ <div class="card" data-n="2.4"><svg viewBox="0 0 48 48"><rect x="5" y="12" width="38" height="24" rx="2"/><path d="M10 16h20M10 32h24"/><rect class="a" x="30" y="20" width="9" height="9"/><path d="M14 22h8v6h-8z"/></svg><h3>Arduino Mega</h3><p>Reflexes. Talks to the Roomba over serial.</p></div>
+ <div class="card" data-n="2.5"><svg viewBox="0 0 48 48"><rect x="5" y="13" width="38" height="22" rx="2"/><rect class="a" x="10" y="18" width="28" height="12"/><path d="M13 22h9M13 26h14"/></svg><h3>16x2 LCD</h3><p>Status at a glance: battery, lidar, mode.</p></div>
+ <div class="card" data-n="2.6"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="16"/><path class="a" d="M24 12l5 12-5 12-5-12z"/><path d="M24 4v4M24 40v4M4 24h4M40 24h4"/></svg><h3>MPU6050</h3><p>Heading and tilt, so she knows which way she turned.</p></div>
+ <div class="card" data-n="2.7"><svg viewBox="0 0 48 48"><rect x="18" y="6" width="12" height="22" rx="6"/><path d="M12 22a12 12 0 0 0 24 0M24 34v8M17 42h14"/><path class="a" d="M38 14c3 3 3 9 0 12M42 10c5 5 5 15 0 20"/></svg><h3>Speaker + mic</h3><p>A voice. Wake word: "Stella".</p></div>
+ <div class="card" data-n="2.8"><svg viewBox="0 0 48 48"><path class="a" d="M27 4L12 27h11l-3 17 16-24H25z"/><rect x="4" y="38" width="40" height="0.1"/></svg><h3>Power chain</h3><p>Fuse → cutoff → switch → 5 A buck. Clean 5.15 V from the Roomba battery.</p></div>
+ </div>
+</section>
+
+<section id="s3"><h2 class="rv"><span>3.</span> How it fits</h2>
+ <figure class="rv"><div id="layout" class="dia"></div>
+ <figcaption><b>Fig. 2</b> — Top view of the 10 in deck. Hover or tap a part.</figcaption></figure>
+ <p class="foot rv">The main board and battery live inside the Roomba. Lidar sits on four 35 mm posts so its beam clears everything (≈ 65 mm above the plate).</p>
+</section>
+
+<section id="s4"><h2 class="rv"><span>4.</span> How it's wired</h2>
+ <figure class="rv"><div id="wiring" class="dia"></div>
+ <figcaption><b>Fig. 3</b> — Power, serial, I2C, USB and LCD pins. Red dots are solder joints; squares are connectors. Hover or tap a part.<span class="hint"> Swipe sideways →</span></figcaption></figure>
+ <p class="foot rv">Mini-DIN colors are from my cable, traced with a meter. VPWR is raw battery (~15 V): never on the Arduino or Pi. Green (BRC) is unused for now. No buzzer: the Roomba plays beeps itself (OI Song/Play).</p>
+</section>
+
+<section id="s5"><h2 class="rv"><span>5.</span> Timeline</h2>
+ <ol class="tl">
+ <li class="rv"><span class="tag">2026-08-20</span>Brought the Roomba home from Facebook Marketplace ($40), set it up in the iRobot app, and watched it hit the same wall. That night I asked Claude what it would take to make it smart.</li>
+ <li class="rv"><span class="tag">2026-08-21 · day 1 <a class="chip" href="https://kingsharif.com/blog/roomba-694-raspberry-pi-ros2-build-log-days-1-3">blog · part 1</a></span>Ordered the lidar and a cable, picked up a multimeter and a switch, flashed Ubuntu Server 24.04 on the Pi and fought ROS 2 Jazzy until it installed. Most of the expensive parts (Pi 4, Mega, camera, MPU6050) came from a robotics kit my friend Eback gave me.</li>
+ <li class="rv"><span class="tag">2026-08-22 → 08-23</span>Arduino blink test, first turtlesim run between the Pi and my laptop, and the first web dashboard repo (mock data).</li>
+ <li class="rv bad"><span class="tag">2026-08-24 → 08-25 · day 2</span>The cable arrived: an 8-pin MD8. The Roomba's port is a 7-pin mini-DIN. It kind of fits, which made it worse. Days of wire-guessing and silence.</li>
+ <li class="rv win"><span class="tag">2026-08-26 · day 3</span>The RPLIDAR C1 arrived and spun up over USB on the first try.</li>
+ <li class="rv"><span class="tag">2026-08-27</span>The right cable came in: Adafruit #2438, purpose-built 7-pin.</li>
+ <li class="rv bad"><span class="tag">2026-08-31 → 09-03</span>Still no data. Signal pins on the original board sat at 0 V. It's the Wi-Fi model, and its firmware blocks the serial port. I took the wheel out, researched how the board works, and looked at replacements.</li>
+ <li class="rv"><span class="tag">2026-09-23</span>Ordered a used 600-series main board on eBay (~$22).</li>
+ <li class="rv win"><span class="tag">2026-09-29 <a class="chip" href="https://kingsharif.com/blog/roomba-694-build-log-part-2-serial-breakthrough">blog · part 2</a></span>Swapped the board, traced every wire with a meter, and got two-way serial. By night the Roomba was driving from my code, streaming sensors, and the lidar was publishing scans in ROS 2. Manual drive went live on the dashboard.</li>
+ <li class="rv"><span class="tag">2026-10-11</span>Locked out of the Pi after a 10-day break; reset it headless and switched to key login. Named her Stella and gave her a logo.</li>
+ <li class="rv bad"><span class="tag">2026-10-11</span>The Pi died. Weeks on laptop USB and a weak power bank: under-voltage, throttling at 85 °C, then no boot. The Mega and lidar survived.</li>
+ <li class="rv"><span class="tag">2026-10-11</span>Redesigned power around the Roomba battery: 3 A fuse, XH-M609 cutoff, rocker, DROK 5 A buck at 5.15 V. Planned the 10 in deck and ordered the last parts.</li>
+ <li class="rv"><span class="tag">2026-10-12</span>Finished the diagnosis, ordered a replacement Vilros Pi 4 kit, wrote the safety and rebuild plan.</li>
+ <li class="rv"><span class="tag">Next</span>Rebuild on the new Pi → mount the lidar → first map → voice.</li>
+ </ol>
+</section>
+
+<section id="s6"><h2 class="rv"><span>6.</span> Parts</h2>
+ <div class="scroll rv"><table>
+ <tr><th>#</th><th>Part</th><th>Job</th><th>From</th></tr>
+ <tr><td class="n">01</td><td>iRobot Roomba 694</td><td>Body, wheels, battery</td><td>Facebook Marketplace, $40</td></tr>
+ <tr><td class="n">02</td><td><a href="https://www.ebay.com/itm/287182300375">Used Roomba 600-series main board</a></td><td>Roomba controller with working serial</td><td>eBay, ~$22</td></tr>
+ <tr><td class="n">03</td><td><a href="https://www.adafruit.com/product/2438">Adafruit #2438 mini-DIN 7-pin cable</a></td><td>Roomba ↔ Mega serial</td><td>Adafruit, $6.95</td></tr>
+ <tr><td class="n">04</td><td><a href="https://www.amazon.com/dp/B01EWNUUUA">ELEGOO Mega 2560 R3 Most Complete Starter Kit</a></td><td>Mega 2560 + prototype shield: reflexes, sensors</td><td>Eback's kit <small>*</small></td></tr>
+ <tr><td class="n">05</td><td><a href="https://www.amazon.com/dp/B07XTRK8D4">Vilros Raspberry Pi 4 4GB Basic Starter Kit, fan-cooled case</a></td><td>Brain (replacement Pi)</td><td>Amazon</td></tr>
+ <tr><td class="n">06</td><td><a href="https://www.amazon.com/dp/B01ER2SKFS">Raspberry Pi Camera Module V2</a></td><td>Vision</td><td>Eback's kit <small>*</small></td></tr>
+ <tr><td class="n">07</td><td><a href="https://www.amazon.com/dp/B0CMTXV5RC">WayPonDEV RPLIDAR C1 360° lidar</a></td><td>Mapping</td><td>Amazon, $71.90</td></tr>
+ <tr><td class="n">08</td><td><a href="https://www.amazon.com/dp/B01EWNUUUA">MPU6050 (GY-521)</a></td><td>Heading</td><td>ELEGOO kit <small>*</small></td></tr>
+ <tr><td class="n">09</td><td><a href="https://www.amazon.com/dp/B01EWNUUUA">LCD1602 16x2 module</a></td><td>Status</td><td>ELEGOO kit <small>*</small></td></tr>
+ <tr><td class="n">10</td><td><a href="https://www.amazon.com/dp/B07WRZSJ5M">XH-M609 low-voltage disconnect module</a></td><td>Battery protection</td><td>On hand <small>*</small></td></tr>
+ <tr><td class="n">11</td><td><a href="https://www.amazon.com/dp/B07S2QJKTX">KCD1 mini rocker switch, 2-pin SPST</a></td><td>Main on/off</td><td>On hand <small>*</small></td></tr>
+ <tr><td class="n">12</td><td><a href="https://www.amazon.com/dp/B07JZ2GQJF">DROK adjustable 5 A buck converter</a></td><td>5.15 V for the Pi</td><td>Amazon</td></tr>
+ <tr><td class="n">13</td><td><a href="https://www.amazon.com/dp/B0CSZ4Q78Y">ABSOPRO 3 A inline fuse holder</a></td><td>Short protection</td><td>Amazon</td></tr>
+ <tr><td class="n">14</td><td><a href="https://www.amazon.com/dp/B0FPR4B23J">ADTDA 10 in clear acrylic discs, 1/8 in (2-pack)</a></td><td>The deck</td><td>Amazon</td></tr>
+ <tr><td class="n">15</td><td><a href="https://www.amazon.com/dp/B0B7SNCFF1">HELIFOUNER M2.5 brass standoff kit</a></td><td>35 mm lidar posts, camera mounts</td><td>Amazon</td></tr>
+ <tr><td class="n">16</td><td><a href="https://www.amazon.com/dp/B0DZ6N48B8">Luxify VHB 5952 tape pads</a></td><td>Plate → Roomba, no drilling</td><td>Amazon</td></tr>
+ <tr><td class="n">17</td><td><a href="https://www.amazon.com/dp/B07Y55HFHN">ASHATA mini pillow speaker</a></td><td>Voice out</td><td>Amazon</td></tr>
+ <tr><td class="n">18</td><td><a href="https://www.amazon.com/dp/B08SQK723J">JOUNIVO JV808 USB microphone</a></td><td>Voice in</td><td>Amazon</td></tr>
+ <tr><td class="n">19</td><td>USB-C cable, stripped</td><td>Buck → Pi</td><td>My own cable</td></tr>
+ </table></div>
+ <p class="foot rv">* Already on hand or from a kit, so there's no order of mine to link. The link is a matching Amazon listing (same model), not necessarily the exact one I have.</p>
+</section>
+
+<section id="s7"><h2 class="rv"><span>7.</span> What it took</h2>
+ <div class="grid"><div>
+ <p class="rv">I didn't think it would be easy, but I didn't expect how much patience it would take. The worst part is getting a part and it's the wrong one, or it's a whole different issue, and then waiting again.</p>
+ <p class="rv">I learned a lot: hosting servers on a Pi, the Arduino, every part of the robot and how it all connects to the motherboard, in a smart but messy way. I learned the hard way why the newer 694 board won't work: on the Wi-Fi model, the firmware locks you out of the serial port (the Open Interface). An older 600-series board fixed it.</p>
+ <p class="rv">After a month or two, I believe I have all the parts. I spent a lot more money than I thought I would.</p>
+ </div><div class="note rv"><b>Rules I learned</b><br>Get the right part the first time.<br>Ground first, always.<br>Never trust wire colors.<br>Never power a Pi from a power bank.</div></div>
+</section>
+
+<section id="s8"><h2 class="rv"><span>8.</span> Why Stella</h2>
+ <div class="why rv">
+ <p>One Piece is one of my favorite anime. Dr. Vegapunk is one of the smartest people alive in that world, so smart he split his mind into six satellite bodies. Stella is the name of the original Vegapunk, the main body.</p>
+ <p style="margin-bottom:0">In the same sense, Stella has a part of me in her. We really learned and grew together.</p>
+ </div>
+</section>
+
+</div>
+<footer class="big"><div class="in">
+ <div><p class="mark" aria-hidden="true">STELLA</p><p class="cred">Built by King Sharif and his agents (Claude, Grok, Muse).</p></div>
+ <div class="cols">
+  <div><h4>Read</h4><ul><li><a href="https://kingsharif.com/blog/roomba-694-raspberry-pi-ros2-build-log-days-1-3">Build log · part 1</a></li><li><a href="https://kingsharif.com/blog/roomba-694-build-log-part-2-serial-breakthrough">Build log · part 2</a></li><li><a href="https://kingsharif.com/blog">All posts</a></li></ul></div>
+  <div><h4>Explore</h4><ul><li><a href="https://github.com/KingSharif1/stella">Source on GitHub</a></li><li><a href="/3d/index.html">3D model, full screen</a></li><li><a href="#s6">Parts list</a></li><li><a href="#top">Back to top ↑</a></li></ul></div>
+ </div>
+ <div class="tb2"><span>DWG<b>STL-001</b></span><span>REV<b>E · 2026-10-12</b></span><span>SCALE<b>1:1</b></span><span>SHEET<b>1 / 1</b></span><span>kingsharif.com</span></div>
+</div></footer>
+<script src="page.js?v3b"></script>
+</body></html>
