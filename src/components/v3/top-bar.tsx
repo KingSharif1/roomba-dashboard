@@ -8,12 +8,13 @@ export function V3TopBar({ robot }: { robot: DemoRobotState }) {
     <header className="flex items-center justify-between px-4 md:px-6 h-16 border-b shrink-0"
       style={{ borderColor: "var(--v3-border-soft)", background: "var(--v3-bg)" }}>
       <div className="flex items-center gap-3">
-        <div
-          className="w-10 h-10 rounded flex items-center justify-center text-[10px] font-bold"
-          style={{ border: "1px dashed var(--v3-border)", color: "var(--v3-muted)" }}
-        >
-          LOGO
-        </div>
+        <img
+          src="/brand/stella-paper-mark.svg"
+          alt="Stella"
+          width={40}
+          height={40}
+          className="w-10 h-10 rounded-[10px] shrink-0"
+        />
         <div>
           <h1 className="text-xl font-bold tracking-[0.25em]">STELLA</h1>
           <p className="text-xs flex items-center gap-1.5" style={{ color: "var(--v3-muted)" }}>

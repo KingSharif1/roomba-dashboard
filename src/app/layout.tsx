@@ -23,6 +23,11 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://roomba.kingsharif.com"),
   title: "Stella — robot dashboard",
   description: "Stella — robot dashboard",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [{ url: "/brand/stella-paper-mark.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/brand/apple-touch-icon.png", type: "image/png" }],
+  },
   openGraph: {
     title: "Stella — robot dashboard",
     description: "Stella — robot dashboard",
