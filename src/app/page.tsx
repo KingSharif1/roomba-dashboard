@@ -101,7 +101,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background grid-bg">
-      <Header onLogout={handleLogout} />
+      <Header onLogout={handleLogout} status={status} />
       
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Mock mode indicator */}

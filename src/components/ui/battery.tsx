@@ -10,16 +10,17 @@ interface BatteryIndicatorProps {
 }
 
 export function BatteryIndicator({ level, charging, className }: BatteryIndicatorProps) {
+  // Mark color rules: yellow = charging, orange = low battery (<20), green = OK.
   const getColor = () => {
-    if (level <= 15) return "text-danger";
-    if (level <= 30) return "text-warning";
+    if (charging) return "text-[#ffd23f]";
+    if (level < 20) return "text-[#ff7a1a]";
     return "text-accent";
   };
   
   const getIcon = () => {
     if (charging) return BatteryCharging;
-    if (level <= 15) return BatteryLow;
-    if (level <= 30) return BatteryWarning;
+    if (level < 20) return BatteryLow;
+    if (level < 40) return BatteryWarning;
     return Battery;
   };
   

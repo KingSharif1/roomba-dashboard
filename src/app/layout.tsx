@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ROOMBA // CONTROL",
-  description: "Autonomous robot control dashboard",
+  title: "Stella — robot dashboard",
+  description: "Stella robot dashboard",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

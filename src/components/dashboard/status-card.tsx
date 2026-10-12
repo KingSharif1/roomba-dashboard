@@ -3,6 +3,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { BatteryIndicator } from "@/components/ui/battery";
+import { LiveMark, robotStatusToLike } from "@/components/brand/live-mark";
 import { formatTimeAgo } from "@/lib/utils";
 import type { RobotStatus } from "@/lib/types";
 import { Wifi, WifiOff, Clock } from "lucide-react";
@@ -30,9 +31,13 @@ export function StatusCard({ status }: StatusCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <StatusIndicator state={status.state} connected={status.connected} />
-        
-        <BatteryIndicator level={status.battery} charging={isCharging} />
+        <div className="flex items-center gap-5">
+          <LiveMark status={robotStatusToLike(status)} size={120} />
+          <div className="space-y-3">
+            <StatusIndicator state={status.state} connected={status.connected} battery={status.battery} />
+            <BatteryIndicator level={status.battery} charging={isCharging} />
+          </div>
+        </div>
         
         <div className="flex items-center gap-2 text-sm text-muted">
           <Clock className="w-4 h-4" />

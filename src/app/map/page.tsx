@@ -231,7 +231,7 @@ export default function MapPage() {
 
   return (
     <div className="min-h-screen bg-background grid-bg">
-      <Header />
+      <Header status={status} />
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

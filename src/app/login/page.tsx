@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { LiveMark } from "@/components/brand/live-mark";
 import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
@@ -65,15 +66,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-lg border border-accent/50 flex items-center justify-center bg-accent/10">
-            <span className="text-accent font-bold text-2xl">R</span>
+          <div className="flex justify-center mb-4">
+            <LiveMark state="idle" size={96} />
           </div>
-          <h1 className="text-2xl font-bold">
-            <span className="text-foreground">ROOMBA</span>
-            <span className="text-accent mx-2">//</span>
-            <span className="text-muted">CONTROL</span>
+          <h1 className="text-2xl font-bold tracking-[-0.03em]">
+            <span className="text-foreground">Stella</span>
           </h1>
-          <p className="text-sm text-muted mt-2">Autonomous Robot Dashboard</p>
+          <p className="text-sm text-muted mt-2">Robot dashboard</p>
         </div>
 
         <Card className="glow">

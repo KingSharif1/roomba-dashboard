@@ -2,6 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import type { RobotStatus, NoGoZone } from "@/lib/types";
+import { markStateFor, MARK_COLORS } from "@/components/brand/live-mark";
 import { useEffect, useRef } from "react";
 
 interface MapViewProps {
@@ -85,7 +86,8 @@ export function MapView({ status, noGoZones = [], mapUrl }: MapViewProps) {
       const robotX = status.pose.x * width;
       const robotY = status.pose.y * height;
       const heading = status.pose.heading;
-      
+      const robotColor = MARK_COLORS[markStateFor(status)];
+
       // Robot body
       ctx.save();
       ctx.translate(robotX, robotY);
@@ -93,15 +95,15 @@ export function MapView({ status, noGoZones = [], mapUrl }: MapViewProps) {
       
       // Outer glow
       const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 20);
-      gradient.addColorStop(0, "rgba(0, 255, 157, 0.4)");
-      gradient.addColorStop(1, "rgba(0, 255, 157, 0)");
+      gradient.addColorStop(0, robotColor + "66");
+      gradient.addColorStop(1, robotColor + "00");
       ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.arc(0, 0, 20, 0, Math.PI * 2);
       ctx.fill();
       
       // Robot circle
-      ctx.fillStyle = status.state === "cleaning" ? "#00ff9d" : "#666666";
+      ctx.fillStyle = robotColor;
       ctx.beginPath();
       ctx.arc(0, 0, 10, 0, Math.PI * 2);
       ctx.fill();
@@ -155,7 +157,7 @@ export function MapView({ status, noGoZones = [], mapUrl }: MapViewProps) {
     ctx.lineTo(width, height - cornerSize);
     ctx.stroke();
     
-  }, [status.pose, noGoZones, status.state]);
+  }, [status.pose, noGoZones, status.state, status.battery, status.connected]);
   
   return (
     <Card className="h-full">

@@ -2,61 +2,55 @@
 
 import { cn } from "@/lib/utils";
 import type { RobotState } from "@/lib/types";
+import {
+  markStateFor,
+  MARK_COLORS,
+  type MarkState,
+} from "@/components/brand/live-mark";
 
 interface StatusIndicatorProps {
   state: RobotState;
   connected: boolean;
+  battery?: number;
   className?: string;
 }
 
-const stateConfig: Record<RobotState, { label: string; color: string; pulse: boolean }> = {
-  idle: { label: "IDLE", color: "bg-muted", pulse: false },
-  cleaning: { label: "CLEANING", color: "bg-accent", pulse: true },
-  docked: { label: "DOCKED", color: "bg-accent", pulse: false },
-  returning: { label: "RETURNING", color: "bg-warning", pulse: true },
-  error: { label: "ERROR", color: "bg-danger", pulse: true },
+const stateLabel: Record<RobotState, string> = {
+  idle: "IDLE",
+  cleaning: "CLEANING",
+  docked: "DOCKED",
+  returning: "RETURNING",
+  error: "ERROR",
 };
 
-export function StatusIndicator({ state, connected, className }: StatusIndicatorProps) {
-  const config = stateConfig[state];
-  
-  if (!connected) {
-    return (
-      <div className={cn("flex items-center gap-2", className)}>
-        <span className="relative flex h-3 w-3">
-          <span className="absolute inline-flex h-full w-full rounded-full bg-danger opacity-75 animate-ping" />
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-danger" />
-        </span>
-        <span className="text-danger font-medium uppercase tracking-wider text-sm">
-          OFFLINE
-        </span>
-      </div>
-    );
-  }
-  
+/** Which mark states get the ping/pulse treatment on the chip dot. */
+const PULSING: MarkState[] = ["moving", "charging", "low", "fault"];
+
+export function StatusIndicator({ state, connected, battery = 100, className }: StatusIndicatorProps) {
+  const markState = markStateFor({ state, connected, battery, lastSeen: "", pose: null });
+  const color = MARK_COLORS[markState];
+  const pulse = PULSING.includes(markState);
+  const label = !connected ? "OFFLINE" : stateLabel[state];
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <span className="relative flex h-3 w-3">
-        {config.pulse && (
+        {pulse && (
           <span
-            className={cn(
-              "absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping",
-              config.color
-            )}
+            className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping"
+            style={{ backgroundColor: color }}
           />
         )}
-        <span className={cn("relative inline-flex rounded-full h-3 w-3", config.color)} />
+        <span
+          className="relative inline-flex rounded-full h-3 w-3"
+          style={{ backgroundColor: color }}
+        />
       </span>
       <span
-        className={cn(
-          "font-medium uppercase tracking-wider text-sm",
-          state === "error" && "text-danger",
-          state === "cleaning" && "text-accent",
-          state === "returning" && "text-warning",
-          (state === "idle" || state === "docked") && "text-foreground"
-        )}
+        className="font-medium uppercase tracking-wider text-sm"
+        style={{ color }}
       >
-        {config.label}
+        {label}
       </span>
     </div>
   );

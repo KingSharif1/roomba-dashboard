@@ -2,15 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  Map, 
-  Video, 
-  History, 
-  Settings, 
+import { LiveMark, robotStatusToLike } from "@/components/brand/live-mark";
+import type { RobotStatus } from "@/lib/types";
+import * as robot from "@/lib/robot";
+import {
+  LayoutDashboard,
+  Map,
+  Video,
+  History,
+  Settings,
   Brain,
-  LogOut 
+  LogOut
 } from "lucide-react";
 
 const navItems = [
@@ -24,33 +28,50 @@ const navItems = [
 
 interface HeaderProps {
   onLogout?: () => void;
+  /** Live robot status. When omitted, the header fetches its own. */
+  status?: RobotStatus | null;
 }
 
-export function Header({ onLogout }: HeaderProps) {
+export function Header({ onLogout, status: statusProp }: HeaderProps) {
   const pathname = usePathname();
-  
+  const [ownStatus, setOwnStatus] = useState<RobotStatus | null>(null);
+
+  useEffect(() => {
+    if (statusProp !== undefined) return; // parent drives it
+    let cancelled = false;
+    robot.getStatus().then((s) => {
+      if (!cancelled) setOwnStatus(s);
+    }).catch(() => {});
+    const cleanup = robot.startLiveUpdates(
+      (s) => { if (!cancelled) setOwnStatus(s); },
+      () => { if (!cancelled) setOwnStatus((c) => (c ? { ...c, connected: false } : c)); }
+    );
+    return () => {
+      cancelled = true;
+      cleanup();
+    };
+  }, [statusProp]);
+
+  const status = statusProp !== undefined ? statusProp : ownStatus;
+
   return (
     <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-14">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded border border-accent/50 flex items-center justify-center bg-accent/10 group-hover:bg-accent/20 transition-colors">
-              <span className="text-accent font-bold text-sm">R</span>
-            </div>
-            <div className="hidden sm:block">
-              <span className="font-bold tracking-wider text-foreground">ROOMBA</span>
-              <span className="text-accent mx-1">//</span>
-              <span className="text-muted tracking-wider">CONTROL</span>
-            </div>
+          {/* Logo — living mark + Stella wordmark */}
+          <Link href="/" className="flex items-center gap-2 group" aria-label="Stella home">
+            <LiveMark status={status ? robotStatusToLike(status) : null} size={24} />
+            <span className="font-bold tracking-[-0.03em] text-lg text-foreground group-hover:text-accent transition-colors">
+              Stella
+            </span>
           </Link>
-          
+
           {/* Navigation */}
           <nav className="flex items-center gap-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
-              
+
               return (
                 <Link
                   key={item.href}
@@ -67,7 +88,7 @@ export function Header({ onLogout }: HeaderProps) {
                 </Link>
               );
             })}
-            
+
             {onLogout && (
               <button
                 onClick={onLogout}
