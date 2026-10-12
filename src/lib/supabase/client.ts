@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { isSupabaseConfigured as supabaseEnvConfigured } from "./config";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-key";
@@ -8,10 +9,5 @@ export function createClient() {
 }
 
 export function isSupabaseConfigured(): boolean {
-  return (
-    !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://placeholder.supabase.co" &&
-    !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key"
-  );
+  return supabaseEnvConfigured();
 }

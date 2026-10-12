@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Schibsted_Grotesk } from "next/font/google";
+import { RobotProvider } from "@/components/connection/robot-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,18 +13,36 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const display = Schibsted_Grotesk({
+  variable: "--font-schibsted",
+  subsets: ["latin"],
+  weight: "700",
+});
+
 export const metadata: Metadata = {
-  title: "ROOMBA // CONTROL",
-  description: "Autonomous robot control dashboard",
+  metadataBase: new URL("https://roomba.kingsharif.com"),
+  title: "Stella — robot dashboard",
+  description: "Stella — robot dashboard",
+  openGraph: {
+    title: "Stella — robot dashboard",
+    description: "Stella — robot dashboard",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Stella — robot dashboard",
+    description: "Stella — robot dashboard",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <RobotProvider>{children}</RobotProvider>
+      </body>
     </html>
   );
 }

@@ -6,8 +6,10 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { LearningItem } from "@/lib/types";
 import * as robot from "@/lib/robot";
+import { emitToastOps } from "@/lib/toast-store";
+import { saveFailedToastOps } from "@/lib/toasts";
 import { formatTimeAgo } from "@/lib/utils";
-import { Brain, Check, X, HelpCircle, MapPin, Tag } from "lucide-react";
+import { Check, X, HelpCircle, MapPin, Tag } from "lucide-react";
 
 export default function LearningPage() {
   const [items, setItems] = useState<LearningItem[]>([]);
@@ -27,7 +29,11 @@ export default function LearningPage() {
   const dismissedItems = items.filter((i) => i.status === "dismissed");
 
   const handleVerify = async (id: string, label: string) => {
-    await robot.verifyLearningItem(id, label);
+    const result = await robot.verifyLearningItem(id, label);
+    if (result.success === false) {
+      emitToastOps(saveFailedToastOps());
+      return;
+    }
     setItems(
       items.map((i) =>
         i.id === id ? { ...i, status: "verified" as const, userLabel: label } : i
@@ -38,7 +44,11 @@ export default function LearningPage() {
   };
 
   const handleDismiss = async (id: string) => {
-    await robot.dismissLearningItem(id);
+    const result = await robot.dismissLearningItem(id);
+    if (result.success === false) {
+      emitToastOps(saveFailedToastOps());
+      return;
+    }
     setItems(
       items.map((i) => (i.id === id ? { ...i, status: "dismissed" as const } : i))
     );
@@ -105,29 +115,12 @@ export default function LearningPage() {
           </Card>
         </div>
 
-        {/* Info banner */}
-        <Card className="mb-6 border-accent/30">
-          <CardContent className="py-4">
-            <div className="flex items-start gap-3">
-              <Brain className="w-5 h-5 text-accent mt-0.5" />
-              <div>
-                <p className="text-sm font-medium">Object Learning System</p>
-                <p className="text-xs text-muted mt-1">
-                  When the robot encounters an unknown object, it will capture an image
-                  and ask you to identify it. Your labels help the robot learn what to
-                  avoid and what's safe to clean around.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Pending items */}
         {pendingItems.length > 0 && (
           <div className="mb-8">
             <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
               <HelpCircle className="w-5 h-5 text-warning" />
-              Needs Your Input
+              Pending
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {pendingItems.map((item) => (
@@ -135,10 +128,7 @@ export default function LearningPage() {
                   <CardContent className="pt-4">
                     {/* Image placeholder */}
                     <div className="aspect-video bg-surface-light rounded border border-border mb-4 flex items-center justify-center">
-                      <div className="text-center">
-                        <HelpCircle className="w-8 h-8 mx-auto mb-2 text-warning" />
-                        <p className="text-xs text-muted">Object image</p>
-                      </div>
+                      <HelpCircle className="w-8 h-8 text-warning" />
                     </div>
 
                     {/* Details */}
@@ -155,7 +145,7 @@ export default function LearningPage() {
                       {item.suggestedLabel && (
                         <div className="flex items-center gap-2 text-sm">
                           <Tag className="w-4 h-4 text-accent" />
-                          <span>Suggested: {item.suggestedLabel}</span>
+                          <span>{item.suggestedLabel}</span>
                         </div>
                       )}
                     </div>
@@ -237,14 +227,12 @@ export default function LearningPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Check className="w-4 h-4 text-accent" />
-              Learned Objects
+              Learned
             </CardTitle>
           </CardHeader>
           <CardContent>
             {verifiedItems.length === 0 ? (
-              <p className="text-sm text-muted text-center py-4">
-                No verified objects yet
-              </p>
+              <p className="text-sm text-muted text-center py-4">None</p>
             ) : (
               <div className="space-y-2">
                 {verifiedItems.map((item) => (
@@ -258,8 +246,8 @@ export default function LearningPage() {
                       </div>
                       <div>
                         <p className="text-sm font-medium">{item.userLabel}</p>
-                        <p className="text-xs text-muted">
-                          at ({item.location.x.toFixed(2)}, {item.location.y.toFixed(2)})
+                        <p className="text-xs text-muted mono">
+                          ({item.location.x.toFixed(2)}, {item.location.y.toFixed(2)})
                         </p>
                       </div>
                     </div>

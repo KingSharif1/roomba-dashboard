@@ -2,25 +2,31 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Video, VideoOff } from "lucide-react";
-import { useState } from "react";
+import { useRobotMode } from "@/hooks/use-robot-mode";
 
 interface CameraViewProps {
   streamUrl?: string;
   connected: boolean;
 }
 
-export function CameraView({ streamUrl, connected }: CameraViewProps) {
-  const [error, setError] = useState(false);
-  
+export function CameraView({ connected }: CameraViewProps) {
+  const demo = useRobotMode();
+  // No real stream in demo mode — read offline/gray until a real camera connects.
+  const live = connected && !demo;
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Camera Feed</CardTitle>
+        <CardTitle>Camera</CardTitle>
         <div className="flex items-center gap-1 text-xs">
-          {connected && !error ? (
+          {live ? (
             <>
               <Video className="w-3 h-3 text-accent" />
               <span className="text-accent">LIVE</span>
+            </>
+          ) : demo ? (
+            <>
+              <VideoOff className="w-3 h-3 text-muted" />
+              <span className="text-muted">OFFLINE</span>
             </>
           ) : (
             <>
@@ -32,16 +38,12 @@ export function CameraView({ streamUrl, connected }: CameraViewProps) {
       </CardHeader>
       <CardContent>
         <div className="relative aspect-video bg-surface-light rounded border border-border overflow-hidden">
-          {connected && !error ? (
+          {live ? (
             <>
               {/* Placeholder static noise effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-surface to-surface-light flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-accent/30 flex items-center justify-center">
-                    <Video className="w-8 h-8 text-accent/50" />
-                  </div>
-                  <p className="text-muted text-sm">Camera feed placeholder</p>
-                  <p className="text-xs text-muted/50 mt-1">MJPEG stream when connected</p>
+                <div className="w-16 h-16 rounded-full border-2 border-accent/30 flex items-center justify-center">
+                  <Video className="w-8 h-8 text-accent/50" />
                 </div>
               </div>
               
@@ -82,11 +84,7 @@ export function CameraView({ streamUrl, connected }: CameraViewProps) {
             </>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <VideoOff className="w-12 h-12 mx-auto mb-2 text-muted" />
-                <p className="text-muted text-sm">No camera feed</p>
-                <p className="text-xs text-muted/50">Robot offline</p>
-              </div>
+              <VideoOff className="w-12 h-12 text-muted" />
             </div>
           )}
         </div>

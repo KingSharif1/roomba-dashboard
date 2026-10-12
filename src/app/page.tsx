@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { StatusCard } from "@/components/dashboard/status-card";
@@ -8,76 +7,36 @@ import { ControlPanel } from "@/components/dashboard/control-panel";
 import { DrivePad } from "@/components/dashboard/drive-pad";
 import { MapView } from "@/components/dashboard/map-view";
 import { CameraView } from "@/components/dashboard/camera-view";
+import { ConnectionStatus } from "@/components/connection/connection-status";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import type { RobotStatus, NoGoZone, CleaningSession } from "@/lib/types";
-import * as robot from "@/lib/robot";
-import { createClient } from "@/lib/supabase/client";
-import { useRobotMode } from "@/hooks/use-robot-mode";
+import { useRobot } from "@/hooks/use-robot";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { noteVoluntarySignOut } from "@/lib/toast-store";
 import { formatDuration, formatTimeAgo } from "@/lib/utils";
 import { Activity, Zap, Clock, Target } from "lucide-react";
 
 export default function Dashboard() {
   const router = useRouter();
-  const supabase = createClient();
-  const [status, setStatus] = useState<RobotStatus>({
-    battery: 0,
-    state: "idle",
-    connected: false,
-    lastSeen: new Date().toISOString(),
-    pose: null,
-  });
-  const [noGoZones, setNoGoZones] = useState<NoGoZone[]>([]);
-  const [sessions, setSessions] = useState<CleaningSession[]>([]);
-  const [loading, setLoading] = useState(true);
-  const mockMode = useRobotMode();
-
-  const handleDisconnect = useCallback(() => {
-    setStatus((current) => ({ ...current, connected: false, state: "error" }));
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    Promise.allSettled([
-      robot.getStatus(),
-      robot.getNoGoZones(),
-      robot.getSessions(),
-    ]).then(([statusResult, zonesResult, sessionsResult]) => {
-      if (cancelled) return;
-
-      if (statusResult.status === "fulfilled") setStatus(statusResult.value);
-      else handleDisconnect();
-
-      if (zonesResult.status === "fulfilled") setNoGoZones(zonesResult.value);
-      if (sessionsResult.status === "fulfilled") setSessions(sessionsResult.value);
-      setLoading(false);
-    });
-
-    // Start live updates
-    const cleanup = robot.startLiveUpdates((newStatus) => {
-      setStatus(newStatus);
-    }, handleDisconnect);
-
-    return () => {
-      cancelled = true;
-      cleanup();
-    };
-  }, [handleDisconnect]);
+  const { status, zones: noGoZones, sessions, loading, commands } = useRobot();
 
   const handleStart = async () => {
-    await robot.startCleaning();
+    await commands.start();
   };
 
   const handleStop = async () => {
-    await robot.stopCleaning();
+    await commands.stop();
   };
 
   const handleDock = async () => {
-    await robot.returnToDock();
+    await commands.dock();
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (isSupabaseConfigured()) {
+      noteVoluntarySignOut();
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    }
     router.push("/login");
     router.refresh();
   };
@@ -91,10 +50,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background grid-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted mono text-sm">INITIALIZING SYSTEMS...</p>
-        </div>
+        <div className="w-12 h-12 border-2 border-accent border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -104,13 +60,7 @@ export default function Dashboard() {
       <Header onLogout={handleLogout} />
       
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Mock mode indicator */}
-        {mockMode && (
-          <div className="mb-4 px-3 py-2 bg-warning/10 border border-warning/30 rounded text-warning text-xs flex items-center gap-2">
-            <Zap className="w-4 h-4" />
-            <span>MOCK MODE — Simulated data for development</span>
-          </div>
-        )}
+        <ConnectionStatus showSimulateDrop />
 
         {/* Stats row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -202,7 +152,7 @@ export default function Dashboard() {
         <div className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
+              <CardTitle>Activity</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -213,9 +163,6 @@ export default function Dashboard() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-accent" />
-                      <span className="text-sm">
-                        Cleaning session
-                      </span>
                       <span className="text-xs text-muted">
                         {formatTimeAgo(session.startedAt)}
                       </span>

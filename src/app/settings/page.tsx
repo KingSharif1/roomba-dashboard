@@ -5,8 +5,12 @@ import { Header } from "@/components/layout/header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { useRobot } from "@/hooks/use-robot";
 import { useRobotMode } from "@/hooks/use-robot-mode";
 import * as robot from "@/lib/robot";
+import { emitToastOps } from "@/lib/toast-store";
+import { probeToastOps, savedToastOps } from "@/lib/toasts";
+import { robotSession } from "@/lib/robot-session";
 import { 
   Settings, 
   Wifi, 
@@ -27,14 +31,11 @@ type SecurityStatus = {
 };
 
 export default function SettingsPage() {
-  const [piAddress, setPiAddress] = useState("");
-  const [connectionMode, setConnectionMode] = useState<"mock" | "live">("mock");
   const [autoReturn, setAutoReturn] = useState(true);
   const [lowBatteryThreshold, setLowBatteryThreshold] = useState(15);
   const [notifications, setNotifications] = useState(true);
-  const [saved, setSaved] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null);
+  const { connection } = useRobot();
   const [security, setSecurity] = useState<SecurityStatus>({
     supabase: "checking",
     auth: "checking",
@@ -42,25 +43,13 @@ export default function SettingsPage() {
   });
   const mockMode = useRobotMode();
 
-  useEffect(() => {
-    // Load saved settings
-    const savedUrl = robot.getRobotUrlSetting();
-    if (savedUrl && savedUrl !== "mock") {
-      setPiAddress(savedUrl);
-      setConnectionMode("live");
-    } else {
-      setConnectionMode("mock");
-    }
-    checkSecurityStatus();
-  }, []);
-
   const checkSecurityStatus = async () => {
     const supabase = createClient();
     
     // Check Supabase connection
     try {
-      const { error } = await supabase.from("_dummy_check").select("*").limit(1);
-      // Even if table doesn't exist, connection works if we get a proper error
+      await supabase.from("_dummy_check").select("*").limit(1);
+      // A response, including "table does not exist", means the project is reachable.
       setSecurity(prev => ({ ...prev, supabase: "connected" }));
     } catch {
       setSecurity(prev => ({ ...prev, supabase: "error" }));
@@ -93,36 +82,23 @@ export default function SettingsPage() {
     }
   };
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot probe; state updates after the requests resolve
+    void checkSecurityStatus();
+  }, []);
+
   const handleSave = () => {
-    if (connectionMode === "mock") {
-      robot.setRobotUrl("mock");
-    } else if (piAddress) {
-      robot.setRobotUrl(piAddress);
-    }
-    setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
-      checkSecurityStatus();
-    }, 1500);
+    emitToastOps(savedToastOps());
+    checkSecurityStatus();
   };
 
   const handleTestConnection = async () => {
-    if (!piAddress) {
-      setTestResult({ success: false, error: "Enter a Pi address first" });
-      return;
-    }
-    
     setTesting(true);
-    setTestResult(null);
-    
-    const result = await robot.testConnection(piAddress);
-    setTestResult(result);
+    const result = await robot.testConnection();
+    const planned = probeToastOps(result, mockMode);
+    if (planned.unreachable) robotSession.noteUnreachable();
+    else emitToastOps(planned.ops);
     setTesting(false);
-  };
-
-  const handleModeChange = (mode: "mock" | "live") => {
-    setConnectionMode(mode);
-    setTestResult(null);
   };
 
   return (
@@ -143,118 +119,20 @@ export default function SettingsPage() {
               Robot Connection
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Mode selector */}
-            <div>
-              <label className="block text-sm text-muted mb-2">
-                Connection Mode
-              </label>
-              <div className="flex bg-surface-light rounded p-1">
-                <button
-                  className={`flex-1 py-2 text-sm rounded transition-colors ${
-                    connectionMode === "mock"
-                      ? "bg-surface text-foreground"
-                      : "text-muted hover:text-foreground"
-                  }`}
-                  onClick={() => handleModeChange("mock")}
-                >
-                  Mock / Demo
-                </button>
-                <button
-                  className={`flex-1 py-2 text-sm rounded transition-colors ${
-                    connectionMode === "live"
-                      ? "bg-surface text-foreground"
-                      : "text-muted hover:text-foreground"
-                  }`}
-                  onClick={() => handleModeChange("live")}
-                >
-                  Live Robot
-                </button>
-              </div>
-            </div>
-
-            {/* Pi Address - only show in live mode */}
-            {connectionMode === "live" && (
-              <div>
-                <label className="block text-sm text-muted mb-2">
-                  Raspberry Pi Address (Tailscale IP)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={piAddress}
-                    onChange={(e) => setPiAddress(e.target.value)}
-                    placeholder="http://100.x.x.x:8000"
-                    className="flex-1 px-3 py-2 bg-surface-light border border-border rounded text-sm font-mono focus:outline-none focus:border-accent"
-                  />
-                  <Button
-                    variant="secondary"
-                    onClick={handleTestConnection}
-                    disabled={testing || !piAddress}
-                  >
-                    {testing ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      "Test"
-                    )}
-                  </Button>
-                </div>
-                {testResult && (
-                  <div
-                    className={`mt-2 flex items-center gap-2 text-sm ${
-                      testResult.success ? "text-accent" : "text-danger"
-                    }`}
-                  >
-                    {testResult.success ? (
-                      <>
-                        <CheckCircle className="w-4 h-4" />
-                        Robot API is reachable.
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="w-4 h-4" />
-                        {testResult.error || "Connection failed"}
-                      </>
-                    )}
-                  </div>
-                )}
-                <p className="text-xs text-muted mt-2">
-                  Enter your Pi's Tailscale IP address (e.g., http://100.73.192.106:8000)
-                </p>
-              </div>
-            )}
-
-            {connectionMode === "mock" && (
-              <div className="p-3 bg-surface-light rounded border border-border">
-                <p className="text-sm text-muted">
-                  <strong className="text-foreground">Mock Mode:</strong> Using simulated robot data. 
-                  Battery drains during cleaning, charges when docked. Position updates in real-time.
-                </p>
-              </div>
-            )}
-
-            {/* Current status */}
-            <div className="pt-4 border-t border-border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Active Mode</p>
-                  <p className="text-xs text-muted">
-                    {mockMode ? "Using simulated data" : "Using real robot API"}
-                  </p>
-                </div>
-                <span
-                  className={`px-3 py-1 rounded text-xs font-medium ${
-                    mockMode
-                      ? "bg-warning/10 text-warning border border-warning/30"
-                      : "bg-accent/10 text-accent border border-accent/30"
-                  }`}
-                >
-                  {mockMode ? "MOCK" : "LIVE"}
-                </span>
-              </div>
-              <p className="text-xs text-muted mt-2">
-                Click "Save Settings" below to apply changes
-              </p>
+          <CardContent>
+            <div className="flex items-center justify-between gap-3">
+              <span
+                className={`px-3 py-1 rounded text-xs font-medium ${
+                  mockMode
+                    ? "bg-warning/10 text-warning border border-warning/30"
+                    : "bg-accent/10 text-accent border border-accent/30"
+                }`}
+              >
+                {connection.label}
+              </span>
+              <Button variant="secondary" onClick={handleTestConnection} disabled={testing || mockMode}>
+                {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Test"}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -269,12 +147,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Auto-return to dock</p>
-                <p className="text-xs text-muted">
-                  Automatically return when battery is low
-                </p>
-              </div>
+              <p className="text-sm font-medium">Auto-return</p>
               <button
                 onClick={() => setAutoReturn(!autoReturn)}
                 className={`w-12 h-6 rounded-full transition-colors ${
@@ -302,10 +175,6 @@ export default function SettingsPage() {
                 onChange={(e) => setLowBatteryThreshold(Number(e.target.value))}
                 className="w-full accent-accent"
               />
-              <div className="flex justify-between text-xs text-muted mt-1">
-                <span>5%</span>
-                <span>30%</span>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -320,12 +189,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Push notifications</p>
-                <p className="text-xs text-muted">
-                  Get notified when cleaning completes or errors occur
-                </p>
-              </div>
+              <p className="text-sm font-medium">Push</p>
               <button
                 onClick={() => setNotifications(!notifications)}
                 className={`w-12 h-6 rounded-full transition-colors ${
@@ -428,20 +292,20 @@ export default function SettingsPage() {
                   )}
                   {security.robot === "api-only" && (
                     <>
-                      <AlertCircle className="w-4 h-4 text-warning" />
-                      <span className="text-warning">API reachable — robot offline</span>
+                      <AlertCircle className="w-4 h-4 text-muted" />
+                      <span className="text-muted">Offline</span>
                     </>
                   )}
                   {security.robot === "mock" && (
                     <>
-                      <AlertCircle className="w-4 h-4 text-warning" />
-                      <span className="text-warning">Mock Mode</span>
+                      <AlertCircle className="w-4 h-4 text-muted" />
+                      <span className="text-muted">Demo</span>
                     </>
                   )}
                   {security.robot === "error" && (
                     <>
-                      <XCircle className="w-4 h-4 text-danger" />
-                      <span className="text-danger">Offline</span>
+                      <XCircle className="w-4 h-4 text-muted" />
+                      <span className="text-muted">Offline</span>
                     </>
                   )}
                 </div>
@@ -452,31 +316,18 @@ export default function SettingsPage() {
                 <span className="text-muted">Network</span>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-accent" />
-                  <span className="text-accent">Tailscale VPN</span>
+                  <span className="text-accent">Tailscale</span>
                 </div>
               </div>
             </div>
-            <p className="text-xs text-muted mt-4">
-              Your robot is only accessible through your private Tailscale network.
-              All data is stored securely in your Supabase project.
-            </p>
           </CardContent>
         </Card>
 
         {/* Save button */}
         <div className="flex justify-end">
           <Button variant="primary" onClick={handleSave}>
-            {saved ? (
-              <>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Saved!
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Save Settings
-              </>
-            )}
+            <Save className="w-4 h-4 mr-2" />
+            Save
           </Button>
         </div>
       </main>

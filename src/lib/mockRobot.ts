@@ -1,17 +1,30 @@
-import type { RobotStatus, CleaningSession, RobotState, LearningItem, NoGoZone, CustomRoute } from "./types";
+import type { CleaningSession, CustomRoute, LearningItem, NoGoZone, RobotStatus } from "./types";
+import { forceDemoDrop, demoLinkPhase, initialDemoLink, stepDemoLink, type DemoLinkPhase, type DemoLinkState } from "./demo/link";
+import { DOCK, stepMotion } from "./demo/physics";
+import { applyShowcase, statusForPreview, type MarkPreview } from "./demo/showcase";
+import { withDerivedMark } from "./robot-status";
 
-let mockStatus: RobotStatus = {
-  battery: 78,
-  state: "docked",
-  connected: true,
-  lastSeen: new Date().toISOString(),
-  pose: { x: 0.5, y: 0.8, heading: 0 },
-};
+let status: RobotStatus = applyShowcase(
+  {
+    battery: 78,
+    state: "docked",
+    connected: true,
+    lastSeen: new Date().toISOString(),
+    pose: { x: DOCK.x, y: DOCK.y, heading: 0 },
+  },
+  Date.now(),
+);
+let commanded = false;
+let markPin: MarkPreview | null = null;
 
+let linear = 0;
+let angular = 0;
+let manual = false;
 let cleaningStartTime: Date | null = null;
-let cleaningStartBattery: number = 0;
+let cleaningStartBattery = 0;
+let link: DemoLinkState = initialDemoLink(Date.now());
 
-const mockSessions: CleaningSession[] = [
+const sessions: CleaningSession[] = [
   {
     id: "session-1",
     startedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -54,7 +67,7 @@ const mockSessions: CleaningSession[] = [
   },
 ];
 
-const mockLearningItems: LearningItem[] = [
+const learningItems: LearningItem[] = [
   {
     id: "learn-1",
     imageUrl: "/mock/object-1.jpg",
@@ -84,7 +97,7 @@ const mockLearningItems: LearningItem[] = [
   },
 ];
 
-const mockNoGoZones: NoGoZone[] = [
+const noGoZones: NoGoZone[] = [
   {
     id: "zone-1",
     name: "Under desk cables",
@@ -109,7 +122,7 @@ const mockNoGoZones: NoGoZone[] = [
   },
 ];
 
-const mockRoutes: CustomRoute[] = [
+const routes: CustomRoute[] = [
   {
     id: "route-1",
     name: "Kitchen to Living Room",
@@ -123,77 +136,138 @@ const mockRoutes: CustomRoute[] = [
   },
 ];
 
-function jitterPose() {
-  if (mockStatus.pose && mockStatus.state === "cleaning") {
-    const speed = 0.02;
-    const angle = mockStatus.pose.heading + (Math.random() - 0.5) * 0.3;
-    mockStatus.pose = {
-      x: Math.max(0, Math.min(1, mockStatus.pose.x + Math.cos(angle) * speed)),
-      y: Math.max(0, Math.min(1, mockStatus.pose.y + Math.sin(angle) * speed)),
-      heading: angle,
-    };
-  }
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function updateBattery() {
-  if (mockStatus.state === "cleaning") {
-    mockStatus.battery = Math.max(5, mockStatus.battery - 0.1);
-    if (mockStatus.battery <= 15) {
-      mockStatus.state = "returning";
-    }
-  } else if (mockStatus.state === "returning") {
-    mockStatus.battery = Math.max(5, mockStatus.battery - 0.05);
-    if (mockStatus.pose) {
-      mockStatus.pose.x += (0.5 - mockStatus.pose.x) * 0.1;
-      mockStatus.pose.y += (0.8 - mockStatus.pose.y) * 0.1;
-      if (Math.abs(mockStatus.pose.x - 0.5) < 0.05 && Math.abs(mockStatus.pose.y - 0.8) < 0.05) {
-        mockStatus.state = "docked";
-        mockStatus.pose = { x: 0.5, y: 0.8, heading: 0 };
-      }
-    }
-  } else if (mockStatus.state === "docked") {
-    mockStatus.battery = Math.min(100, mockStatus.battery + 0.2);
-  }
+function copyStatus(): RobotStatus {
+  const current = markPin ? statusForPreview(markPin, status) : status;
+  return { ...current, pose: current.pose ? { ...current.pose } : null };
 }
 
-let updateInterval: ReturnType<typeof setInterval> | null = null;
-
-export function startMockUpdates(onUpdate: (status: RobotStatus) => void) {
-  if (updateInterval) return;
-  
-  updateInterval = setInterval(() => {
-    mockStatus.lastSeen = new Date().toISOString();
-    jitterPose();
-    updateBattery();
-    onUpdate({ ...mockStatus });
-  }, 1000);
-  
-  return () => {
-    if (updateInterval) {
-      clearInterval(updateInterval);
-      updateInterval = null;
-    }
-  };
+function deriveFromLegacy(current: RobotStatus): RobotStatus {
+  return withDerivedMark({ ...current, activity: undefined, charging: undefined });
 }
 
-export function stopMockUpdates() {
-  if (updateInterval) {
-    clearInterval(updateInterval);
-    updateInterval = null;
+/** `?mark=` pins one logo state over the demo cycle. Pass null to release it. */
+export function setDemoMarkPin(next: MarkPreview | null): void {
+  markPin = next;
+}
+
+function noteCommand(): void {
+  commanded = true;
+}
+
+export function getDemoPhase(now = Date.now()): DemoLinkPhase {
+  return demoLinkPhase(link, now);
+}
+
+export function tickDemo(now = Date.now(), dtSec = 0.2): RobotStatus {
+  link = stepDemoLink(link, now);
+  const phase = demoLinkPhase(link, now);
+  const linked = phase === "demo";
+  if (markPin) {
+    status = statusForPreview(markPin, status);
+  } else if (!linked) {
+    linear = 0;
+    angular = 0;
+    if (manual && !cleaningStartTime) {
+      manual = false;
+      status = { ...status, state: "idle" };
+    }
+  } else if (!commanded && !manual && !cleaningStartTime) {
+    status = applyShowcase(status, now);
+  } else {
+    const stepped = stepMotion({
+      status,
+      linear,
+      angular,
+      dtSec,
+      manual,
+      autoCleaning: cleaningStartTime !== null,
+    });
+    status = deriveFromLegacy(stepped.status);
+    manual = stepped.manual;
   }
+  if (markPin) {
+    status = { ...status, lastSeen: new Date(now).toISOString() };
+  } else {
+    status = { ...status, connected: linked, lastSeen: new Date(now).toISOString() };
+    if (!linked) status = deriveFromLegacy(status);
+  }
+  return copyStatus();
+}
+
+export function simulateConnectionDrop(durationMs?: number, now = Date.now()): void {
+  link = forceDemoDrop(link, now, durationMs);
+  status = deriveFromLegacy({ ...status, connected: false });
+}
+
+/** Returns false when the demo link is down so drive does not move a "disconnected" robot. */
+export function setDemoDrive(nextLinear: number, nextAngular: number, now = Date.now()): boolean {
+  if (demoLinkPhase(link, now) !== "demo") return false;
+  noteCommand();
+  linear = nextLinear;
+  angular = nextAngular;
+  const moving = Math.abs(nextLinear) > 0.001 || Math.abs(nextAngular) > 0.001;
+  if (moving) {
+    if (status.state === "docked" || status.state === "idle" || status.state === "error" || status.state === "returning") {
+      status = { ...status, state: "cleaning" };
+      if (!cleaningStartTime) manual = true;
+    }
+  } else if (manual && !cleaningStartTime) {
+    manual = false;
+    status = { ...status, state: "idle" };
+  }
+  status = deriveFromLegacy(status);
+  return true;
+}
+
+function finishCleaningSession(): void {
+  if (!cleaningStartTime) return;
+  const duration = Math.max(1, Math.floor((Date.now() - cleaningStartTime.getTime()) / 1000));
+  const batteryUsed = Math.max(0, cleaningStartBattery - status.battery);
+  sessions.unshift({
+    id: `session-${Date.now()}`,
+    startedAt: cleaningStartTime.toISOString(),
+    endedAt: new Date().toISOString(),
+    durationSeconds: duration,
+    coveragePercent: Math.floor(Math.random() * 30) + 60,
+    batteryUsedPercent: Math.round(batteryUsed),
+  });
+  cleaningStartTime = null;
+}
+
+export function demoEmergencyStop(): void {
+  noteCommand();
+  linear = 0;
+  angular = 0;
+  manual = false;
+  if (status.state === "cleaning" || status.state === "returning") {
+    finishCleaningSession();
+    status = { ...status, state: "idle" };
+  }
+  status = deriveFromLegacy(status);
 }
 
 export async function getStatus(): Promise<RobotStatus> {
   await delay(50);
-  return { ...mockStatus };
+  return copyStatus();
+}
+
+export function readStatus(): RobotStatus {
+  return copyStatus();
 }
 
 export async function startCleaning(): Promise<{ success: boolean }> {
   await delay(100);
-  if (mockStatus.state === "docked" || mockStatus.state === "idle") {
-    mockStatus.state = "cleaning";
+  if (demoLinkPhase(link, Date.now()) !== "demo") return { success: false };
+  if (status.state === "docked" || status.state === "idle") {
+    noteCommand();
+    status = deriveFromLegacy({ ...status, state: "cleaning" });
     cleaningStartTime = new Date();
-    cleaningStartBattery = mockStatus.battery;
+    cleaningStartBattery = status.battery;
+    manual = false;
     return { success: true };
   }
   return { success: false };
@@ -201,76 +275,78 @@ export async function startCleaning(): Promise<{ success: boolean }> {
 
 export async function stopCleaning(): Promise<{ success: boolean }> {
   await delay(100);
-  if (mockStatus.state === "cleaning") {
-    mockStatus.state = "idle";
-    if (cleaningStartTime) {
-      const duration = Math.floor((Date.now() - cleaningStartTime.getTime()) / 1000);
-      const batteryUsed = cleaningStartBattery - mockStatus.battery;
-      mockSessions.unshift({
-        id: `session-${Date.now()}`,
-        startedAt: cleaningStartTime.toISOString(),
-        endedAt: new Date().toISOString(),
-        durationSeconds: duration,
-        coveragePercent: Math.floor(Math.random() * 30) + 60,
-        batteryUsedPercent: Math.round(batteryUsed),
-      });
-      cleaningStartTime = null;
-    }
-    return { success: true };
-  }
-  return { success: false };
+  demoEmergencyStop();
+  return { success: true };
 }
 
 export async function returnToDock(): Promise<{ success: boolean }> {
   await delay(100);
-  if (mockStatus.state !== "docked") {
-    mockStatus.state = "returning";
-    return { success: true };
-  }
-  return { success: false };
+  if (demoLinkPhase(link, Date.now()) !== "demo") return { success: false };
+  if (status.state === "docked") return { success: false };
+  noteCommand();
+  linear = 0;
+  angular = 0;
+  manual = false;
+  finishCleaningSession();
+  status = deriveFromLegacy({ ...status, state: "returning" });
+  return { success: true };
 }
 
 export async function getSessions(): Promise<CleaningSession[]> {
   await delay(50);
-  return [...mockSessions];
+  return [...sessions];
+}
+
+export function readSessions(): CleaningSession[] {
+  return [...sessions];
 }
 
 export async function getLearningItems(): Promise<LearningItem[]> {
   await delay(50);
-  return [...mockLearningItems];
+  return learningItems.map((item) => ({ ...item, location: { ...item.location } }));
+}
+
+export function readLearningItems(): LearningItem[] {
+  return learningItems.map((item) => ({ ...item, location: { ...item.location } }));
 }
 
 export async function verifyLearningItem(id: string, label: string): Promise<{ success: boolean }> {
   await delay(100);
-  const item = mockLearningItems.find(i => i.id === id);
-  if (item) {
-    item.userLabel = label;
-    item.status = "verified";
-    return { success: true };
-  }
-  return { success: false };
+  const item = learningItems.find((entry) => entry.id === id);
+  if (!item) return { success: false };
+  item.userLabel = label;
+  item.status = "verified";
+  return { success: true };
 }
 
 export async function dismissLearningItem(id: string): Promise<{ success: boolean }> {
   await delay(100);
-  const item = mockLearningItems.find(i => i.id === id);
-  if (item) {
-    item.status = "dismissed";
-    return { success: true };
-  }
-  return { success: false };
+  const item = learningItems.find((entry) => entry.id === id);
+  if (!item) return { success: false };
+  item.status = "dismissed";
+  return { success: true };
 }
 
 export async function getNoGoZones(): Promise<NoGoZone[]> {
   await delay(50);
-  return [...mockNoGoZones];
+  return noGoZones.map((zone) => ({ ...zone, points: zone.points.map((point) => ({ ...point })) }));
+}
+
+export function readNoGoZones(): NoGoZone[] {
+  return noGoZones.map((zone) => ({ ...zone, points: zone.points.map((point) => ({ ...point })) }));
 }
 
 export async function getRoutes(): Promise<CustomRoute[]> {
   await delay(50);
-  return [...mockRoutes];
+  return routes.map((route) => ({
+    ...route,
+    waypoints: route.waypoints.map((waypoint) => ({ ...waypoint })),
+  }));
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+export function readRoutes(): CustomRoute[] {
+  return routes.map((route) => ({
+    ...route,
+    waypoints: route.waypoints.map((waypoint) => ({ ...waypoint })),
+  }));
 }

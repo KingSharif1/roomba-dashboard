@@ -4,9 +4,10 @@ import { useEffect, useState, useRef } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { robotPaint } from "@/lib/mark-state";
 import type { RobotStatus, NoGoZone, CustomRoute } from "@/lib/types";
 import * as robot from "@/lib/robot";
-import { Plus, Trash2, Route, Ban, Save } from "lucide-react";
+import { Trash2, Route, Ban, Save } from "lucide-react";
 
 export default function MapPage() {
   const [status, setStatus] = useState<RobotStatus | null>(null);
@@ -152,15 +153,16 @@ export default function MapPage() {
       ctx.translate(robotX, robotY);
       ctx.rotate(status.pose.heading);
 
+      const paint = robotPaint(status);
       const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 25);
-      gradient.addColorStop(0, "rgba(0, 255, 157, 0.4)");
-      gradient.addColorStop(1, "rgba(0, 255, 157, 0)");
+      gradient.addColorStop(0, paint.glow);
+      gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.arc(0, 0, 25, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = status.state === "cleaning" ? "#00ff9d" : "#666666";
+      ctx.fillStyle = paint.fill;
       ctx.beginPath();
       ctx.arc(0, 0, 12, 0, Math.PI * 2);
       ctx.fill();
@@ -263,7 +265,7 @@ export default function MapPage() {
                   ) : (
                     <>
                       <span className="text-xs text-accent uppercase">
-                        {mode === "zone" ? "Drawing zone..." : "Adding waypoints..."}
+                        {mode === "zone" ? "Zone" : "Route"}
                       </span>
                       <Button size="sm" variant="primary" onClick={handleSaveDrawing}>
                         <Save className="w-4 h-4 mr-1" />
@@ -284,13 +286,6 @@ export default function MapPage() {
                   className="w-full h-auto rounded border border-border cursor-crosshair"
                   onClick={handleCanvasClick}
                 />
-                {mode !== "view" && (
-                  <p className="text-xs text-muted mt-2">
-                    {mode === "zone"
-                      ? "Click to add points. Need at least 3 points for a zone."
-                      : "Click to add waypoints. Need at least 2 points for a route."}
-                  </p>
-                )}
               </CardContent>
             </Card>
           </div>
@@ -307,7 +302,7 @@ export default function MapPage() {
               </CardHeader>
               <CardContent>
                 {noGoZones.length === 0 ? (
-                  <p className="text-sm text-muted">No zones defined</p>
+                  <p className="text-sm text-muted">None</p>
                 ) : (
                   <div className="space-y-2">
                     {noGoZones.map((zone) => (
@@ -337,12 +332,12 @@ export default function MapPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Route className="w-4 h-4 text-[#00c8ff]" />
-                  Custom Routes
+                  Routes
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {routes.length === 0 ? (
-                  <p className="text-sm text-muted">No routes defined</p>
+                  <p className="text-sm text-muted">None</p>
                 ) : (
                   <div className="space-y-2">
                     {routes.map((route) => (

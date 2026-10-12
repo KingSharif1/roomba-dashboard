@@ -6,7 +6,8 @@
   --accent: #00ff9d;
   --accent-dim: #00cc7d;
   --danger: #ff3b3b;
-  --warning: #ffaa00;
+  --warning: #ff7a1a;
+  --charging: #ffd23f;
   --surface: #111111;
   --surface-light: #1a1a1a;
   --border: #2a2a2a;
@@ -20,6 +21,8 @@
   --color-accent-dim: var(--accent-dim);
   --color-danger: var(--danger);
   --color-warning: var(--warning);
+  --color-charging: var(--charging);
+  --font-display: var(--font-schibsted), sans-serif;
   --color-surface: var(--surface);
   --color-surface-light: var(--surface-light);
   --color-border: var(--border);
@@ -85,4 +88,45 @@ body {
     linear-gradient(rgba(0, 255, 157, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 255, 157, 0.03) 1px, transparent 1px);
   background-size: 20px 20px;
+}
+
+/* Living mark. Color tokens match the status rules. */
+:root {
+  --mark-green: #00ff9d;
+  --mark-yellow: #ffd23f;
+  --mark-orange: #ff7a1a;
+  --mark-red: #ff3b3b;
+  --mark-gray: #333;
+  --mark-fg: #e0e0e0;
+  --mark-muted: #666;
+}
+.live-mark .lm-body { stroke: var(--mark-fg); }
+.live-mark .lm-led { stroke: var(--mark-muted); transition: stroke .3s; }
+.live-mark .lm-puck { fill: var(--mark-fg); transition: fill .3s; }
+.live-mark .lm-sweep {
+  fill: var(--mark-green);
+  opacity: 0;
+  transform-origin: 64px 64px;
+  transform-box: view-box;
+}
+.lm-idle .lm-led { stroke: var(--mark-green); opacity: .55; }
+.lm-moving .lm-led { stroke: var(--mark-green); }
+.lm-moving .lm-puck { fill: var(--mark-green); }
+.lm-moving .lm-sweep { opacity: .9; animation: lm-spin 1.6s linear infinite; }
+.lm-charging .lm-led { stroke: var(--mark-yellow); animation: lm-breathe 2.4s ease-in-out infinite; }
+.lm-full .lm-led { stroke: var(--mark-green); }
+.lm-low .lm-led { stroke: var(--mark-orange); animation: lm-breathe 1.2s ease-in-out infinite; }
+.lm-low .lm-puck { fill: var(--mark-orange); }
+.lm-stopped .lm-led { stroke: var(--mark-red); }
+.lm-stopped .lm-puck { fill: var(--mark-red); }
+.lm-fault .lm-led { stroke: var(--mark-red); animation: lm-fault-pulse 1s ease-in-out infinite; filter: drop-shadow(0 0 6px var(--mark-red)); }
+.lm-offline .lm-body,
+.lm-offline .lm-led { stroke: var(--mark-gray); }
+.lm-offline .lm-puck { fill: var(--mark-gray); }
+@keyframes lm-spin { to { transform: rotate(360deg); } }
+@keyframes lm-breathe { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+@keyframes lm-blink { 0% { opacity: 1; } 100% { opacity: .1; } }
+@keyframes lm-fault-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) {
+  .live-mark * { animation: none !important; }
 }

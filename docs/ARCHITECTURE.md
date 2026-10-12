@@ -1,8 +1,10 @@
-# Roomba Dashboard Architecture
+# Stella
 
 ## Overview
 
-A Next.js dashboard for controlling a DIY autonomous robot (Roomba 694 + Raspberry Pi 4 + RPLIDAR C1 + ROS 2 Jazzy).
+Architecture for Stella, King Sharif's robot dashboard (Roomba 694 + Raspberry Pi 4 + RPLIDAR C1 + ROS 2 Jazzy).
+
+Detailed project docs: https://github.com/KingSharif1/ARK/tree/main/projects/roomba-dashboard
 
 ## Data Flow
 
@@ -36,10 +38,14 @@ A Next.js dashboard for controlling a DIY autonomous robot (Roomba 694 + Raspber
 ### Data Layer (`src/lib/`)
 
 - **`types.ts`** — TypeScript interfaces for all data shapes
-- **`robot.ts`** — Main API layer, switches between mock and real based on `NEXT_PUBLIC_ROBOT_URL`
-- **`mockRobot.ts`** — Simulated robot behavior with realistic state changes
+- **`robot.ts`** — Legacy facade over the shared session. Browser-saved URLs are ignored.
+- **`robot-session.ts`** — One demo stream or one live socket for the whole app
+- **`mockRobot.ts`** — Simulated robot: battery, drive odometry, sample collections, link drops
+- **`access.ts`** — Owner-email gate. `OWNER_EMAIL` is compared on the server; the robot URL is omitted for everyone else.
+- **`connection/`** — WebSocket reconnect (backoff + jitter, stale heartbeat, resume on visibility/online) and emergency stop
+- **`hooks/use-robot.ts`** — Public state and commands for the UI
 - **`utils.ts`** — Formatting helpers (time, duration, etc.)
-- **`src/hooks/use-robot-mode.ts`** — `useSyncExternalStore`-backed mock/live mode; hydration-safe read of the localStorage robot URL
+- **`src/hooks/use-robot-mode.ts`** — `true` while the session is in demo mode
 
 ### Supabase (`src/lib/supabase/`)
 
@@ -67,10 +73,13 @@ A Next.js dashboard for controlling a DIY autonomous robot (Roomba 694 + Raspber
 ## Environment Variables
 
 ```env
-NEXT_PUBLIC_ROBOT_URL     # "mock" or private Tailscale URL (e.g., https://roomba.<tailnet>.ts.net)
-NEXT_PUBLIC_SUPABASE_URL  # Supabase project URL
+ROBOT_URL                      # server-only Tailscale origin; unset → demo
+OWNER_EMAIL                    # the one email allowed to control the real robot
+NEXT_PUBLIC_SUPABASE_URL       # Supabase project URL (owner sign-in)
 NEXT_PUBLIC_SUPABASE_ANON_KEY  # Supabase anon key
 ```
+
+`NEXT_PUBLIC_ROBOT_URL` is not read. Putting the tailnet host in a public env var would ship it to every visitor.
 
 ## Real Robot API Contract
 
@@ -96,14 +105,16 @@ Pointer/keyboard input → DrivePad → robot.drive(linear, angular)
 → POST /drive → Pi velocity clamping → ROS /cmd_vel → create_driver → Roomba
 ```
 
-The dashboard sends a command every 100 ms while a direction is held and sends zero velocity when released, cancelled, blurred, disconnected, or unmounted. Controls are disabled in mock mode and while the robot is offline. The ROS driver's 0.2-second command latch acts as a dead-man stop if commands stop arriving.
+The dashboard sends a command every 100 ms while a direction is held and sends zero velocity when released or cancelled. Blur, unmount, and the STOP button call emergency stop. Drive is paused while the link is down. STOP stays enabled. The ROS driver's 0.2-second command latch acts as a dead-man stop if commands stop arriving.
 
 ## Connection Semantics
 
 - **Active Mode LIVE** is configuration only — it means the live API URL is selected, not that anything is reachable.
 - **API reachable** means the Pi's HTTP API responded; `/status` can return 200 while the robot reports `connected: false`.
 - **Robot connected** (`RobotStatus.connected === true`) requires fresh `/odom` data seen by the Pi within the last 2 seconds.
-- An unexpected `/live` WebSocket close marks the UI disconnected (`connected: false`, `state: "error"`) without a console error overlay; cleanup-initiated closes do not.
+- An unexpected `/live` WebSocket close marks the UI disconnected (`connected: false`, `state: "error"`) and schedules a reconnect with jittered backoff. Silence longer than 3 seconds (the Pi sends a frame every 0.5 seconds) is treated the same way. A handshake that does not open within 5 seconds is the same failure. After three failures the label reads "Robot offline" while retries continue. Tab visibility and the browser `online` event reconnect immediately. Cleanup-initiated closes do not.
+- Live outages (Tailscale off, timeout, DNS, TLS, socket drop) raise one sticky toast: "Robot unreachable. Check Tailscale." It is not repeated for the same outage, and it clears on reconnect with a short "Reconnected" toast. Demo mode, including simulated drops, never shows that toast.
+- The same toast stack carries command failures (including 403 and 401), "Stopped" after a confirmed stop, sign-in failure, session expiry, and a live robot error, low battery, or stuck flag when the link is up. Successes dismiss themselves. Errors stay until the cause clears or the visitor dismisses them.
 
 ## Initialization and Offline Behavior
 
@@ -139,24 +150,27 @@ Verify with `ros2 topic hz /odom` (~10 Hz) and GET `https://roomba.<tailnet>.ts.
 
 ## Mock Mode Behavior
 
-When `NEXT_PUBLIC_ROBOT_URL` is "mock" or unset:
+When the visitor is not the owner, or `ROBOT_URL` is unset:
 
-- Battery drains during cleaning (~0.1%/sec)
+- Battery drains during cleaning (~0.1%/sec) and while driving (~0.08%/sec)
 - Battery charges while docked (~0.2%/sec)
-- Robot position jitters during cleaning
+- Drive commands integrate odometry in a 4 meter room drawn in the 0–1 map frame
+- Robot position jitters during cleaning when no drive command is held
 - Auto-returns to dock at 15% battery
 - Sessions are recorded when cleaning stops
+- The link drops briefly on a timer, and `simulateDrop()` forces Reconnecting… then Robot offline
 
 ## Authentication Status
 
-`src/middleware.ts` currently sets `AUTH_ENABLED = false`, so route protection is bypassed. The `/login` UI (Supabase email/password and magic link) exists, and session helpers live in `src/lib/supabase/`, but no guard runs today.
+Visitors are not redirected to `/login`. Demo mode is the default.
 
-Before enabling:
+Live control requires a Supabase session whose email matches `OWNER_EMAIL` (case-insensitive, server-side `getUser()`). The decision is `GET /api/access`. Mutating and status proxy calls go through `POST|GET /api/robot/*`, which returns 403 for non-owners and never forwards the request. The owner's browser still talks to the Pi directly after that check, because the Pi is tailnet-only and the hosting server usually cannot reach it.
 
-1. Set real `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` values
-2. Configure the Supabase redirect URL for the deployed domain
-3. Set `AUTH_ENABLED = true` in `src/middleware.ts`
-4. Test cookie persistence and the magic-link flow, including on mobile
+`src/proxy.ts` refreshes the Supabase cookie when the project env is set. It does not gate pages.
+
+## UI contract
+
+`useRobot()` is the seam for the visual redesign. `connection.label` is `Connected`, `Connecting…`, `Reconnecting…`, `Robot offline`, or `Demo mode`. `commands.stop()` always fires immediately. See the README section "Data layer for the visual redesign".
 
 ## Known Operational Notes
 

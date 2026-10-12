@@ -1,186 +1,158 @@
-import type { RobotStatus, CleaningSession, LearningItem, NoGoZone, CustomRoute } from "./types";
-import * as mock from "./mockRobot";
+import { normalizeRobotStatus } from "./robot-status";
+import type { CleaningSession, CommandResult, CustomRoute, LearningItem, NoGoZone, RobotStatus } from "./types";
+import * as demo from "./mockRobot";
+import { robotSession } from "./robot-session";
 
-const STORAGE_KEY = "roomba_robot_url";
-const ENV_ROBOT_URL = process.env.NEXT_PUBLIC_ROBOT_URL;
-
-function normalizeRobotUrl(url: string | null | undefined): string | null {
-  const normalized = url?.trim().replace(/\/+$/, "");
-  return normalized || null;
-}
-
-function getRobotUrl(): string | null {
-  if (typeof window === "undefined") return normalizeRobotUrl(ENV_ROBOT_URL);
-  return normalizeRobotUrl(localStorage.getItem(STORAGE_KEY)) || normalizeRobotUrl(ENV_ROBOT_URL);
-}
-
-function shouldUseMock(): boolean {
-  const url = getRobotUrl();
-  return !url || url === "mock";
-}
+/**
+ * Legacy facade over the shared robot session.
+ * New UI should use `useRobot()` from `@/hooks/use-robot`.
+ * A URL saved in the browser cannot unlock the real robot.
+ */
 
 export function setRobotUrl(url: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, normalizeRobotUrl(url) || "mock");
-  window.dispatchEvent(new Event("robotUrlChanged"));
-}
-
-export function getRobotUrlSetting(): string {
-  return getRobotUrl() || "mock";
+  // Ignored. ROBOT_URL is read on the server and released only to the owner.
+  void url;
 }
 
 export function clearRobotUrl(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(STORAGE_KEY);
-  window.dispatchEvent(new Event("robotUrlChanged"));
+  // Ignored. See setRobotUrl.
 }
 
-async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const robotUrl = getRobotUrl();
-  if (!robotUrl || robotUrl === "mock") {
-    throw new Error("Mock mode - should not reach fetchApi");
-  }
-  
-  const res = await fetch(`${robotUrl}${endpoint}`, {
-    ...options,
-    signal: options?.signal ?? AbortSignal.timeout(5000),
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
-  
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
-  }
-  
-  return res.json();
+export function getRobotUrlSetting(): string {
+  return robotSession.getRobotUrl() ?? "mock";
+}
+
+export function isMockMode(): boolean {
+  return robotSession.isDemo();
 }
 
 export async function getStatus(): Promise<RobotStatus> {
-  if (shouldUseMock()) return mock.getStatus();
-  return fetchApi<RobotStatus>("/status");
+  if (robotSession.isDemo()) return demo.getStatus();
+  const base = robotSession.getRobotUrl();
+  if (!base) return demo.getStatus();
+  const res = await fetch(`${base}/status`, { signal: AbortSignal.timeout(5000) });
+  if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
+  const status = normalizeRobotStatus(await res.json());
+  if (!status) throw new Error("Invalid status");
+  return status;
 }
 
 export async function startCleaning(): Promise<{ success: boolean }> {
-  if (shouldUseMock()) return mock.startCleaning();
-  return fetchApi<{ success: boolean }>("/control/start", { method: "POST" });
+  return robotSession.commands.start();
 }
 
 export async function stopCleaning(): Promise<{ success: boolean }> {
-  if (shouldUseMock()) return mock.stopCleaning();
-  return fetchApi<{ success: boolean }>("/control/stop", { method: "POST" });
+  return robotSession.commands.stop();
+}
+
+export async function emergencyStop(): Promise<{ success: boolean }> {
+  return robotSession.commands.stop();
 }
 
 export async function returnToDock(): Promise<{ success: boolean }> {
-  if (shouldUseMock()) return mock.returnToDock();
-  return fetchApi<{ success: boolean }>("/control/dock", { method: "POST" });
+  return robotSession.commands.dock();
 }
 
 export async function drive(linear: number, angular: number): Promise<{ success: boolean }> {
-  if (shouldUseMock()) return { success: true };
-  return fetchApi<{ success: boolean }>("/drive", {
-    method: "POST",
-    body: JSON.stringify({ linear, angular }),
-  });
+  return robotSession.commands.drive(linear, angular);
 }
 
 export async function getSessions(): Promise<CleaningSession[]> {
-  if (shouldUseMock()) return mock.getSessions();
-  return fetchApi<CleaningSession[]>("/sessions");
+  if (robotSession.isDemo()) return demo.getSessions();
+  return fetchList("/sessions");
 }
 
 export async function getLearningItems(): Promise<LearningItem[]> {
-  if (shouldUseMock()) return mock.getLearningItems();
-  return fetchApi<LearningItem[]>("/learning");
+  if (robotSession.isDemo()) return demo.getLearningItems();
+  return fetchList("/learning");
 }
 
 export async function verifyLearningItem(id: string, label: string): Promise<{ success: boolean }> {
-  if (shouldUseMock()) return mock.verifyLearningItem(id, label);
-  return fetchApi<{ success: boolean }>(`/learning/${id}/verify`, {
-    method: "POST",
-    body: JSON.stringify({ label }),
-  });
+  if (robotSession.isDemo()) {
+    const result = await demo.verifyLearningItem(id, label);
+    robotSession.noteDemoMutation();
+    return result;
+  }
+  return postJson(`/learning/${id}/verify`, { label });
 }
 
 export async function dismissLearningItem(id: string): Promise<{ success: boolean }> {
-  if (shouldUseMock()) return mock.dismissLearningItem(id);
-  return fetchApi<{ success: boolean }>(`/learning/${id}/dismiss`, { method: "POST" });
+  if (robotSession.isDemo()) {
+    const result = await demo.dismissLearningItem(id);
+    robotSession.noteDemoMutation();
+    return result;
+  }
+  return postJson(`/learning/${id}/dismiss`);
 }
 
 export async function getNoGoZones(): Promise<NoGoZone[]> {
-  if (shouldUseMock()) return mock.getNoGoZones();
-  return fetchApi<NoGoZone[]>("/zones");
+  if (robotSession.isDemo()) return demo.getNoGoZones();
+  return fetchList("/zones");
 }
 
 export async function getRoutes(): Promise<CustomRoute[]> {
-  if (shouldUseMock()) return mock.getRoutes();
-  return fetchApi<CustomRoute[]>("/routes");
+  if (robotSession.isDemo()) return demo.getRoutes();
+  return fetchList("/routes");
 }
 
 export function getMapUrl(): string {
-  if (shouldUseMock()) return "/mock/map-placeholder.png";
-  return `${getRobotUrl()}/map`;
+  return robotSession.getSnapshot().mapUrl;
 }
 
 export function getCameraUrl(): string {
-  if (shouldUseMock()) return "/mock/camera-placeholder.jpg";
-  return `${getRobotUrl()}/camera/stream`;
+  return robotSession.getSnapshot().cameraUrl;
 }
 
 export function startLiveUpdates(
   onUpdate: (status: RobotStatus) => void,
-  onDisconnect?: () => void
+  onDisconnect?: () => void,
 ): () => void {
-  if (shouldUseMock()) {
-    return mock.startMockUpdates(onUpdate) || (() => {});
-  }
-
-  const robotUrl = getRobotUrl();
-  const ws = new WebSocket(`${robotUrl?.replace("http", "ws")}/live`);
-
-  let closedByCleanup = false;
-
-  ws.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      onUpdate(data);
-    } catch (e) {
-      console.error("Failed to parse WebSocket message:", e);
-    }
-  };
-
-  ws.onerror = () => {
-    ws.close();
-  };
-
-  ws.onclose = () => {
-    if (!closedByCleanup) onDisconnect?.();
-  };
-
+  const release = robotSession.retain();
+  let connected = robotSession.getSnapshot().status.connected;
+  const unsubscribe = robotSession.subscribe(() => {
+    const status = robotSession.getSnapshot().status;
+    onUpdate(status);
+    if (connected && !status.connected) onDisconnect?.();
+    connected = status.connected;
+  });
+  onUpdate(robotSession.getSnapshot().status);
   return () => {
-    closedByCleanup = true;
-    ws.close();
+    unsubscribe();
+    release();
   };
 }
 
-export function isMockMode(): boolean {
-  return shouldUseMock();
+export async function testConnection(): Promise<CommandResult> {
+  const robotUrl = robotSession.getRobotUrl();
+  if (!robotUrl) return { success: false, reason: "rejected" };
+  try {
+    const res = await fetch(`${robotUrl}/status`, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) return { success: true, status: res.status };
+    if (res.status === 401) return { success: false, status: 401, reason: "unauthorized" };
+    if (res.status === 403) return { success: false, status: 403, reason: "forbidden" };
+    return { success: false, status: res.status, reason: "rejected" };
+  } catch {
+    return { success: false, reason: "unreachable" };
+  }
 }
 
-export async function testConnection(url: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    const robotUrl = normalizeRobotUrl(url);
-    if (!robotUrl) return { success: false, error: "Enter a valid robot URL" };
-    const res = await fetch(`${robotUrl}/status`, {
-      method: "GET",
-      signal: AbortSignal.timeout(5000),
-    });
-    if (res.ok) {
-      return { success: true };
-    }
-    return { success: false, error: `HTTP ${res.status}` };
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Connection failed" };
-  }
+async function fetchList<T>(path: string): Promise<T> {
+  const base = robotSession.getRobotUrl();
+  if (!base) throw new Error("Demo mode");
+  const res = await fetch(`${base}${path}`, { signal: AbortSignal.timeout(5000) });
+  if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+async function postJson(path: string, body?: unknown): Promise<{ success: boolean }> {
+  const base = robotSession.getRobotUrl();
+  if (!base) return { success: false };
+  const res = await fetch(`${base}${path}`, {
+    method: "POST",
+    signal: AbortSignal.timeout(5000),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body ?? {}),
+  });
+  if (!res.ok) return { success: false };
+  return res.json();
 }

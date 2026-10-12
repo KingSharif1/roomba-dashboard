@@ -26,7 +26,6 @@ export function ControlPanel({ status, onStart, onStop, onDock }: ControlPanelPr
   };
   
   const canStart = status.connected && (status.state === "idle" || status.state === "docked");
-  const canStop = status.connected && status.state === "cleaning";
   const canDock = status.connected && (status.state === "idle" || status.state === "cleaning");
   
   return (
@@ -47,14 +46,13 @@ export function ControlPanel({ status, onStart, onStop, onDock }: ControlPanelPr
           ) : (
             <Play className="w-5 h-5 mr-2" />
           )}
-          START CLEANING
+          START
         </Button>
         
         <Button
           variant="danger"
           size="lg"
           className="w-full"
-          disabled={!canStop || loading !== null}
           onClick={() => handleAction("stop", onStop)}
         >
           {loading === "stop" ? (
@@ -77,14 +75,8 @@ export function ControlPanel({ status, onStart, onStop, onDock }: ControlPanelPr
           ) : (
             <Home className="w-5 h-5 mr-2" />
           )}
-          RETURN TO DOCK
+          DOCK
         </Button>
-        
-        {!status.connected && (
-          <p className="text-xs text-danger text-center mt-2">
-            Robot offline — controls disabled
-          </p>
-        )}
       </CardContent>
     </Card>
   );

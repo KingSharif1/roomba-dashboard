@@ -44,7 +44,7 @@ export default function CameraPage() {
           <div className="lg:col-span-3" ref={containerRef}>
             <Card className="h-full">
               <CardHeader>
-                <CardTitle>Live Camera Feed</CardTitle>
+                <CardTitle>Camera</CardTitle>
                 <div className="flex items-center gap-2">
                   {connected ? (
                     <>
@@ -69,14 +69,10 @@ export default function CameraPage() {
                       {/* Placeholder - would be <img src={robot.getCameraUrl()} /> for real MJPEG */}
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-center">
-                          <div className="w-24 h-24 mx-auto mb-4 rounded-full border-2 border-accent/30 flex items-center justify-center relative">
+                          <div className="w-24 h-24 rounded-full border-2 border-accent/30 flex items-center justify-center relative">
                             <Video className="w-12 h-12 text-accent/50" />
                             <div className="absolute inset-0 rounded-full border-2 border-accent/20 animate-ping" />
                           </div>
-                          <p className="text-muted">Camera feed placeholder</p>
-                          <p className="text-xs text-muted/50 mt-1">
-                            Real MJPEG stream: {robot.getCameraUrl()}
-                          </p>
                         </div>
                       </div>
 
@@ -136,11 +132,7 @@ export default function CameraPage() {
                     </>
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <VideoOff className="w-16 h-16 mx-auto mb-4 text-muted" />
-                        <p className="text-muted">No camera feed available</p>
-                        <p className="text-xs text-muted/50 mt-1">Robot is offline</p>
-                      </div>
+                      <VideoOff className="w-16 h-16 text-muted" />
                     </div>
                   )}
                 </div>
@@ -158,8 +150,8 @@ export default function CameraPage() {
               <CardContent className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">Status</span>
-                  <span className={connected ? "text-accent" : "text-danger"}>
-                    {connected ? "Connected" : "Disconnected"}
+                  <span className={connected ? "text-accent" : "text-muted"}>
+                    {connected ? "Connected" : "Offline"}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
