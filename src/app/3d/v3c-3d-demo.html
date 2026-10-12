@@ -1,5 +1,20 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Stella · 3D exploded view</title>
-<script>{const _k='stella-theme',_t=new URLSearchParams(location.search).get('theme');if(_t&&/^(dark|paper)$/.test(_t))localStorage.setItem(_k,_t);document.documentElement.dataset.theme=localStorage.getItem(_k)||'dark'}</script>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Stella — 3D Build</title>
+<link rel="canonical" href="https://stella.kingsharif.com/3d">
+<meta name="description" content="Design demo of Stella, my Pi + Arduino upgraded Roomba. Not the live robot.">
+<meta property="og:url" content="https://stella.kingsharif.com/3d">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Stella">
+<meta property="og:title" content="Stella — 3D Build">
+<meta property="og:description" content="Design demo of Stella, my Pi + Arduino upgraded Roomba. Not the live robot.">
+<meta property="og:image" content="https://stella.kingsharif.com/og/stella-3d.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Stella — 3D Build">
+<meta name="twitter:description" content="Design demo of Stella, my Pi + Arduino upgraded Roomba. Not the live robot.">
+<meta name="twitter:image" content="https://stella.kingsharif.com/og/stella-3d.jpg">
+<script>{const _q=new URLSearchParams(location.search),_k='stella-theme',_t=_q.get('theme');if(_t&&/^(dark|paper)$/.test(_t))localStorage.setItem(_k,_t);document.documentElement.dataset.theme=localStorage.getItem(_k)||'dark';if(_q.has('embed'))document.documentElement.dataset.embed='1'}</script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0c0f2e;--card:#141a46;--ink:#e9e7ff;--mute:#9ea3d8;--line:#2a2f78;--acc:#ff7a59;--ok:#5eead4;--chip:rgba(20,26,70,.78)}
@@ -17,19 +32,21 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
 .brand{pointer-events:auto;display:flex;align-items:center;gap:10px;font-weight:500;letter-spacing:.18em;font-size:11px;color:var(--mute);background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:8px 16px 8px 8px;backdrop-filter:blur(10px)}
 .brand img{width:30px;height:30px;border-radius:8px;display:block}
 /* theme toggle — same language as the landing page */
-#themeBtn{pointer-events:auto;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:9px 14px;font:inherit;font-size:11px;cursor:pointer;min-height:44px;white-space:nowrap}
+#themeBtn{pointer-events:auto;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:12px 18px;font:inherit;font-size:13px;cursor:pointer;min-height:48px;white-space:nowrap}
 #themeBtn:active{transform:scale(.96)}
 #topRight{display:flex;align-items:center;gap:8px;pointer-events:none}
 /* bottom control bar: view presets + robot state */
-#controls{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:15;pointer-events:auto}
-.ctl-group{display:flex;gap:4px;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:5px;backdrop-filter:blur(10px);box-shadow:0 4px 24px rgba(0,0,0,.35)}
-.ctl-group button{border:0;background:transparent;color:var(--mute);font:inherit;font-size:11px;letter-spacing:.04em;padding:9px 13px;border-radius:999px;cursor:pointer;white-space:nowrap;min-height:40px}
+#controls{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));display:flex;gap:22px;flex-wrap:wrap;justify-content:center;z-index:15;pointer-events:auto;max-width:min(1120px,calc(100vw - 48px))}
+.ctl-group{display:flex;gap:8px;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:8px;backdrop-filter:blur(10px);box-shadow:0 4px 24px rgba(0,0,0,.35)}
+.ctl-group button{border:0;background:transparent;color:var(--mute);font:inherit;font-size:14px;letter-spacing:.03em;padding:12px 18px;border-radius:999px;cursor:pointer;white-space:nowrap;min-height:48px}
 .ctl-group button:active{transform:scale(.96)}
 .ctl-group button.on{background:var(--acc);color:#1a0f0a;font-weight:500}
 .ctl-group button.on-state{background:rgba(94,234,212,.16);color:var(--ok)}
+html[data-embed] #controls,html[data-embed] #panel,html[data-embed] #batBadge,html[data-embed] #hint,html[data-embed] .brand{display:none!important}
 @media(max-width:720px){
-  #controls{bottom:calc(10px + env(safe-area-inset-bottom));gap:6px;max-width:calc(100vw - 20px);overflow-x:auto}
-  .ctl-group button{padding:8px 10px;font-size:10px}
+  #controls{bottom:calc(8px + env(safe-area-inset-bottom));gap:6px;flex-wrap:nowrap;justify-content:flex-start;max-width:calc(100vw - 12px);overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .ctl-group{gap:2px;padding:3px}
+  .ctl-group button{padding:6px 9px;font-size:11px;min-height:40px;letter-spacing:.01em}
 }
 /* battery badge — always visible, toggles the parts panel */
 #batBadge{pointer-events:auto;display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 14px 8px 10px;border-radius:14px;border:1px solid var(--line);background:var(--chip);backdrop-filter:blur(10px);color:var(--ink);font:inherit;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,.35)}
@@ -56,7 +73,13 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
 #hint{position:absolute;left:16px;bottom:calc(14px + env(safe-area-inset-bottom));color:var(--mute);font-size:11px;background:var(--chip);border:1px solid var(--line);padding:8px 12px;border-radius:999px;z-index:5;pointer-events:none}
 #fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:32px;color:var(--mute);z-index:50}
 @media(max-width:720px){
-  .tag{font-size:11px;padding:5px 8px}
+  .tag{font-size:15px;padding:10px 14px;border-radius:12px}
+  .tag span{font-size:13px}
+  #themeBtn{padding:6px 10px;font-size:11px;min-height:40px}
+  #batBadge{min-height:40px;padding:6px 10px 6px 8px;gap:6px}
+  #batBadge b{font-size:14px}
+  .brand{font-size:10px;padding:6px 12px 6px 6px;gap:8px}
+  .brand img{width:24px;height:24px}
   #hint{display:none}
   #panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:62dvh;border-left:0;border-top:1.5px solid var(--line);border-radius:20px 20px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.45)}
   #panel.closed{transform:translateY(105%)}
@@ -86,11 +109,11 @@ svg.lead line{stroke:var(--acc);stroke-width:1.2}svg.lead circle{fill:var(--acc)
   </aside>
   <div id="hint">drag to orbit · scroll to zoom</div>
   <div id="controls">
-    <div class="ctl-group" role="group" aria-label="Camera views">
-      <button data-view="front">Front</button><button data-view="top">Top</button><button data-view="side">Side</button><button data-view="threeq" class="on">¾</button><button data-view="exploded">Exploded</button>
+    <div class="ctl-group" role="group" aria-label="Camera positions">
+      <button data-view="front">Front</button><button data-view="top">Top</button><button data-view="side">Side</button><button data-view="threeq" class="on">¾</button><button data-view="run">Run</button><button data-view="dock">Dock</button><button data-view="exploded">Exploded</button>
     </div>
-    <div class="ctl-group" role="group" aria-label="Robot state">
-      <button data-state="charger" class="on-state">Charger</button><button data-state="idle">Idle</button><button data-state="moving">Moving</button>
+    <div class="ctl-group" role="group" aria-label="Robot status">
+      <button data-state="charger" class="on-state">Charging</button><button data-state="idle">Idle</button><button data-state="cleaning">Cleaning</button><button data-state="moving">Moving</button><button data-state="stuck">Stuck</button>
     </div>
   </div>
   <div id="fallback"><p>WebGL or the 3D library failed to load.<br>Check your connection and reload.</p></div>
@@ -159,8 +182,8 @@ function setPanel(open){
 }
 batBadge.addEventListener('click', ()=> setPanel(panel.classList.contains('closed')));
 document.getElementById('collapseBtn').addEventListener('click', ()=> setPanel(false));
-// desktop: sidebar starts open (and collapsible); mobile: collapsed, badge is the toggle
-if(matchMedia('(min-width:721px)').matches) setPanel(true);
+// desktop: sidebar starts open (and collapsible); mobile and the landing embed stay closed
+if(!document.documentElement.dataset.embed && matchMedia('(min-width:721px)').matches) setPanel(true);
 
 /* ---------- three.js scene ---------- */
 const stage = document.getElementById('stage');
@@ -199,7 +222,8 @@ const themeBtn = document.getElementById('themeBtn');
 function setTheme(t){
   document.documentElement.dataset.theme = t;
   localStorage.setItem('stella-theme', t);
-  themeBtn.textContent = t === 'dark' ? '◐ paper' : '◑ blueprint';
+  themeBtn.textContent = t === 'dark' ? '◐ paper' : '◑ colored';
+  themeBtn.setAttribute('aria-label', t === 'dark' ? 'Switch to paper view' : 'Switch to colored view');
   // cream tile blends into paper — use the dark mark on light backgrounds
   document.getElementById('brandLogo').src =
     t === 'paper' ? '/brand/stella-paper-dark.svg' : '/brand/stella-paper-mark.svg';
@@ -209,6 +233,14 @@ function setTheme(t){
 setTheme(document.documentElement.dataset.theme || 'dark');
 themeBtn.addEventListener('click', ()=>
   setTheme(document.documentElement.dataset.theme === 'dark' ? 'paper' : 'dark'));
+// Landing Fig.1 posts its theme into this frame; same-origin storage is the backup.
+addEventListener('message', e=>{
+  const t = e.data && e.data.theme;
+  if(t === 'dark' || t === 'paper') setTheme(t);
+});
+addEventListener('storage', e=>{
+  if(e.key === 'stella-theme' && (e.newValue === 'dark' || e.newValue === 'paper')) setTheme(e.newValue);
+});
 
 function wire(geo, opts){
   opts = opts || {};
@@ -334,6 +366,8 @@ const VIEWS = {
   top:      {az: 0.8,          el: 1.32, dist: 1520},
   side:     {az: Math.PI/2,    el: 0.30, dist: 1320},
   threeq:   {az: 0.8,          el: 0.42, dist: 1250},
+  run:      {az: -0.95,        el: 0.34, dist: 980},
+  dock:     {az: 0.15,         el: 0.62, dist: 860},
   exploded: {az: 0.8,          el: 0.52, dist: 1800, explode: 1},
 };
 function flyTo(name){
@@ -375,17 +409,51 @@ list.addEventListener('click', ev=>{
 
 /* ---------- camera orbit (pointer) ---------- */
 let az = 0.8, el = 0.42, dist = 1250, tAz = az, tEl = el, tDist = dist;
-let dragging=false, px=0, py=0, pinch=0;
+let dragging=false, px=0, py=0, tapX=0, tapY=0;
 const elc = renderer.domElement;
 elc.style.touchAction='none';
-elc.addEventListener('pointerdown', e=>{dragging=true;camTween=null;px=e.clientX;py=e.clientY;elc.setPointerCapture(e.pointerId);});
+const mobileView = () => matchMedia('(max-width:720px)').matches;
+// Mobile orbits the body, not a point above the lidar, and cannot drop
+// below a downward 3/4 — that low angle is the under-model view.
+function clampElev(v){
+  return mobileView() ? Math.max(0.42, Math.min(1.2, v)) : Math.max(0.08, Math.min(1.2, v));
+}
+elc.addEventListener('pointerdown', e=>{
+  dragging=true; camTween=null; px=e.clientX; py=e.clientY; tapX=e.clientX; tapY=e.clientY;
+  elc.setPointerCapture(e.pointerId);
+});
 elc.addEventListener('pointermove', e=>{
   if(!dragging) return;
-  tAz -= (e.clientX-px)*0.005; tEl = Math.max(0.08, Math.min(1.2, tEl-(e.clientY-py)*0.004));
+  tAz -= (e.clientX-px)*0.005;
+  tEl = clampElev(tEl-(e.clientY-py)*0.004);
   px=e.clientX; py=e.clientY;
 });
 addEventListener('pointerup', ()=> dragging=false);
 elc.addEventListener('wheel', e=>{e.preventDefault();camTween=null;tDist = Math.max(700, Math.min(2400, tDist + e.deltaY));}, {passive:false});
+
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+function partFromObject(obj){
+  while(obj){
+    for(const k in parts) if(parts[k] === obj) return k;
+    obj = obj.parent;
+  }
+  return null;
+}
+elc.addEventListener('pointerup', e=>{
+  dragging = false;
+  if(Math.hypot(e.clientX-tapX, e.clientY-tapY) > 8) return;
+  const rect = elc.getBoundingClientRect();
+  if(!rect.width || !rect.height) return;
+  ndc.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  ndc.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(ndc, cam);
+  const hits = raycaster.intersectObject(model, true);
+  for(const hit of hits){
+    const key = partFromObject(hit.object);
+    if(key && SHOW.some(s=>s[0]===key)){ spotlight = key; spotlightT = 0; return; }
+  }
+});
 
 /* ---------- resize ---------- */
 function resize(){
@@ -418,20 +486,24 @@ function frame(t, delta){
     parts[k].position.y = baseY[k] + (LIFT[k]||0)*e;
   }
 
-  /* robot state behaviors */
+  /* robot status: charging, idle, cleaning pass, moving, stuck */
   const isCharging = robotState === 'charger' && CHARGING;
-  if(robotState === 'idle' && !reduce){
-    model.position.y = Math.sin(t*1.1)*10;
-    model.rotation.y = Math.sin(t*0.3)*0.05;
-    model.rotation.z = 0;
-  } else if(robotState === 'moving' && !reduce){
-    for(const w of wheels) w.rotation.x += delta*7;
-    model.position.y = Math.abs(Math.sin(t*7))*16;
-    model.rotation.z = Math.sin(t*7)*0.03;
-    model.rotation.y = 0;
-  } else {
-    model.position.y *= 0.9; model.rotation.y *= 0.9; model.rotation.z *= 0.9;
+  let bob = 0, yaw = 0, roll = 0, sway = 0, spin = 0;
+  if(!reduce && robotState === 'idle'){
+    bob = Math.sin(t*1.1)*10;
+    yaw = Math.sin(t*0.3)*0.05;
+  } else if(!reduce && robotState === 'moving'){
+    spin = 7; bob = Math.abs(Math.sin(t*7))*16; roll = Math.sin(t*7)*0.03;
+  } else if(!reduce && robotState === 'cleaning'){
+    spin = 11; bob = Math.abs(Math.sin(t*8))*14; roll = Math.sin(t*8)*0.045; yaw = Math.sin(t*0.65)*0.4;
+  } else if(!reduce && robotState === 'stuck'){
+    sway = Math.sin(t*26)*7; bob = Math.abs(Math.sin(t*16))*5; roll = Math.sin(t*20)*0.05;
   }
+  if(spin) for(const w of wheels) w.rotation.x += delta*spin;
+  model.position.y += (bob-model.position.y)*0.18;
+  model.position.x += (sway-model.position.x)*0.22;
+  model.rotation.y += (yaw-model.rotation.y)*0.12;
+  model.rotation.z += (roll-model.rotation.z)*0.16;
 
   /* charge pad pulse */
   chargeRing.visible = isCharging;
@@ -442,7 +514,7 @@ function frame(t, delta){
   }
   /* motion rings while driving */
   motionRings.forEach((r, i)=>{
-    r.visible = robotState === 'moving' && !reduce;
+    r.visible = (robotState === 'moving' || robotState === 'cleaning') && !reduce;
     if(!r.visible) return;
     const ph = ((t*0.9) + i/3) % 1;
     const s = 1 + ph*1.6;
@@ -463,15 +535,21 @@ function frame(t, delta){
     tDist = camTween.d0 + (camTween.d1 - camTween.d0)*k;
     if(camTween.t >= 1) camTween = null;
   }
+  tEl = clampElev(tEl);
 
   // camera dollies out as the stack separates
   const want = 1150 + 620*e;
   if(reduce){ az=0.8; }
   else if(!camTween){ tAz += 0.00045; }
   // smooth damping on orbit (drag to orbit, scroll to zoom)
-  az += (tAz-az)*0.07; el += (tEl-el)*0.09; dist += (Math.max(want,tDist)-dist)*0.06;
-  const cx = Math.cos(az)*Math.cos(el)*dist, cy = Math.sin(el)*dist + 170, cz = Math.sin(az)*Math.cos(el)*dist;
-  cam.position.set(cx, cy, cz); cam.lookAt(0, 190, 0);
+  az += (tAz-az)*0.07; el += (tEl-el)*0.09; el = clampElev(el); dist += (Math.max(want,tDist)-dist)*0.06;
+  const mobile = mobileView();
+  // Phone orbit sits on the body so the lens cannot swing under the belly.
+  const focusY = mobile ? 36 : 190;
+  const cx = Math.cos(az)*Math.cos(el)*dist;
+  const cy = mobile ? focusY + Math.sin(el)*dist : Math.sin(el)*dist + 170;
+  const cz = Math.sin(az)*Math.cos(el)*dist;
+  cam.position.set(cx, cy, cz); cam.lookAt(0, focusY, 0);
 
   // charging pulse on the battery-tinted glow
   const pulse = (isCharging && !reduce) ? 0.05*Math.sin(t*3.2) : 0;
@@ -496,7 +574,8 @@ function frame(t, delta){
     const w = stage.clientWidth, h = stage.clientHeight;
     if(v.z < 1){
       const x=(v.x+1)/2*w, y=(1-v.y)/2*h;
-      const tx=Math.min(w-80,Math.max(80,x+(x<w/2?-130:130))), ty=Math.max(56,y-84);
+      const edge = w < 720 ? 120 : 80;
+      const tx=Math.min(w-edge,Math.max(edge,x+(x<w/2?-110:110))), ty=Math.max(w<720?72:56,y-84);
       ln.setAttribute('x1',x);ln.setAttribute('y1',y);ln.setAttribute('x2',tx);ln.setAttribute('y2',ty);
       dt.setAttribute('cx',x);dt.setAttribute('cy',y);
       tag.style.left=tx+'px';tag.style.top=ty+'px';
