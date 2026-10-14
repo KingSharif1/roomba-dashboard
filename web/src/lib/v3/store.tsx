@@ -270,8 +270,21 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   // Dance party: twerk + Spotify simultaneously
   const danceParty = useCallback(async (query: string) => {
     logTelemetry("dance_party", { query });
-    setVoiceLine(`"Dance party — playing ${query}."`);
+    setVoiceLine(`"Dance party — opening Spotify on TV."`);
     setVoice("speaking");
+    // First: launch Spotify on the Roku TV
+    if (robotUrl && connection === "live") {
+      try {
+        await fetch(`${robotUrl}/roku/launch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ app: "spotify" }),
+        });
+        // Wait for Spotify app to load and register as a device
+        await new Promise((r) => setTimeout(r, 4000));
+      } catch {}
+    }
+    setVoiceLine(`"Dance party — playing ${query}."`);
     // Start music and dance at the same time
     const musicPromise = fetch("/api/spotify/play", {
       method: "POST",
