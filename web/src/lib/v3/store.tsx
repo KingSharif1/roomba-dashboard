@@ -489,6 +489,17 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
 
   const setSpeed = useCallback((s: number) => setSpeedState(s), []);
 
+  // Log interaction for Stella's learning
+  const logInteraction = useCallback(async (heard: string, action: string, success: boolean, details: any = {}) => {
+    try {
+      await fetch("/api/stella/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ heard, action, success, details }),
+      });
+    } catch {}
+  }, []);
+
   const dismissDoorEvent = useCallback(() => setDoorEvent(null), []);
 
   const dismissTimeline = useCallback(
@@ -608,6 +619,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
               // Execute commands
               for (const cmd of (data.commands || [])) {
                 await executeClaudeCommand(cmd);
+                logInteraction(heard, cmd.action || "unknown", true, { reply: data.reply });
               }
               return;
             }
