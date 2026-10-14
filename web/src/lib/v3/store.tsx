@@ -345,11 +345,17 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
         rec.onresult = (e: any) => {
           const heard = (e.results[0][0].transcript || "").toLowerCase().trim();
           logTelemetry("voice_heard", { heard });
+          // Multi-command: split on "and" / "then" and execute in sequence
+          const parts = heard.split(/\s+\b(?:and|then)\b\s+/);
+          const runPart = (part: string, delay: number) => {
+            voiceTimers.current.push(setTimeout(() => runSingleCommand(part.trim()), delay));
+          };
+          const runSingleCommand = (text: string) => {
           let action: string | null = null;
           let rokuApp: string | null = null;
           let playQuery: string | null = null;
-          const playMatch = heard.match(/\bplay\s+(.+)/);
-          const openMatch = heard.match(/\bopen\s+(spotify|youtube|netflix|hulu|disney)/);
+          const playMatch = text.match(/\bplay\s+(.+)/);
+          const openMatch = text.match(/\bopen\s+(spotify|youtube|netflix|hulu|disney)/);
           if (playMatch) { action = "spotify_play"; playQuery = playMatch[1].trim(); }
           else if (openMatch) { action = "roku"; rokuApp = openMatch[1]; }
           else if (/\btwerk\b/.test(heard)) action = "twerk";
@@ -389,8 +395,17 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
           else if (action === "dock") { cleanMode("dock"); setVoiceLine(`“Docking.”`); }
           else if (action) { drive(action as any); setVoiceLine(`“On it — ${heard}.”`); }
           else { setVoiceLine(`“Didn't catch that — try stop, forward, back, left, right, dock, twerk, or open spotify.”`); }
-          logTelemetry("voice_speak", { heard, action });
-          voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 2800));
+          logTelemetry("voice_speak", { heard: text, action });
+          }; // end runSingleCommand
+          // Execute parts in sequence with delays
+          if (parts.length > 1) {
+            setVoiceLine(`"Got it — ${parts.length} commands."`);
+            parts.forEach((p: string, i: number) => runPart(p, i * 2500));
+            voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, parts.length * 2500 + 1000));
+          } else {
+            runSingleCommand(heard);
+            voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 2800));
+          }
         };
         rec.onerror = () => { setVoice("idle"); setVoiceLine(null); };
         rec.onend = () => { setVoice((vv) => vv === "listening" ? "idle" : vv); };

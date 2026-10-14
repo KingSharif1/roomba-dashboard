@@ -164,24 +164,23 @@ export function V3DrivePanel() {
     "w-14 h-14 rounded-lg border flex items-center justify-center hover:opacity-75 active:scale-95 transition-all";
 
   return (
-    <V3Collapsible
-      icon={<Joystick className="w-4 h-4" />}
-      title="Drive"
-      summary={`${speed}% · ${heading}`}
-    >
-      <div className="flex items-center gap-2 ml-auto">
-        <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: "var(--v3-border)" }}>
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] tracking-widest font-bold" style={{ color: "var(--eng-muted)" }}>
+          CONTROL MODE
+        </span>
+        <div className="flex border" style={{ borderColor: "var(--eng-border-hi)" }}>
           {(["pad", "stick"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className="px-3 py-1.5 text-xs font-semibold capitalize"
+              className="px-4 py-1.5 text-[11px] font-bold tracking-widest uppercase"
               style={{
-                background: mode === m ? "var(--v3-coral)" : "transparent",
-                color: mode === m ? "#1a0f0a" : "var(--v3-text)",
+                background: mode === m ? "var(--eng-cyan)" : "transparent",
+                color: mode === m ? "var(--eng-bg-deep)" : "var(--eng-muted)",
               }}
             >
-              {m}
+              {m === "pad" ? "▦ PAD" : "⊕ STICK"}
             </button>
           ))}
         </div>
@@ -193,7 +192,7 @@ export function V3DrivePanel() {
         <JoystickStick />
       )}
 
-      <div>
+      <div className="mt-3">
         <div className="flex items-center justify-between text-xs mb-1.5">
           <span style={{ color: "var(--v3-muted)" }}>Speed</span>
           <span className="mono font-semibold">{speed}%</span>
@@ -224,6 +223,6 @@ export function V3DrivePanel() {
           ))}
         </div>
       </div>
-    </V3Collapsible>
+    </div>
   );
 }

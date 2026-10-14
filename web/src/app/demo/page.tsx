@@ -31,8 +31,10 @@ function EngHeader() {
             </div>
           </div>
           <div className="text-right min-w-[80px]">
-            <div className="text-[10px] tracking-widest mb-1" style={{ color: "var(--eng-muted)" }}>PWR {Math.round(battery)}%</div>
-            <div className={`eng-bar ${battery > 50 ? "eng-bar-green" : battery > 20 ? "eng-bar-amber" : "eng-bar-red"}`}>
+            <div className="text-[10px] tracking-widest mb-1" style={{ color: "var(--eng-muted)" }}>
+              PWR {Math.round(battery)}%{mode === "idle" ? <span className="eng-charge-bolt">⚡</span> : null}
+            </div>
+            <div className={`eng-bar ${battery > 50 ? "eng-bar-green" : battery > 20 ? "eng-bar-amber" : "eng-bar-red"} ${mode === "idle" ? "eng-charging" : ""}`}>
               <div className="eng-bar-fill" style={{ width: `${battery}%` }} />
             </div>
           </div>
