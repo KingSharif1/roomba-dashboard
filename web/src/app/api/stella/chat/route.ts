@@ -58,6 +58,15 @@ export async function POST(req: Request) {
     const data = await res.json();
     const text = data.content?.[0]?.text || "";
 
+    // Debug: if empty, return what Claude actually sent
+    if (!text && !data.content) {
+      return NextResponse.json({
+        reply: "",
+        commands: [],
+        _debug: { status: res.status, error: data.error?.message || JSON.stringify(data).slice(0, 200) }
+      });
+    }
+
     // Parse the JSON response
     try {
       const parsed = JSON.parse(text);
