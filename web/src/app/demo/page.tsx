@@ -1,123 +1,173 @@
 "use client";
 
 import { useState } from "react";
-import { Map as MapIcon, ChevronDown } from "lucide-react";
-import { V3TopBar } from "@/components/v3/top-bar";
-import { V3SideNav, type V3View } from "@/components/v3/side-nav";
-import { V3FloorMap } from "@/components/v3/floor-map";
-import { V3CleanPanel } from "@/components/v3/clean-panel";
+import { V3RobotProvider, useV3Robot } from "@/lib/v3/store";
 import { V3DrivePanel } from "@/components/v3/drive-panel";
-import { V3BatteryPanel } from "@/components/v3/battery-panel";
-import { V3TimelinePanel } from "@/components/v3/timeline-panel";
-import { V3StatusBar } from "@/components/v3/status-bar";
-import { V3DoorToast } from "@/components/v3/door-toast";
-import { V3ConnectionBar } from "@/components/v3/connection-bar";
-import { V3HistoryView } from "@/components/v3/views/history-view";
-import { V3LearningView } from "@/components/v3/views/learning-view";
-import { V3SettingsView } from "@/components/v3/views/settings-view";
-import { V3RobotProvider, useV3Robot, modeLabel } from "@/lib/v3/store";
+import { V3FloorMap } from "@/components/v3/floor-map";
 
-function MapSection() {
-  // Start collapsed on mobile (map is 80% of viewport when open);
-  // desktop map is always open via md:block.
-  const [open, setOpen] = useState(false);
+/* Engineering status header */
+function EngHeader() {
   const { state } = useV3Robot();
-  const { location, mode } = state;
+  const { connection, battery, mode } = state;
+  const isLive = connection === "live";
+
   return (
-    <section className="relative">
-      {/* collapsible map header — mobile only (desktop map is always open) */}
-      <button
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-controls="v3-floor-map"
-        className="md:hidden v3-panel w-full flex items-center gap-2.5 px-4 py-3.5 text-left mb-3 active:scale-[0.99] transition-transform"
-      >
-        <span
-          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "rgba(255,122,92,0.12)", color: "var(--v3-coral)" }}
-        >
-          <MapIcon className="w-4.5 h-4.5" />
-        </span>
-        <span className="flex-1 min-w-0">
-          <span className="v3-panel-title block">Floor plan</span>
-          {!open && (
-            <span className="text-xs truncate block mt-0.5" style={{ color: "var(--v3-muted)" }}>
-              {location.label} · {modeLabel(mode)}
-            </span>
-          )}
-        </span>
-        <span
-          className="text-[11px] font-medium px-2.5 py-1 rounded-full shrink-0"
-          style={{
-            background: open ? "rgba(255,122,92,0.12)" : "rgba(94,234,212,0.12)",
-            color: open ? "var(--v3-coral)" : "var(--v3-mint)",
-          }}
-        >
-          {open ? "Hide" : "Show"}
-        </span>
-        <ChevronDown
-          className="w-4 h-4 shrink-0 transition-transform duration-200"
-          style={{
-            color: "var(--v3-muted)",
-            transform: open ? "rotate(0deg)" : "rotate(-90deg)",
-          }}
-        />
-      </button>
-      <div id="v3-floor-map" className={`${open ? "block" : "hidden"} md:block`}>
-        {/* Mobile: map takes ~65% of viewport when open. Desktop: natural height. */}
-        <div className="h-[65dvh] md:h-auto">
-          <V3FloorMap />
+    <header className="eng-panel" style={{ borderLeft: "none", borderRight: "none", borderTop: "none" }}>
+      <div className="flex items-center justify-between px-3 py-2.5">
+        <div className="flex items-center gap-3">
+          <span className={`eng-led ${isLive ? "eng-led-green" : "eng-led-amber"}`} />
+          <div>
+            <div className="text-sm font-bold tracking-widest">STELLA</div>
+            <div className="text-[10px] tracking-widest" style={{ color: "var(--eng-muted)" }}>
+              UNIT-01 // ROBOT CONTROL
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 text-xs">
+          <div className="text-right">
+            <div className="text-[9px] tracking-widest" style={{ color: "var(--eng-muted)" }}>LINK</div>
+            <div className={`font-bold ${isLive ? "eng-readout-green" : "eng-readout"}`}>
+              {isLive ? "LIVE" : connection.toUpperCase()}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-[9px] tracking-widest" style={{ color: "var(--eng-muted)" }}>PWR</div>
+            <div className="eng-readout font-bold">{Math.round(battery)}%</div>
+          </div>
+          <div className="text-right">
+            <div className="text-[9px] tracking-widest" style={{ color: "var(--eng-muted)" }}>MODE</div>
+            <div className="eng-readout-cyan font-bold text-xs">{mode.toUpperCase()}</div>
+          </div>
         </div>
       </div>
-    </section>
+    </header>
   );
 }
 
-function HomeView() {
-  return (
-    <>
-      <MapSection />
-
-      {/* Bottom panels */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mt-3">
-        <V3CleanPanel />
-        <V3DrivePanel />
-        <V3BatteryPanel />
-        <V3TimelinePanel />
-      </div>
-    </>
-  );
-}
-
-function StellaV3DashboardInner() {
-  const [view, setView] = useState<V3View>("home");
+/* Engineering voice control */
+function EngVoice() {
+  const { state, toggleListening } = useV3Robot();
+  const { voice, voiceLine } = state;
 
   return (
-    <div className="v3 v3-grid-bg min-h-screen flex flex-col">
-      <V3TopBar onSettings={() => setView("settings")} />
-      <V3DoorToast />
-
-      <div className="flex flex-1 min-h-0">
-        <V3SideNav active={view} onNavigate={setView} />
-
-        <main className="flex-1 min-w-0 p-3 md:p-4 pb-28 md:pb-4 overflow-y-auto">
-          {view === "home" && <HomeView />}
-          {view === "history" && <V3HistoryView />}
-          {view === "learning" && <V3LearningView />}
-          {view === "settings" && <V3SettingsView />}
-        </main>
+    <div className="eng-panel">
+      <div className="eng-panel-header">
+        <span className="eng-panel-title">Voice Command</span>
+        <span className={`eng-led ${voice === "listening" ? "eng-led-green" : voice === "speaking" ? "eng-led-amber" : "eng-led-off"}`} />
       </div>
-
-      <V3ConnectionBar />
-      <V3StatusBar />
+      <div className="p-3">
+        <button onClick={() => toggleListening()} className="eng-btn eng-btn-primary w-full">
+          {voice === "listening" ? "● LISTENING..." : voice === "speaking" ? "◐ SPEAKING..." : "○ PUSH TO TALK"}
+        </button>
+        {voiceLine && (
+          <div className="mt-2 p-2 text-xs" style={{ background: "var(--eng-panel-2)", border: "1px solid var(--eng-border)" }}>
+            <span style={{ color: "var(--eng-muted)" }}>&gt; </span>
+            <span className="eng-readout-cyan">{voiceLine}</span>
+          </div>
+        )}
+        <div className="mt-2 text-[10px] leading-relaxed" style={{ color: "var(--eng-muted)" }}>
+          CMDS: forward · back · left · right · stop · dock · twerk · open spotify
+        </div>
+      </div>
     </div>
   );
 }
 
-export default function StellaV3Dashboard() {
+/* Engineering telemetry */
+function EngTelemetry() {
+  const { state } = useV3Robot();
+  const { battery, mode, location } = state;
+
+  return (
+    <div className="eng-panel">
+      <div className="eng-panel-header">
+        <span className="eng-panel-title">Telemetry</span>
+      </div>
+      <div className="p-3">
+        <div className="eng-telemetry">
+          <span className="eng-telemetry-label">Battery</span>
+          <span className="eng-telemetry-value eng-readout">{Math.round(battery)}%</span>
+        </div>
+        <div className="eng-telemetry">
+          <span className="eng-telemetry-label">Mode</span>
+          <span className="eng-telemetry-value eng-readout-cyan">{mode.toUpperCase()}</span>
+        </div>
+        <div className="eng-telemetry">
+          <span className="eng-telemetry-label">Position</span>
+          <span className="eng-telemetry-value">{location.label || "—"}</span>
+        </div>
+        <div className="eng-telemetry">
+          <span className="eng-telemetry-label">Uptime</span>
+          <span className="eng-telemetry-value eng-readout">--:--:--</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Engineering drive control */
+function EngDrive() {
+  return (
+    <div className="eng-panel">
+      <div className="eng-panel-header">
+        <span className="eng-panel-title">Manual Drive</span>
+        <span className="text-[9px] tracking-widest" style={{ color: "var(--eng-muted)" }}>HOLD TO MOVE</span>
+      </div>
+      <div className="p-4 flex justify-center">
+        <V3DrivePanel />
+      </div>
+    </div>
+  );
+}
+
+/* Engineering map */
+function EngMap() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="eng-panel">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="eng-panel-header w-full text-left cursor-pointer"
+        style={{ background: "var(--eng-panel-2)" }}
+      >
+        <span className="eng-panel-title">Floor Map</span>
+        <span className="text-[10px] font-bold tracking-widest" style={{ color: "var(--eng-cyan)" }}>
+          {open ? "[−] COLLAPSE" : "[+] EXPAND"}
+        </span>
+      </button>
+      {open && (
+        <div className="h-[50dvh] md:h-[400px] overflow-hidden" style={{ borderTop: "1px solid var(--eng-border)" }}>
+          <V3FloorMap />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EngDashboardInner() {
+  return (
+    <div className="eng eng-grid-bg min-h-screen flex flex-col">
+      <EngHeader />
+
+      <main className="flex-1 p-3 space-y-3 max-w-2xl mx-auto w-full pb-8">
+        <EngVoice />
+        <EngDrive />
+        <EngMap />
+        <EngTelemetry />
+
+        <div className="text-center text-[10px] tracking-widest pt-4" style={{ color: "var(--eng-dim)" }}>
+          STELLA UNIT-01 // ENGINEERING BUILD
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default function EngDashboard() {
   return (
     <V3RobotProvider>
-      <StellaV3DashboardInner />
+      <EngDashboardInner />
     </V3RobotProvider>
   );
 }

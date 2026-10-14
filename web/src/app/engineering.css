@@ -1,0 +1,289 @@
+/* ─── STELLA ENGINEERING THEME ───
+   Industrial control-panel aesthetic.
+   Dark, monospace, dense, functional. No rounded fluff. */
+
+.eng {
+  --eng-bg: #0a0c10;
+  --eng-bg-deep: #060809;
+  --eng-panel: #0e1116;
+  --eng-panel-2: #12161c;
+  --eng-border: #1e2530;
+  --eng-border-hi: #2e3a4a;
+  --eng-text: #d4dce6;
+  --eng-muted: #5a6a7e;
+  --eng-dim: #3a4556;
+  --eng-amber: #ffb000;
+  --eng-cyan: #00d4ff;
+  --eng-green: #00e676;
+  --eng-red: #ff3d5a;
+  --eng-blue: #4d9fff;
+
+  background: var(--eng-bg-deep);
+  color: var(--eng-text);
+  font-family: "JetBrains Mono", "IBM Plex Mono", "SF Mono", ui-monospace, monospace;
+}
+
+/* Blueprint grid background */
+.eng-grid-bg {
+  background-image:
+    linear-gradient(rgba(0, 212, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(0, 212, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px, 32px 32px, 8px 8px, 8px 8px;
+}
+
+/* Engineering panel — sharp corners, 1px border, corner brackets */
+.eng-panel {
+  background: var(--eng-panel);
+  border: 1px solid var(--eng-border);
+  position: relative;
+}
+
+.eng-panel::before,
+.eng-panel::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--eng-cyan);
+  opacity: 0.6;
+}
+
+.eng-panel::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.eng-panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+
+/* Panel header — technical label bar */
+.eng-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--eng-border);
+  background: var(--eng-panel-2);
+}
+
+.eng-panel-title {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--eng-muted);
+  font-weight: 700;
+}
+
+.eng-panel-title::before {
+  content: "▸ ";
+  color: var(--eng-cyan);
+}
+
+/* Data readout — big monospace numbers */
+.eng-readout {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--eng-amber);
+  font-weight: 700;
+}
+
+.eng-readout-cyan { color: var(--eng-cyan); }
+.eng-readout-green { color: var(--eng-green); }
+.eng-readout-red { color: var(--eng-red); }
+
+/* Status LED */
+.eng-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.eng-led-green {
+  background: var(--eng-green);
+  box-shadow: 0 0 8px var(--eng-green);
+}
+
+.eng-led-amber {
+  background: var(--eng-amber);
+  box-shadow: 0 0 8px var(--eng-amber);
+  animation: eng-blink 1s steps(2) infinite;
+}
+
+.eng-led-red {
+  background: var(--eng-red);
+  box-shadow: 0 0 8px var(--eng-red);
+  animation: eng-blink 0.5s steps(2) infinite;
+}
+
+.eng-led-off {
+  background: var(--eng-dim);
+}
+
+@keyframes eng-blink {
+  50% { opacity: 0.3; }
+}
+
+/* Engineering buttons — sharp, bordered, uppercase */
+.eng-btn {
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 10px 16px;
+  border: 1px solid var(--eng-border-hi);
+  background: var(--eng-panel-2);
+  color: var(--eng-text);
+  cursor: pointer;
+  transition: all 0.1s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.eng-btn:active {
+  background: var(--eng-cyan);
+  color: var(--eng-bg-deep);
+  border-color: var(--eng-cyan);
+}
+
+.eng-btn-primary {
+  border-color: var(--eng-amber);
+  color: var(--eng-amber);
+}
+
+.eng-btn-primary:active {
+  background: var(--eng-amber);
+  color: var(--eng-bg-deep);
+}
+
+.eng-btn-danger {
+  border-color: var(--eng-red);
+  color: var(--eng-red);
+}
+
+.eng-btn-danger:active {
+  background: var(--eng-red);
+  color: #fff;
+}
+
+/* Directional pad — engineering style */
+.eng-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 64px);
+  grid-template-rows: repeat(3, 64px);
+  gap: 4px;
+  justify-content: center;
+}
+
+.eng-dpad-btn {
+  font-family: inherit;
+  font-size: 20px;
+  border: 1px solid var(--eng-border-hi);
+  background: var(--eng-panel-2);
+  color: var(--eng-cyan);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+
+.eng-dpad-btn:active {
+  background: var(--eng-cyan);
+  color: var(--eng-bg-deep);
+}
+
+.eng-dpad-stop {
+  color: var(--eng-red);
+  border-color: var(--eng-red);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.eng-dpad-stop:active {
+  background: var(--eng-red);
+  color: #fff;
+}
+
+/* Telemetry row */
+.eng-telemetry {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--eng-border);
+  font-size: 12px;
+}
+
+.eng-telemetry:last-child {
+  border-bottom: none;
+}
+
+.eng-telemetry-label {
+  color: var(--eng-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+}
+
+.eng-telemetry-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* Section divider */
+.eng-divider {
+  border: none;
+  border-top: 1px solid var(--eng-border);
+  margin: 12px 0;
+  position: relative;
+}
+
+.eng-divider::after {
+  content: attr(data-label);
+  position: absolute;
+  top: -7px;
+  left: 12px;
+  background: var(--eng-panel);
+  padding: 0 8px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--eng-dim);
+  text-transform: uppercase;
+}
+
+/* Scrollbar */
+.eng::-webkit-scrollbar {
+  width: 8px;
+}
+.eng::-webkit-scrollbar-track {
+  background: var(--eng-bg-deep);
+}
+.eng::-webkit-scrollbar-thumb {
+  background: var(--eng-border-hi);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .eng-panel-header {
+    padding: 6px 10px;
+  }
+  .eng-dpad {
+    grid-template-columns: repeat(3, 72px);
+    grid-template-rows: repeat(3, 72px);
+    gap: 6px;
+  }
+}
