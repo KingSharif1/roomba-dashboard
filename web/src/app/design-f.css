@@ -373,3 +373,140 @@
   height: 34px; min-width: 34px; padding: 0 8px;
   display: inline-flex; align-items: center; justify-content: center;
 }
+
+/* ---------- voice blob (Grok mock port) ---------- */
+.f-blob { width: min(340px, 76vw); height: min(340px, 76vw); touch-action: none; cursor: grab; }
+.f-blob:active { cursor: grabbing; }
+.f-voice .f-vsub.hot { opacity: 0.95; color: var(--acc); }
+
+/* ---------- hardware status ---------- */
+.f-part {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 2px; border-bottom: 1px solid var(--soft);
+}
+.f-part:last-child { border-bottom: 0; }
+.f-part .nm { font-weight: 650; font-size: 14px; }
+.f-part .sp { font-size: 12px; color: var(--mute); font-family: ui-monospace, monospace; margin-top: 2px; }
+.f-pchip {
+  margin-left: auto; flex: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 700 11px ui-monospace, monospace; letter-spacing: 0.1em;
+  padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line);
+}
+.f-pchip .dot { width: 7px; height: 7px; }
+.f-pchip.ok { color: var(--ok); border-color: var(--ok); }
+.f-pchip.ok .dot { background: var(--ok); }
+.f-pchip.bad { color: var(--bad); border-color: var(--bad); }
+.f-pchip.bad .dot { background: var(--bad); animation: fblink 1.2s infinite; }
+.f-pchip.warn { color: var(--warn); border-color: var(--warn); }
+.f-pchip.warn .dot { background: var(--warn); animation: fblink 1.2s infinite; }
+.f-pchip.demo { color: var(--acc); border-color: var(--acc); }
+.f-pchip.demo .dot { background: var(--acc); }
+@keyframes fblink { 50% { opacity: 0.35; } }
+
+/* ---------- drive: game/HUD controller ---------- */
+.f-drive { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.f-stick-wrap { position: relative; padding: 8px; }
+.f-stick {
+  position: relative; width: 224px; height: 224px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, rgba(255,90,31,0.07), transparent 62%),
+    radial-gradient(circle, var(--card), var(--bg) 78%);
+  border: 1px solid var(--line);
+  touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.25), 0 8px 28px rgba(0,0,0,0.2);
+}
+.f-stick:active { cursor: grabbing; }
+.f-stick .ret { position: absolute; background: var(--line); opacity: 0.5; }
+.f-stick .ret.h { left: 26px; right: 26px; top: 50%; height: 1px; }
+.f-stick .ret.v { top: 26px; bottom: 26px; left: 50%; width: 1px; }
+.f-stick .knob {
+  position: absolute; left: 50%; top: 50%;
+  width: 84px; height: 84px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  background: radial-gradient(circle at 35% 30%, #ff9a5c, var(--acc) 55%, #c23d0e);
+  border: 2px solid rgba(255,255,255,0.25);
+  box-shadow: 0 6px 22px rgba(255,90,31,0.45), inset 0 2px 6px rgba(255,255,255,0.3);
+}
+.f-stick.on .knob { box-shadow: 0 6px 30px rgba(255,90,31,0.75), inset 0 2px 6px rgba(255,255,255,0.3); }
+.f-drive-read {
+  display: flex; align-items: baseline; gap: 14px;
+  font-size: 13px; color: var(--mute); letter-spacing: 0.14em;
+}
+.f-drive-read .dir { font-size: 22px; font-weight: 700; color: var(--acc); min-width: 52px; text-align: center; }
+.f-drive-read .mag { font-size: 15px; color: var(--fg); }
+
+/* D-pad */
+.f-pad { display: grid; grid-template-columns: repeat(3, 76px); gap: 10px; justify-content: center; }
+.f-padbtn {
+  width: 76px; height: 76px; border-radius: 18px;
+  border: 1px solid var(--line); background: var(--card);
+  display: flex; align-items: center; justify-content: center; color: var(--fg);
+  touch-action: none; user-select: none; -webkit-user-select: none;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+  transition: transform 0.06s, background 0.12s, border-color 0.12s;
+}
+.f-padbtn:active { transform: scale(0.93); }
+.f-padbtn.on {
+  border-color: var(--acc); background: rgba(255,90,31,0.16);
+  box-shadow: 0 0 18px rgba(255,90,31,0.45);
+  transform: scale(0.93); color: var(--acc);
+}
+.f-padbtn.stop { color: var(--bad); border-color: var(--bad); }
+
+/* speed slider — game style */
+.f-speed {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 10px; border-radius: 6px; outline: none;
+  border: 1px solid var(--line); cursor: pointer;
+}
+.f-speed::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff9a5c, var(--acc) 60%, #c23d0e);
+  border: 2px solid rgba(255,255,255,0.35);
+  box-shadow: 0 4px 14px rgba(255,90,31,0.5);
+}
+.f-speed::-moz-range-thumb {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff9a5c, var(--acc) 60%, #c23d0e);
+  border: 2px solid rgba(255,255,255,0.35);
+  box-shadow: 0 4px 14px rgba(255,90,31,0.5);
+}
+.f-speedticks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+.f-speedticks button {
+  padding: 8px 0; font-size: 12px; font-weight: 700;
+  border: 1px solid var(--line); border-radius: var(--r); color: var(--mute);
+}
+.f-speedticks button.on { background: var(--acc); border-color: var(--acc); color: #fff; }
+
+/* drive + tools side by side (stacked on mobile) */
+.f-dt { display: flex; gap: 28px; align-items: flex-start; }
+.f-dt-drive { flex: 1.25; min-width: 0; }
+.f-dt-tools { flex: 1; min-width: 210px; }
+@media (max-width: 767px) {
+  .f-dt { flex-direction: column; }
+  .f-dt-drive, .f-dt-tools { width: 100%; }
+}
+
+/* ---------- animated map/hardware switcher ---------- */
+.f-switch {
+  position: relative; display: flex;
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 3px; background: var(--card);
+}
+.f-switch .thumb {
+  position: absolute; top: 3px; bottom: 3px; border-radius: 6px;
+  background: rgba(255,90,31,0.14); border: 1px solid var(--acc);
+  box-shadow: 0 0 14px rgba(255,90,31,0.28), inset 0 0 8px rgba(255,90,31,0.08);
+  transition: left 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.f-switch button {
+  position: relative; z-index: 1; flex: 1;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 9px 16px;
+  font: 700 11px ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--mute); transition: color 0.2s;
+}
+.f-switch button.on { color: var(--acc); }
+.f-tabbody { animation: ftab 0.26s ease; }
+@keyframes ftab { from { opacity: 0; transform: translateY(8px); } }

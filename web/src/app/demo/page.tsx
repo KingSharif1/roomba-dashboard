@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import {
   Mic, Square, Play, House, Sun, Moon, Map as MapIcon, Camera,
   Activity, Settings, Gauge, Fan, Brush, Paintbrush, Pencil, Trash2, X,
-  Volume2, Zap,
+  Volume2, Zap, Cpu,
 } from "lucide-react";
 import { V3RobotProvider, useV3Robot } from "@/lib/v3/store";
-import { V3DrivePanel } from "@/components/v3/drive-panel";
+import { FDrivePanel } from "@/components/v3/drive-panel-f";
 import { StellaMascot } from "@/components/v3/stella-mascot";
 import "../design-f.css";
 
@@ -42,7 +42,6 @@ function useLocal<T>(key: string, initial: T): [T, (v: T | ((p: T) => T)) => voi
 }
 
 const NAV = [
-  { id: "voice", label: "Voice", icon: Mic },
   { id: "control", label: "Control", icon: Gauge },
   { id: "map", label: "Map", icon: MapIcon },
   { id: "camera", label: "Camera", icon: Camera },
@@ -164,7 +163,7 @@ function FTop({
   );
 }
 
-/* ── voice section: animated voice mode orb + transcript ── */
+/* ── voice card (in-page; header pill also opens the overlay) ── */
 function FVoice({ onTalk }: { onTalk: () => void }) {
   const { state } = useV3Robot();
   const { voice, voiceLine } = state;
@@ -206,11 +205,17 @@ function FVoice({ onTalk }: { onTalk: () => void }) {
 /* ── cutaway: F signature visual — hardware readouts + suction ── */
 function FCutaway({ intensity }: { intensity: Intensity }) {
   const { state } = useV3Robot();
-  const { battery } = state;
+  const { battery, connection } = state;
+  const isDemo = connection === "demo";
 
   return (
     <section id="cutaway">
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        {isDemo && (
+          <span className="f-pchip demo" style={{ position: "absolute", right: 14, top: 12, zIndex: 5 }}>
+            <span className="dot" /> DEMO VALUES
+          </span>
+        )}
         <div className="f-cut">
           <div className="rings">
             {[
@@ -280,15 +285,9 @@ function ToolToggle({
   );
 }
 
-/* ── control: Mode + Clean + Drive merged into one section ── */
-function FControl({
-  intensity,
-  setIntensity,
-}: {
-  intensity: Intensity;
-  setIntensity: (i: Intensity) => void;
-}) {
-  const { state, cleanMode, cleaning, setCleaningMotors, wakeRobot } = useV3Robot();
+/* ── control: actions + manual drive & cleaning tools in one card ── */
+function FControl() {
+  const { state, cleanMode, wakeRobot, cleaning, setCleaningMotors } = useV3Robot();
   const { connection, mode, battery } = state;
   const isLive = connection === "live";
 
@@ -321,47 +320,45 @@ function FControl({
       </div>
       <div className="grid two">
         <div className="card">
-          <div className="lbl" style={{ marginBottom: 10 }}>Suction mode</div>
-          <div className="seg" style={{ marginBottom: 16 }}>
-            {(["Eco", "Normal", "Turbo"] as Intensity[]).map((m) => (
-              <button key={m} className={intensity === m ? "on" : ""} onClick={() => setIntensity(m)}>
-                {m} · {SUCTION[m]} kPa
-              </button>
-            ))}
-          </div>
           <div className="lbl" style={{ marginBottom: 10 }}>Actions</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 20 }}>
             {actions.map((a) => (
               <button key={a.id} className={`btn ${a.cls}`} onClick={a.fn}>
                 {a.icon} {a.label}
               </button>
             ))}
           </div>
-          <div className="lbl" style={{ marginBottom: 10 }}>Manual drive</div>
           {!isLive && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <button onClick={() => wakeRobot()} className="btn inv">
                 <Zap className="w-4 h-4" /> Wake Stella
               </button>
               <div className="sm" style={{ textAlign: "center" }}>Not responding — press to reconnect</div>
             </div>
           )}
-          <V3DrivePanel />
         </div>
         <div className="card">
-          <div className="lbl" style={{ marginBottom: 4 }}>Cleaning tools</div>
-          <ToolToggle icon={<Fan className="w-4 h-4" />} label="Vacuum" on={cleaning.vacuum} disabled={!isLive} onToggle={() => toggleTool("vacuum")} />
-          <ToolToggle icon={<Brush className="w-4 h-4" />} label="Main brush" on={cleaning.main_brush} disabled={!isLive} onToggle={() => toggleTool("main_brush")} />
-          <ToolToggle icon={<Paintbrush className="w-4 h-4" />} label="Side brush" on={cleaning.side_brush} disabled={!isLive} onToggle={() => toggleTool("side_brush")} />
-          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            <button className="btn" disabled={!isLive} onClick={() => setCleaningMotors(true, true, true)}>All on</button>
-            <button className="btn" disabled={!isLive} onClick={() => setCleaningMotors(false, false, false)}>All off</button>
-          </div>
-          {!isLive && (
-            <div className="sm" style={{ marginTop: 10, color: "var(--warn)" }}>
-              Connect to Stella to control cleaning tools
+          <div className="f-dt">
+            <div className="f-dt-drive">
+              <div className="lbl" style={{ marginBottom: 10 }}>Manual drive</div>
+              <FDrivePanel />
             </div>
-          )}
+            <div className="f-dt-tools">
+              <div className="lbl" style={{ marginBottom: 4 }}>Cleaning tools</div>
+              <ToolToggle icon={<Fan className="w-4 h-4" />} label="Vacuum" on={cleaning.vacuum} disabled={!isLive} onToggle={() => toggleTool("vacuum")} />
+              <ToolToggle icon={<Brush className="w-4 h-4" />} label="Main brush" on={cleaning.main_brush} disabled={!isLive} onToggle={() => toggleTool("main_brush")} />
+              <ToolToggle icon={<Paintbrush className="w-4 h-4" />} label="Side brush" on={cleaning.side_brush} disabled={!isLive} onToggle={() => toggleTool("side_brush")} />
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button className="btn" disabled={!isLive} onClick={() => setCleaningMotors(true, true, true)}>All on</button>
+                <button className="btn" disabled={!isLive} onClick={() => setCleaningMotors(false, false, false)}>All off</button>
+              </div>
+              {!isLive && (
+                <div className="sm" style={{ marginTop: 10, color: "var(--warn)" }}>
+                  Connect to Stella to control cleaning tools
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -385,7 +382,7 @@ const roomAt = (x: number, y: number, names: Record<string, string>) => {
   return r ? names[r.id] ?? r.id : "—";
 };
 
-function FMap() {
+function FMapBody() {
   const { state, selectRoom } = useV3Robot();
   const { location, connection } = state;
   const [names, setNames] = useLocal<Record<string, string>>("stella-room-names", {});
@@ -436,11 +433,10 @@ function FMap() {
   const cur = PLAN_ROOMS.find((r) => r.id === (location.roomId ?? "living-room")) ?? PLAN_ROOMS[0];
 
   return (
-    <section id="map">
+    <>
       <div className="head">
         <div>
-          <h1>Map</h1>
-          <div className="sm" style={{ fontSize: 14, marginTop: 2 }}>Apartment · lidar map · tap a room to clean it</div>
+          <div className="sm">Draw a no-go zone right on the map</div>
         </div>
         <div className="tools">
           <button className={`btn ${drawing ? "pri" : ""}`} onClick={() => setDrawing((d) => !d)}>
@@ -576,6 +572,139 @@ function FMap() {
             ))}
           </div>
         </div>
+      </div>
+    </>
+  );
+}
+
+/* ── hardware: suction + cleaning tools + real part status ── */
+type PStatus = "online" | "offline" | "checking" | "demo";
+
+function PChip({ status }: { status: PStatus }) {
+  const label = status === "online" ? "ONLINE" : status === "offline" ? "OFFLINE" : status === "checking" ? "CHECKING" : "DEMO";
+  const cls = status === "online" ? "ok" : status === "offline" ? "bad" : status === "checking" ? "warn" : "demo";
+  return (
+    <span className={`f-pchip ${cls}`}>
+      <span className="dot" /> {label}
+    </span>
+  );
+}
+
+function FHardware({
+  intensity,
+  setIntensity,
+}: {
+  intensity: Intensity;
+  setIntensity: (i: Intensity) => void;
+}) {
+  const { state, robotOnline } = useV3Robot();
+  const { connection, battery } = state;
+  const isLive = connection === "live";
+  const isDemo = connection === "demo";
+  const isChecking = connection === "connecting";
+
+  // Part status is derived from the two real signals the app polls:
+  // Pi reachability (connection=live) and /status connected (robotOnline).
+  // In demo mode everything simulated is labeled DEMO; offline is OFFLINE.
+  const hwUp: PStatus = isDemo ? "demo" : isLive ? "online" : isChecking ? "checking" : "offline";
+  const robotUp: PStatus = isDemo ? "demo" : isLive ? (robotOnline ? "online" : "offline") : isChecking ? "checking" : "offline";
+
+  const parts: { name: string; spec: string; status: PStatus }[] = [
+    { name: "LIDAR", spec: "RPLIDAR C1 · 10 Hz", status: robotUp },
+    { name: "Pi 4", spec: "ROS 2 Jazzy · brain", status: hwUp },
+    { name: "Arduino MEGA", spec: "115200 · motor bridge", status: robotUp },
+    {
+      name: "Battery",
+      spec: isLive || isDemo ? `${Math.round(battery)}%${isDemo ? " · simulated" : ""}` : "—",
+      status: isLive ? "online" : isDemo ? "demo" : "offline",
+    },
+    { name: "Roomba 694", spec: "brush + vac base", status: robotUp },
+  ];
+
+  return (
+    <div className="grid two">
+      <div className="card">
+        <div className="lbl" style={{ marginBottom: 10 }}>Suction mode</div>
+        <div className="seg" style={{ marginBottom: 8 }}>
+          {(["Eco", "Normal", "Turbo"] as Intensity[]).map((m) => (
+            <button key={m} className={intensity === m ? "on" : ""} onClick={() => setIntensity(m)}>
+              {m} · {SUCTION[m]} kPa
+            </button>
+          ))}
+        </div>
+        <div className="sm" style={{ marginBottom: 18 }}>Spec values — not sensor readings</div>
+        <div className="lbl" style={{ marginBottom: 6 }}>About suction</div>
+        <div className="sm" style={{ lineHeight: 1.6 }}>
+          Eco, Normal and Turbo are the fan power presets sent with each clean command.
+          They set how hard Stella&apos;s vacuum pulls — not a live sensor readout.
+        </div>
+      </div>
+      <div className="card">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <span className="lbl">Device status</span>
+          <span className="sm mono">{isLive ? "live poll · 10s" : isDemo ? "demo" : "offline"}</span>
+        </div>
+        {parts.map((p) => (
+          <div className="f-part" key={p.name}>
+            <div>
+              <div className="nm">{p.name}</div>
+              <div className="sp">{p.spec}</div>
+            </div>
+            <PChip status={p.status} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── map section with Map | Hardware tab switcher ── */
+function FMapSection({
+  intensity,
+  setIntensity,
+}: {
+  intensity: Intensity;
+  setIntensity: (i: Intensity) => void;
+}) {
+  const [tab, setTab] = useState<"map" | "hardware">("map");
+  return (
+    <section id="map">
+      <div className="head">
+        <div>
+          <h1>{tab === "map" ? "Map" : "Hardware"}</h1>
+          <div className="sm" style={{ fontSize: 14, marginTop: 2 }}>
+            {tab === "map" ? "Apartment · lidar map · tap a room to clean it" : "Suction, tools and live part status"}
+          </div>
+        </div>
+        <div className="f-switch" role="tablist" aria-label="Map or hardware">
+          <span
+            className="thumb"
+            style={{
+              left: tab === "map" ? 3 : "calc(50% + 1px)",
+              width: "calc(50% - 4px)",
+            }}
+            aria-hidden
+          />
+          <button
+            role="tab"
+            aria-selected={tab === "map"}
+            className={tab === "map" ? "on" : ""}
+            onClick={() => setTab("map")}
+          >
+            <MapIcon className="w-3.5 h-3.5" /> Map
+          </button>
+          <button
+            role="tab"
+            aria-selected={tab === "hardware"}
+            className={tab === "hardware" ? "on" : ""}
+            onClick={() => setTab("hardware")}
+          >
+            <Cpu className="w-3.5 h-3.5" /> Hardware
+          </button>
+        </div>
+      </div>
+      <div className="f-tabbody" key={tab}>
+        {tab === "map" ? <FMapBody /> : <FHardware intensity={intensity} setIntensity={setIntensity} />}
       </div>
     </section>
   );
@@ -780,43 +909,181 @@ function FSettings({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => 
   );
 }
 
-/* ── voice overlay: animated voice mode ── */
+/* ── voice blob: Grok mock's animated blob, ported to React ── */
+function VoiceBlob({
+  phase,
+  analyser,
+}: {
+  phase: "idle" | "listening" | "speaking";
+  analyser: React.RefObject<AnalyserNode | null>;
+}) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
+
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    let raf = 0;
+    let t = 0;
+    let amp = 0;
+    const dpr = window.devicePixelRatio || 1;
+    const frame = () => {
+      t += 0.016;
+      const W = c.clientWidth || 300;
+      c.width = W * dpr;
+      c.height = W * dpr;
+      const x = c.getContext("2d");
+      if (!x) return;
+      const an = analyser.current;
+      let a: number;
+      if (an) {
+        const d = new Uint8Array(an.frequencyBinCount);
+        an.getByteFrequencyData(d);
+        a = d.reduce((s, v) => s + v, 0) / d.length / 90;
+      } else {
+        const base: Record<"idle" | "listening" | "speaking", number> = {
+          idle: 0.1,
+          listening: 0.45 + 0.4 * Math.abs(Math.sin(t * 3.1) * Math.sin(t * 1.7 + 1)),
+          speaking: 0.35 + 0.35 * Math.abs(Math.sin(t * 5) * Math.cos(t * 2.3)),
+        };
+        a = base[phaseRef.current];
+      }
+      amp += (a - amp) * 0.12;
+      x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      x.clearRect(0, 0, W, W);
+      const cx = W / 2;
+      const R = W * 0.26;
+      const g = x.createRadialGradient(cx, cx, R * 0.2, cx, cx, R * 1.9);
+      g.addColorStop(0, "rgba(255,90,31,.55)");
+      g.addColorStop(1, "rgba(255,90,31,0)");
+      x.fillStyle = g;
+      x.fillRect(0, 0, W, W);
+      for (let L = 0; L < 3; L++) {
+        x.beginPath();
+        for (let i = 0; i <= 120; i++) {
+          const th = (i / 120) * Math.PI * 2;
+          const n =
+            Math.sin(th * 3 + t * (1.5 + L)) * 0.5 +
+            Math.sin(th * 5 - t * (2 + L * 0.7)) * 0.3 +
+            Math.sin(th * 2 + t * 0.8) * 0.2;
+          const r = R * (1 + amp * 0.28 * n) - L * 6;
+          const px = cx + Math.cos(th) * r;
+          const py = cx + Math.sin(th) * r;
+          if (i) x.lineTo(px, py);
+          else x.moveTo(px, py);
+        }
+        x.closePath();
+        if (L === 0) {
+          const fg = x.createLinearGradient(0, 0, W, W);
+          fg.addColorStop(0, "#ff8a3d");
+          fg.addColorStop(1, "#ff3d6e");
+          x.fillStyle = fg;
+          x.fill();
+        } else {
+          x.strokeStyle = `rgba(255,255,255,${0.5 - L * 0.15})`;
+          x.lineWidth = 1.5;
+          x.stroke();
+        }
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    frame();
+    return () => cancelAnimationFrame(raf);
+  }, [analyser]);
+
+  return <canvas ref={ref} className="f-blob" aria-hidden />;
+}
+
+/* ── voice overlay: Grok's animated voice mode, wired to the real pipeline ── */
 function FVoiceOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { state } = useV3Robot();
+  const { state, toggleListening } = useV3Robot();
   const { voice, voiceLine } = state;
-  const vstate = voice === "listening" ? "listening" : voice === "speaking" ? "speaking" : "idle";
+  const analyser = useRef<AnalyserNode | null>(null);
+  const audio = useRef<{ ctx: AudioContext; stream: MediaStream } | null>(null);
+  const [micOn, setMicOn] = useState(false);
+
+  const listening = voice === "listening";
+  const phase: "idle" | "listening" | "speaking" = voice;
 
   useEffect(() => {
     if (!open) return;
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     document.addEventListener("keydown", esc);
-    return () => document.removeEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("keydown", esc);
+      // tear down the mic visualizer
+      if (audio.current) {
+        audio.current.stream.getTracks().forEach((tr) => tr.stop());
+        audio.current.ctx.close().catch(() => {});
+        audio.current = null;
+      }
+      analyser.current = null;
+      setMicOn(false);
+    };
   }, [open, onClose]);
+
+  // hold-to-talk on the blob: press starts the real pipeline, release sends
+  const holdStart = (e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    if (voice === "idle") toggleListening();
+  };
+  const holdEnd = () => {
+    if (voice !== "idle") toggleListening();
+  };
+
+  const useMic = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (micOn) {
+      if (audio.current) {
+        audio.current.stream.getTracks().forEach((tr) => tr.stop());
+        audio.current.ctx.close().catch(() => {});
+        audio.current = null;
+      }
+      analyser.current = null;
+      setMicOn(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const ctx = new AudioContext();
+      const an = ctx.createAnalyser();
+      an.fftSize = 256;
+      ctx.createMediaStreamSource(stream).connect(an);
+      analyser.current = an;
+      audio.current = { ctx, stream };
+      setMicOn(true);
+    } catch {
+      /* mic unavailable — blob keeps its demo animation */
+    }
+  };
 
   if (!open) return null;
   return (
     <div className="f-voice" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <button
-        className="f-orb"
-        data-state={vstate}
-        style={{ width: 200, height: 200 }}
-        onClick={(e) => e.stopPropagation()}
-        aria-label="Voice state"
-      >
-        <span className="core" style={{ width: 84, height: 84 }}>
-          {voice === "listening" ? (
-            <span className="bars"><i /><i /><i /><i /><i /></span>
-          ) : (
-            <Mic className="w-8 h-8" />
-          )}
-        </span>
-      </button>
       <div className="f-vstate">
-        {voice === "listening" ? "Listening" : voice === "speaking" ? "Stella" : "Ready"}
+        {listening ? "Listening" : voice === "speaking" ? "Stella" : "Ready"}
       </div>
-      <div className="f-vtext">{voiceLine || "Say a command"}</div>
-      <div className="f-vsub">Tap outside to cancel · Esc to close</div>
+      <div
+        onPointerDown={holdStart}
+        onPointerUp={holdEnd}
+        onPointerCancel={holdEnd}
+        onContextMenu={(e) => e.preventDefault()}
+        style={{ touchAction: "none" }}
+        role="button"
+        aria-label={listening ? "Release to send" : "Hold to talk"}
+      >
+        <VoiceBlob phase={phase} analyser={analyser} />
+      </div>
+      <div className="f-vtext">{voiceLine || (listening ? "…" : "Hold the orb to talk")}</div>
+      <div className="f-vsub">Release to send · Esc to cancel</div>
       <div className="f-vbtns">
+        <button className={`btn ${micOn ? "inv" : ""}`} onClick={useMic}>
+          <Mic className="w-4 h-4" /> {micOn ? "Mic on" : "Use real mic"}
+        </button>
         <button className="btn" onClick={onClose}>Close</button>
       </div>
     </div>
@@ -839,30 +1106,31 @@ function DashboardInner({
   const { connection, voice } = state;
   const isDemo = connection === "demo";
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [active, setActive] = useState("voice");
+  const [active, setActive] = useState("control");
 
   const talk = () => {
+    // pill click / space / voice card: open the overlay only.
+    // Talking starts when the user holds the blob (hold-to-talk).
     setVoiceOpen(true);
-    if (voice === "idle") toggleListening();
   };
   const closeVoice = () => {
     setVoiceOpen(false);
     if (voice !== "idle") toggleListening();
   };
 
-  // Space = talk (outside inputs)
+  // Space = open voice overlay (outside inputs)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA") return;
-      if (e.code === "Space" && !voiceOpen) {
+      if (e.code === "Space" && !e.repeat && !voiceOpen) {
         e.preventDefault();
         talk();
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [voiceOpen, voice]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [voiceOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nav = NAV.filter((n) => !(isDemo && n.id === "settings"));
 
@@ -889,8 +1157,8 @@ function DashboardInner({
       <main className="f-main" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
         <FVoice onTalk={talk} />
         <FCutaway intensity={intensity} />
-        <FControl intensity={intensity} setIntensity={setIntensity} />
-        <FMap />
+        <FControl />
+        <FMapSection intensity={intensity} setIntensity={setIntensity} />
         <FCamera />
         <FStatus intensity={intensity} />
         {!isDemo && <FSettings theme={theme} setTheme={setTheme} />}
