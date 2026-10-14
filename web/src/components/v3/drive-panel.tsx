@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import { ChevronUp, ChevronLeft, ChevronRight, Square, Joystick } from "lucide-react";
+import { ChevronUp, ChevronLeft, ChevronRight, Square, LayoutGrid, Joystick } from "lucide-react";
 import { useV3Robot } from "@/lib/v3/store";
 import { V3Collapsible } from "./collapsible-card";
 
@@ -199,7 +199,10 @@ export function V3DrivePanel() {
                   }}
                 />
               )}
-              <span className="relative z-10">{m === "pad" ? "▦ Pad" : "⊕ Stick"}</span>
+              <span className="relative z-10" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                {m === "pad" ? <LayoutGrid className="w-3.5 h-3.5" /> : <Joystick className="w-3.5 h-3.5" />}
+                {m === "pad" ? "Pad" : "Stick"}
+              </span>
             </button>
           ))}
         </div>
