@@ -89,15 +89,66 @@ function EngVoice() {
           </span>
         </button>
         {voiceLine && (
-          <div className="mt-3 p-2 text-xs w-full" style={{ background: "var(--eng-panel-2)", border: "1px solid var(--eng-border)" }}>
+          <div className="mt-3 p-2 text-xs w-full" style={{ background: "var(--eng-panel-2)", border: "1px solid var(--eng-border)", borderRadius: "8px" }}>
             <span style={{ color: "var(--eng-muted)" }}>&gt; </span>
             <span className="eng-readout-cyan">{voiceLine}</span>
           </div>
         )}
-        <div className="mt-2 text-[10px] leading-relaxed text-center" style={{ color: "var(--eng-muted)" }}>
-          Try: "twerk" · "play YoungBoy" · "open Spotify" · "twerk and play YoungBoy on living room"
-        </div>
       </div>
+    </div>
+  );
+}
+
+/* Voice settings - pick Stella's voice */
+function EngVoiceSettings() {
+  const { setVoicePreference, speak, availableVoices, ttsVoiceURI } = useV3Robot();
+  const [open, setOpen] = useState(false);
+
+  const englishVoices = availableVoices.filter(v => v.lang.startsWith("en"));
+
+  return (
+    <div className="eng-panel">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="eng-panel-header w-full text-left cursor-pointer"
+        style={{ background: "var(--eng-panel-2)" }}
+      >
+        <span className="eng-panel-title">Voice Settings</span>
+        <span className="text-[10px] font-bold tracking-widest" style={{ color: "var(--eng-cyan)" }}>
+          {open ? "[−]" : "[+]"}
+        </span>
+      </button>
+      {open && (
+        <div className="p-3 space-y-2" style={{ borderTop: "1px solid var(--eng-border)" }}>
+          <div className="text-[10px]" style={{ color: "var(--eng-muted)" }}>
+            Choose Stella's voice:
+          </div>
+          <select
+            value={ttsVoiceURI || ""}
+            onChange={(e) => setVoicePreference(e.target.value)}
+            className="w-full p-2 text-xs"
+            style={{
+              background: "var(--eng-bg-deep)",
+              border: "1px solid var(--eng-border)",
+              borderRadius: "8px",
+              color: "var(--eng-text)",
+            }}
+          >
+            <option value="">Auto (best available)</option>
+            {englishVoices.map(v => (
+              <option key={v.voiceURI} value={v.voiceURI}>
+                {v.name} ({v.lang})
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => speak("Hello, I'm Stella. How do I sound?")}
+            className="eng-btn w-full"
+          >
+            🔊 Test Voice
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -108,28 +159,54 @@ function EngTelemetry() {
   const { battery, mode, connection } = state;
   const isLive = connection === "live";
 
+  // Simplified modes: ACTIVE (can move) / CHARGING / STANDBY
+  // CLEANING reserved for when we control vacuum/brushes
+  const displayMode = !isLive ? "OFFLINE"
+    : mode === "cleaning" ? "ACTIVE"
+    : mode === "docked" ? "CHARGING"
+    : "STANDBY";
+
+  const modeColor = displayMode === "ACTIVE" ? "var(--eng-green)"
+    : displayMode === "CHARGING" ? "var(--eng-amber)"
+    : "var(--eng-muted)";
+
   return (
     <div className="eng-panel">
       <div className="eng-panel-header">
-        <span className="eng-panel-title">Telemetry</span>
+        <span className="eng-panel-title">Status</span>
         <span className={`eng-led ${isLive ? "eng-led-green" : "eng-led-amber"}`} />
       </div>
-      <div className="p-3">
-        <div className="eng-telemetry">
-          <span className="eng-telemetry-label">Battery</span>
-          <span className="eng-telemetry-value eng-readout">{isLive ? `${Math.round(battery)}%` : "—"}</span>
+      <div className="p-3 space-y-3">
+        {/* Big mode display */}
+        <div className="text-center py-2">
+          <div className="text-2xl font-bold tracking-widest" style={{ color: modeColor, textShadow: `0 0 20px ${modeColor}` }}>
+            {displayMode}
+          </div>
+        </div>
+        {/* Battery bar */}
+        <div>
+          <div className="flex justify-between text-[10px] mb-1" style={{ color: "var(--eng-muted)" }}>
+            <span>BATTERY</span>
+            <span className="eng-readout">{isLive ? `${Math.round(battery)}%` : "—"}</span>
+          </div>
+          <div className="h-2 rounded-full" style={{ background: "var(--eng-panel-2)" }}>
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${isLive ? battery : 0}%`,
+                background: battery > 50 ? "var(--eng-green)" : battery > 20 ? "var(--eng-amber)" : "var(--eng-red)",
+                boxShadow: `0 0 10px ${battery > 50 ? "var(--eng-green)" : "var(--eng-amber)"}`,
+              }}
+            />
+          </div>
         </div>
         <div className="eng-telemetry">
           <span className="eng-telemetry-label">Link</span>
           <span className="eng-telemetry-value eng-readout-cyan">{connection.toUpperCase()}</span>
         </div>
         <div className="eng-telemetry">
-          <span className="eng-telemetry-label">Mode</span>
-          <span className="eng-telemetry-value eng-readout-cyan">{mode.toUpperCase()}</span>
-        </div>
-        <div className="eng-telemetry">
           <span className="eng-telemetry-label">Position</span>
-          <span className="eng-telemetry-value" style={{ color: "var(--eng-muted)" }}>No SLAM — unavailable</span>
+          <span className="eng-telemetry-value" style={{ color: "var(--eng-muted)" }}>No SLAM</span>
         </div>
       </div>
     </div>
@@ -207,6 +284,7 @@ function EngDashboardInner() {
 
       <main className="flex-1 p-3 space-y-3 max-w-2xl mx-auto w-full pb-8">
         <EngVoice />
+        <EngVoiceSettings />
         <EngDrive />
         <EngMap />
         <EngTelemetry />

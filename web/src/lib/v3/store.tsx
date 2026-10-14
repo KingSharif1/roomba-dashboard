@@ -61,6 +61,9 @@ interface V3RobotApi {
   twerk: () => void;
   wakeRobot: () => void;
   speak: (text: string) => void;
+  ttsVoiceURI: string | null;
+  setVoicePreference: (uri: string) => void;
+  availableVoices: SpeechSynthesisVoice[];
   setSpeed: (s: number) => void;
   dismissDoorEvent: () => void;
   dismissTimeline: (id: string) => void;
@@ -233,6 +236,25 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     }
   }, [robotUrl, connection]);
 
+  // Selected TTS voice (persisted)
+  const [ttsVoiceURI, setTtsVoiceURI] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("stella-tts-voice");
+  });
+  const setVoicePreference = useCallback((uri: string) => {
+    setTtsVoiceURI(uri);
+    if (typeof window !== "undefined") localStorage.setItem("stella-tts-voice", uri);
+  }, []);
+
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const load = () => setAvailableVoices(window.speechSynthesis.getVoices());
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+    return () => { window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
+
   // Speak a response out loud (talk back)
   const speak = useCallback((text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -240,11 +262,15 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 1.0;
-    utterance.pitch = 0.9; // Slightly lower for a more "robot" feel
-    // Prefer a good voice if available
+    utterance.pitch = 1.0;
     const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v => v.name.includes("Google US English")) ||
-                      voices.find(v => v.lang.startsWith("en") && v.name.includes("Male")) ||
+    // Use selected voice, or prefer a natural-sounding one
+    const selected = ttsVoiceURI && voices.find(v => v.voiceURI === ttsVoiceURI);
+    const preferred = selected ||
+                      voices.find(v => v.name.includes("Google US English")) ||
+                      voices.find(v => v.name.includes("Samantha")) ||
+                      voices.find(v => v.name.includes("Zira")) ||
+                      voices.find(v => v.lang === "en-US" && v.localService) ||
                       voices.find(v => v.lang.startsWith("en-US"));
     if (preferred) utterance.voice = preferred;
     utterance.onstart = () => {
@@ -256,7 +282,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       voiceTimers.current.push(setTimeout(() => setVoiceLine(null), 2000));
     };
     window.speechSynthesis.speak(utterance);
-  }, []);
+  }, [ttsVoiceURI]);
 
   // Wake Stella: restarts the ROS2 driver to reconnect to the robot
   const wakeRobot = useCallback(async () => {
@@ -733,6 +759,9 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       twerk,
       wakeRobot,
       speak,
+      ttsVoiceURI,
+      setVoicePreference,
+      availableVoices,
       setSpeed,
       dismissDoorEvent,
       dismissTimeline,
