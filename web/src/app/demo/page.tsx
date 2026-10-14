@@ -15,36 +15,57 @@ import { V3ConnectionBar } from "@/components/v3/connection-bar";
 import { V3HistoryView } from "@/components/v3/views/history-view";
 import { V3LearningView } from "@/components/v3/views/learning-view";
 import { V3SettingsView } from "@/components/v3/views/settings-view";
-import { V3RobotProvider } from "@/lib/v3/store";
+import { V3RobotProvider, useV3Robot, modeLabel } from "@/lib/v3/store";
 
 function MapSection() {
-  const [open, setOpen] = useState(true);
+  // Start collapsed on mobile (map is 80% of viewport when open);
+  // desktop map is always open via md:block.
+  const [open, setOpen] = useState(false);
+  const { state } = useV3Robot();
+  const { location, mode } = state;
   return (
     <section className="relative">
       {/* collapsible map header — mobile only (desktop map is always open) */}
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="md:hidden v3-panel w-full flex items-center gap-2.5 px-4 py-3 text-left mb-3"
+        aria-controls="v3-floor-map"
+        className="md:hidden v3-panel w-full flex items-center gap-2.5 px-4 py-3.5 text-left mb-3 active:scale-[0.99] transition-transform"
       >
         <span
-          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: "rgba(255,122,92,0.1)", color: "var(--v3-coral)" }}
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: "rgba(255,122,92,0.12)", color: "var(--v3-coral)" }}
         >
-          <MapIcon className="w-4 h-4" />
+          <MapIcon className="w-4.5 h-4.5" />
         </span>
-        <span className="v3-panel-title flex-1">Floor plan</span>
+        <span className="flex-1 min-w-0">
+          <span className="v3-panel-title block">Floor plan</span>
+          {!open && (
+            <span className="text-xs truncate block mt-0.5" style={{ color: "var(--v3-muted)" }}>
+              {location.label} · {modeLabel(mode)}
+            </span>
+          )}
+        </span>
+        <span
+          className="text-[11px] font-medium px-2.5 py-1 rounded-full shrink-0"
+          style={{
+            background: open ? "rgba(255,122,92,0.12)" : "rgba(94,234,212,0.12)",
+            color: open ? "var(--v3-coral)" : "var(--v3-mint)",
+          }}
+        >
+          {open ? "Hide" : "Show"}
+        </span>
         <ChevronDown
-          className="w-4 h-4 shrink-0 transition-transform"
+          className="w-4 h-4 shrink-0 transition-transform duration-200"
           style={{
             color: "var(--v3-muted)",
             transform: open ? "rotate(0deg)" : "rotate(-90deg)",
           }}
         />
       </button>
-      <div className={`${open ? "block" : "hidden"} md:block`}>
-        {/* Mobile: map dominates — ~80% of the viewport. Desktop: natural height. */}
-        <div className="h-[80dvh] md:h-auto">
+      <div id="v3-floor-map" className={`${open ? "block" : "hidden"} md:block`}>
+        {/* Mobile: map takes ~65% of viewport when open. Desktop: natural height. */}
+        <div className="h-[65dvh] md:h-auto">
           <V3FloorMap />
         </div>
       </div>

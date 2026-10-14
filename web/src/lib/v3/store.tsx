@@ -212,20 +212,30 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     if (m === "stop") {
       setMode("idle");
       logTelemetry("run_stop", {});
+      if (robotUrl && connection === "live") {
+        fetch(`${robotUrl}/control/stop`, { method: "POST" }).catch(() => {});
+      }
     } else if (m === "dock") {
       setMode("docked");
       setLocation({ roomId: "living-room", label: "Dock · Living room" });
       logTelemetry("dock", {});
+      if (robotUrl && connection === "live") {
+        fetch(`${robotUrl}/control/dock`, { method: "POST" }).catch(() => {});
+      }
     } else {
       setMode("cleaning");
       setTargetRooms(demoRooms.map((r) => r.id));
       logTelemetry("run_start", { rooms: "all" });
     }
-  }, []);
+  }, [robotUrl, connection]);
 
   const drive = useCallback((dir: "up" | "down" | "left" | "right" | "stop") => {
     if (dir === "stop") {
       setMode("idle");
+      // Send stop to Pi if live
+      if (robotUrl && connection === "live") {
+        fetch(`${robotUrl}/control/stop`, { method: "POST" }).catch(() => {});
+      }
       return;
     }
     setMode("cleaning");
@@ -235,7 +245,21 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     if (dir === "left") setDx((v) => clamp(v - DRIVE_STEP));
     if (dir === "right") setDx((v) => clamp(v + DRIVE_STEP));
     logTelemetry("drive", { dir });
-  }, []);
+    // Send drive command to Pi if live
+    if (robotUrl && connection === "live") {
+      const cmd = {
+        up: { linear: 0.2, angular: 0 },
+        down: { linear: -0.2, angular: 0 },
+        left: { linear: 0, angular: 0.5 },
+        right: { linear: 0, angular: -0.5 },
+      }[dir];
+      fetch(`${robotUrl}/drive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cmd),
+      }).catch(() => {});
+    }
+  }, [robotUrl, connection]);
 
   const setSpeed = useCallback((s: number) => setSpeedState(s), []);
 
@@ -249,11 +273,16 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // Demo voice loop: listening 2.5s → speaking 3s → idle.
-  // Real wiring: replace timers with mic/STT callbacks; keep the same
-  // state transitions so the UI doesn't change when the Pi arrives.
+  // Voice commands via Web Speech API. Basic intents for now:
+  // stop, forward/back/left/right, dock. 10s max per utterance.
   const toggleListening = useCallback(() => {
     clearVoiceTimers();
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setVoiceLine("Voice not supported in this browser.");
+      voiceTimers.current.push(setTimeout(() => setVoiceLine(null), 2500));
+      return;
+    }
     setVoice((v) => {
       if (v !== "idle") {
         setVoiceLine(null);
@@ -261,22 +290,39 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       }
       setVoiceLine(null);
       logTelemetry("voice_listen", {});
-      voiceTimers.current.push(
-        setTimeout(() => {
+      try {
+        const rec = new SR();
+        rec.lang = "en-US";
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+        voiceTimers.current.push(setTimeout(() => { try { rec.stop(); } catch {} }, 10000));
+        rec.onresult = (e: any) => {
+          const heard = (e.results[0][0].transcript || "").toLowerCase().trim();
+          logTelemetry("voice_heard", { heard });
+          let action: string | null = null;
+          if (/\bstop\b/.test(heard)) action = "stop";
+          else if (/\bdock\b|\bgo home\b|\bcharge\b/.test(heard)) action = "dock";
+          else if (/\bforward\b|\bahead\b|\bgo\b/.test(heard)) action = "up";
+          else if (/\bback\b|\breverse\b/.test(heard)) action = "down";
+          else if (/\bleft\b/.test(heard)) action = "left";
+          else if (/\bright\b/.test(heard)) action = "right";
           setVoice("speaking");
-          setVoiceLine("“On it — finishing the living room, then the kitchen.”");
-          logTelemetry("voice_speak", {});
-          voiceTimers.current.push(
-            setTimeout(() => {
-              setVoice("idle");
-              setVoiceLine(null);
-            }, 3200)
-          );
-        }, 2500)
-      );
+          if (action === "stop") { drive("stop"); setVoiceLine(`“Stopping.”`); }
+          else if (action === "dock") { cleanMode("dock"); setVoiceLine(`“Docking.”`); }
+          else if (action) { drive(action as any); setVoiceLine(`“On it — ${heard}.”`); }
+          else { setVoiceLine(`“Didn't catch that — try stop, forward, back, left, right, or dock.”`); }
+          logTelemetry("voice_speak", { heard, action });
+          voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 2800));
+        };
+        rec.onerror = () => { setVoice("idle"); setVoiceLine(null); };
+        rec.onend = () => { setVoice((vv) => vv === "listening" ? "idle" : vv); };
+        rec.start();
+      } catch {
+        setVoice("idle");
+      }
       return "listening";
     });
-  }, []);
+  }, [drive, cleanMode]);
 
   const setSoundTrigger = useCallback((v: boolean) => setSoundTriggerState(v), []);
 

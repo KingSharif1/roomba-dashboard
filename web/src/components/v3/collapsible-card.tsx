@@ -23,11 +23,11 @@ export function V3Collapsible({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="v3-panel flex flex-col overflow-hidden">
+    <div className={`v3-panel flex flex-col overflow-hidden ${open ? "" : "v3-panel-collapsed"}`}>
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="flex items-center gap-2.5 px-4 py-3 text-left w-full hover:opacity-90"
+        className={`flex items-center gap-2.5 text-left w-full hover:opacity-90 ${open ? "px-4 py-3" : "px-3 py-2"}`}
       >
         <span
           className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
@@ -47,7 +47,7 @@ export function V3Collapsible({
           }}
         />
       </button>
-      {open && <div className="px-4 pb-4 flex flex-col gap-3">{children}</div>}
+      {open && <div className="px-3 pb-3 flex flex-col gap-2">{children}</div>}
     </div>
   );
 }

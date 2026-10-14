@@ -1,16 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronUp, ChevronLeft, ChevronRight, Square, Joystick } from "lucide-react";
 import { useV3Robot } from "@/lib/v3/store";
 import { V3Collapsible } from "./collapsible-card";
 
 const SPEEDS = [25, 50, 75, 100];
+// Joystick geometry: 128px pad, 48px knob, 40px max travel.
+// 40px travel maps to ±48 SVG units (DRIVE_CLAMP in the store).
+const STICK_R = 40;
+const SVG_PER_PX = 48 / STICK_R;
 
 export function V3DrivePanel() {
-  const { state, drive, setSpeed } = useV3Robot();
+  const { state, drive, driveVector, setSpeed } = useV3Robot();
   const { speed, heading } = state;
   const [mode, setMode] = useState<"pad" | "stick">("pad");
+
+  // Draggable joystick: thumb follows the pointer, clamped to the pad
+  // radius. Dragging moves Stella on the map (demo + live).
+  const padRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const [stick, setStick] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  // Thumb follows the finger while dragging; otherwise mirrors the
+  // store's dx/dy (so the d-pad moves it too).
+  const thumb = isDragging
+    ? stick
+    : { x: state.dx / SVG_PER_PX, y: state.dy / SVG_PER_PX };
+
+  const stickTo = (clientX: number, clientY: number) => {
+    const el = padRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    let x = clientX - (r.left + r.width / 2);
+    let y = clientY - (r.top + r.height / 2);
+    const d = Math.hypot(x, y);
+    if (d > STICK_R) {
+      x = (x / d) * STICK_R;
+      y = (y / d) * STICK_R;
+    }
+    setStick({ x, y });
+    driveVector(x * SVG_PER_PX, y * SVG_PER_PX);
+  };
 
   const dirBtn =
     "w-14 h-14 rounded-lg border flex items-center justify-center hover:opacity-75 active:scale-95 transition-all";
@@ -67,22 +98,56 @@ export function V3DrivePanel() {
           <span />
         </div>
       ) : (
+        <>
         <div className="flex items-center justify-center h-[172px]">
           <div
-            className="w-32 h-32 rounded-full border-2 relative"
+            ref={padRef}
+            className="w-32 h-32 rounded-full border-2 relative touch-none cursor-grab active:cursor-grabbing"
             style={{ borderColor: "var(--v3-border)" }}
+            role="slider"
+            aria-label="Joystick — drag to drive"
+            aria-valuetext={`${heading}`}
+            onPointerDown={(e) => {
+              dragging.current = true;
+              setIsDragging(true);
+              (e.target as Element).setPointerCapture?.(e.pointerId);
+              stickTo(e.clientX, e.clientY);
+            }}
+            onPointerMove={(e) => {
+              if (dragging.current) stickTo(e.clientX, e.clientY);
+            }}
+            onPointerUp={() => {
+              dragging.current = false;
+              setIsDragging(false);
+            }}
+            onPointerCancel={() => {
+              dragging.current = false;
+              setIsDragging(false);
+            }}
+            onDoubleClick={() => {
+              setStick({ x: 0, y: 0 });
+              driveVector(0, 0);
+            }}
           >
+            {/* crosshair guides */}
+            <div className="absolute left-1/2 top-2 bottom-2 w-px" style={{ background: "var(--v3-border-soft)" }} />
+            <div className="absolute top-1/2 left-2 right-2 h-px" style={{ background: "var(--v3-border-soft)" }} />
             <div
               className="absolute w-12 h-12 rounded-full"
               style={{
                 background: "var(--v3-coral)",
                 left: "50%",
                 top: "50%",
-                transform: `translate(calc(-50% + ${state.dx * 0.5}px), calc(-50% + ${state.dy * 0.5}px))`,
+                transform: `translate(calc(-50% + ${thumb.x}px), calc(-50% + ${thumb.y}px))`,
+                touchAction: "none",
               }}
             />
           </div>
         </div>
+        <p className="text-[11px] text-center -mt-2" style={{ color: "var(--v3-muted)" }}>
+          Drag the knob to drive · double-tap to center
+        </p>
+        </>
       )}
 
       <div>

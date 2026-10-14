@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Plus, Minus, Crosshair, Expand, ChevronUp } from "lucide-react";
-import { demoRooms } from "@data/demo";
+import { demoRooms } from "@/lib/v3/demo";
 import { modeLabel, useV3Robot } from "@/lib/v3/store";
 
 // Simplified floor-plan geometry for the SVG. Room names come from demo data;
@@ -155,7 +155,7 @@ export function V3FloorMap() {
           className="p-2 hover:opacity-70 border-b" style={{ borderColor: "var(--v3-border-soft)" }}>
           <Minus className="w-4 h-4" />
         </button>
-        <button aria-label="Recenter" onClick={() => setZoom(1)} className="p-2 hover:opacity-70">
+        <button aria-label="Recenter" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} className="p-2 hover:opacity-70">
           <Crosshair className="w-4 h-4" />
         </button>
       </div>
@@ -163,7 +163,7 @@ export function V3FloorMap() {
       {/* Map — drag to pan, buttons to zoom; fills its container */}
       <svg
         viewBox="0 0 400 320"
-        preserveAspectRatio="xMidYMid slice"
+        preserveAspectRatio="xMidYMid meet"
         className="v3-map-svg w-full block touch-none cursor-grab active:cursor-grabbing flex-1 min-h-0"
         role="img"
         aria-label="Floor plan map"
