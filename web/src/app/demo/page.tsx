@@ -19,6 +19,12 @@ import "../design-f.css";
 type Theme = "light" | "dark";
 type Intensity = "Eco" | "Normal" | "Turbo";
 const SUCTION: Record<Intensity, string> = { Eco: "1.4", Normal: "2.2", Turbo: "3.1" };
+// Real motor presets behind each suction mode (sent to the Pi via /clean).
+const SUCTION_PRESETS: Record<Intensity, { vacuum: boolean; main_brush: boolean; side_brush: boolean; desc: string }> = {
+  Eco: { vacuum: true, main_brush: false, side_brush: false, desc: "vacuum only · quiet" },
+  Normal: { vacuum: true, main_brush: true, side_brush: false, desc: "vacuum + main brush" },
+  Turbo: { vacuum: true, main_brush: true, side_brush: true, desc: "all motors · max pickup" },
+};
 
 function useLocal<T>(key: string, initial: T): [T, (v: T | ((p: T) => T)) => void] {
   const [val, setVal] = useState<T>(() => {
@@ -164,12 +170,21 @@ function FTop({
 
 /* ── cutaway: F signature visual — hardware readouts + suction ── */
 /* ── cutaway: suction card with map/status toggle ── */
-function FCutaway({ intensity }: { intensity: Intensity }) {
-  const { state, robotOnline } = useV3Robot();
+function FCutaway({ intensity, setIntensity }: { intensity: Intensity; setIntensity: (i: Intensity) => void }) {
+  const { state, robotOnline, setCleaningMotors } = useV3Robot();
   const { battery, connection, mode } = state;
   const isLive = connection === "live";
   const isDemo = connection === "demo";
   const [view, setView] = useState<"status" | "map">("status");
+
+  // Suction presets — real motor combinations sent to the Pi via /clean.
+  // The Roomba 694 API is on/off per motor (no variable PWM exposed), so
+  // each mode is an honest preset: which motors actually spin.
+  const applyPreset = (m: Intensity) => {
+    setIntensity(m);
+    const p = SUCTION_PRESETS[m];
+    setCleaningMotors(p.vacuum, p.main_brush, p.side_brush);
+  };
 
   // Part status: LiDAR is never connected (user doesn't have one)
   // Everything else uses live data from /status polling
@@ -191,7 +206,13 @@ function FCutaway({ intensity }: { intensity: Intensity }) {
             {isLive ? (robotOnline ? "Online · ready" : "Pi online · robot offline") : isDemo ? "Demo mode" : "Offline"}
           </div>
         </div>
-        <div className="f-switch" role="tablist" aria-label="Status or map">
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {isDemo && (
+            <span className="f-pchip demo">
+              <span className="dot" /> DEMO VALUES
+            </span>
+          )}
+          <div className="f-switch" role="tablist" aria-label="Status or map">
           <span
             className="thumb"
             style={{
@@ -217,13 +238,9 @@ function FCutaway({ intensity }: { intensity: Intensity }) {
             <MapIcon className="w-3.5 h-3.5" /> Map
           </button>
         </div>
+        </div>
       </div>
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-        {isDemo && (
-          <span className="f-pchip demo" style={{ position: "absolute", right: 14, top: 12, zIndex: 5 }}>
-            <span className="dot" /> DEMO VALUES
-          </span>
-        )}
+      <div className="card" style={{ padding: 0, overflow: "hidden", position: "relative" }}>
         {view === "status" ? (
           <div className="f-cut">
             <div className="rings">
@@ -257,10 +274,25 @@ function FCutaway({ intensity }: { intensity: Intensity }) {
             </div>
             <div className="suction card mono">
               <div className="lbl">Suction · {intensity} mode</div>
+              <div className="seg" style={{ margin: "10px 0" }}>
+                {(["Eco", "Normal", "Turbo"] as Intensity[]).map((m) => (
+                  <button
+                    key={m}
+                    className={intensity === m ? "on" : ""}
+                    onClick={() => applyPreset(m)}
+                    title={SUCTION_PRESETS[m].desc}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
               <div style={{ fontSize: 20 }}>{SUCTION[intensity]} <span className="sm">kPa</span></div>
               <div className="sm" style={{ marginTop: 8, lineHeight: 1.5 }}>
-                Eco 1.4 · Normal 2.2 · Turbo 3.1 kPa<br />
-                Mode: {mode.toUpperCase()} · {isLive ? "live" : "offline"}
+                {SUCTION_PRESETS[intensity].desc}
+                <br />
+                <span style={{ opacity: 0.65 }}>kPa are spec values, not sensor readings</span>
+                <br />
+                Mode: {mode.toUpperCase()} · {isLive ? "live" : isDemo ? "demo" : "offline"}
               </div>
             </div>
           </div>
@@ -1064,7 +1096,7 @@ function DashboardInner({
       </nav>
 
       <main className="f-main" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-        <FCutaway intensity={intensity} />
+        <FCutaway intensity={intensity} setIntensity={setIntensity} />
         <FControl />
         <FCamera />
         <FStatus intensity={intensity} />

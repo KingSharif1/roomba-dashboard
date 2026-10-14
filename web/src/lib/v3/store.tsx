@@ -302,10 +302,10 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   const [activeDirection, setActiveDirection] = useState<string | null>(null);
 
   const setCleaningMotors = useCallback(async (vacuum: boolean, main_brush: boolean, side_brush: boolean) => {
-    if (!robotUrl || connection !== "live") return;
-    // Update UI immediately (optimistic)
+    // Update UI immediately (optimistic) — always, so demo mode previews presets too
     setCleaning({ vacuum, main_brush, side_brush });
     logTelemetry("clean", { vacuum, main_brush, side_brush });
+    if (!robotUrl || connection !== "live") return;
     try {
       const res = await fetch(`${robotUrl}/clean`, {
         method: "POST",
