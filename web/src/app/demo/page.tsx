@@ -105,17 +105,23 @@ function EngVoice() {
 /* Engineering telemetry */
 function EngTelemetry() {
   const { state } = useV3Robot();
-  const { battery, mode, location } = state;
+  const { battery, mode, connection } = state;
+  const isLive = connection === "live";
 
   return (
     <div className="eng-panel">
       <div className="eng-panel-header">
         <span className="eng-panel-title">Telemetry</span>
+        <span className={`eng-led ${isLive ? "eng-led-green" : "eng-led-amber"}`} />
       </div>
       <div className="p-3">
         <div className="eng-telemetry">
           <span className="eng-telemetry-label">Battery</span>
-          <span className="eng-telemetry-value eng-readout">{Math.round(battery)}%</span>
+          <span className="eng-telemetry-value eng-readout">{isLive ? `${Math.round(battery)}%` : "—"}</span>
+        </div>
+        <div className="eng-telemetry">
+          <span className="eng-telemetry-label">Link</span>
+          <span className="eng-telemetry-value eng-readout-cyan">{connection.toUpperCase()}</span>
         </div>
         <div className="eng-telemetry">
           <span className="eng-telemetry-label">Mode</span>
@@ -123,11 +129,7 @@ function EngTelemetry() {
         </div>
         <div className="eng-telemetry">
           <span className="eng-telemetry-label">Position</span>
-          <span className="eng-telemetry-value">{location.label || "—"}</span>
-        </div>
-        <div className="eng-telemetry">
-          <span className="eng-telemetry-label">Uptime</span>
-          <span className="eng-telemetry-value eng-readout">--:--:--</span>
+          <span className="eng-telemetry-value" style={{ color: "var(--eng-muted)" }}>No SLAM — unavailable</span>
         </div>
       </div>
     </div>

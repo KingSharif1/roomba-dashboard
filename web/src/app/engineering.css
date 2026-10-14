@@ -37,7 +37,9 @@
 .eng-panel {
   background: var(--eng-panel);
   border: 1px solid var(--eng-border);
+  border-radius: 16px;
   position: relative;
+  overflow: hidden;
 }
 
 .eng-panel::before,
@@ -142,10 +144,11 @@
   font-weight: 700;
   padding: 10px 16px;
   border: 1px solid var(--eng-border-hi);
+  border-radius: 12px;
   background: var(--eng-panel-2);
   color: var(--eng-text);
   cursor: pointer;
-  transition: all 0.1s;
+  transition: all 0.15s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -154,6 +157,7 @@
   background: var(--eng-cyan);
   color: var(--eng-bg-deep);
   border-color: var(--eng-cyan);
+  transform: scale(0.98);
 }
 
 .eng-btn-primary {
