@@ -369,6 +369,8 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   }, [robotUrl, connection, checkRobotCapability]);
 
   const drive = useCallback((dir: "up" | "down" | "left" | "right" | "stop") => {
+    // Speed is 0-100%, map to actual velocities
+    // Max linear: 0.5 m/s, max angular: 1.0 rad/s
     if (dir === "stop") {
       setMode("idle");
       // Send stop to Pi if live
@@ -392,11 +394,14 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     // Send drive command to Pi if live
     console.log("[drive]", dir, { robotUrl, connection });
     if (robotUrl && connection === "live") {
+      const speedFactor = speed / 100;
+      const maxLinear = 0.5;
+      const maxAngular = 1.0;
       const cmd = {
-        up: { linear: 0.2, angular: 0 },
-        down: { linear: -0.2, angular: 0 },
-        left: { linear: 0, angular: 0.5 },
-        right: { linear: 0, angular: -0.5 },
+        up: { linear: maxLinear * speedFactor, angular: 0 },
+        down: { linear: -maxLinear * speedFactor, angular: 0 },
+        left: { linear: 0, angular: maxAngular * speedFactor },
+        right: { linear: 0, angular: -maxAngular * speedFactor },
       }[dir];
       console.log("[drive] sending", cmd, "to", `${robotUrl}/drive`);
       fetch(`${robotUrl}/drive`, {
@@ -407,7 +412,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     } else {
       console.warn("[drive] blocked: robotUrl=", robotUrl, "connection=", connection);
     }
-  }, [robotUrl, connection]);
+  }, [robotUrl, connection, speed, robotOnline]);
 
   // Dance party: twerk + Spotify simultaneously
   const danceParty = useCallback(async (query: string, target?: string) => {

@@ -43,7 +43,6 @@ function useLocal<T>(key: string, initial: T): [T, (v: T | ((p: T) => T)) => voi
 
 const NAV = [
   { id: "control", label: "Control", icon: Gauge },
-  { id: "map", label: "Map", icon: MapIcon },
   { id: "camera", label: "Camera", icon: Camera },
   { id: "status", label: "Status", icon: Activity },
   { id: "settings", label: "Settings", icon: Settings },
@@ -163,90 +162,113 @@ function FTop({
   );
 }
 
-/* ── voice card (in-page; header pill also opens the overlay) ── */
-function FVoice({ onTalk }: { onTalk: () => void }) {
-  const { state } = useV3Robot();
-  const { voice, voiceLine } = state;
-  const vstate = voice === "listening" ? "listening" : voice === "speaking" ? "speaking" : "idle";
-
-  return (
-    <section id="voice">
-      <div className="head">
-        <div>
-          <h1>Voice</h1>
-          <div className="sm" style={{ fontSize: 14, marginTop: 2 }}>Talk to Stella — she hears, she answers, she moves</div>
-        </div>
-      </div>
-      <div className="card" style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
-        <button className="f-orb" data-state={vstate} onClick={onTalk} aria-label={voice === "listening" ? "Stop listening" : "Push to talk"}>
-          <span className="core">
-            {voice === "listening" ? (
-              <span className="bars"><i /><i /><i /><i /><i /></span>
-            ) : (
-              <Mic className="w-6 h-6" />
-            )}
-          </span>
-        </button>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div className="lbl" style={{ marginBottom: 6 }}>
-            {voice === "listening" ? "Listening" : voice === "speaking" ? "Speaking" : "Tap to talk"}
-          </div>
-          {voiceLine ? (
-            <div className="mono" style={{ fontSize: 15 }}>{voiceLine}</div>
-          ) : (
-            <div className="sm">Try: “clean the kitchen, then dock” · “twerk” · “open Spotify” · “stop”</div>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ── cutaway: F signature visual — hardware readouts + suction ── */
+/* ── cutaway: suction card with map/status toggle ── */
 function FCutaway({ intensity }: { intensity: Intensity }) {
-  const { state } = useV3Robot();
-  const { battery, connection } = state;
+  const { state, robotOnline } = useV3Robot();
+  const { battery, connection, mode } = state;
+  const isLive = connection === "live";
   const isDemo = connection === "demo";
+  const [view, setView] = useState<"status" | "map">("status");
+
+  // Part status: LiDAR is never connected (user doesn't have one)
+  // Everything else uses live data from /status polling
+  const parts = [
+    { name: "Pi 4", detail: "ROS 2 Jazzy · brain", online: isLive },
+    { name: "Arduino", detail: "Uno · 115200 · motor bridge", online: isLive && robotOnline },
+    { name: "Roomba 694", detail: "brush + vac base", online: isLive && robotOnline },
+    { name: "Battery", detail: isLive ? `${Math.round(battery)}%` : "—", online: isLive },
+    { name: "LiDAR", detail: "not connected", online: false },
+    { name: "Camera", detail: "imx219", online: isLive },
+  ];
 
   return (
     <section id="cutaway">
+      <div className="head">
+        <div>
+          <h1>Stella</h1>
+          <div className="sm" style={{ fontSize: 14, marginTop: 2 }}>
+            {isLive ? (robotOnline ? "Online · ready" : "Pi online · robot offline") : isDemo ? "Demo mode" : "Offline"}
+          </div>
+        </div>
+        <div className="f-switch" role="tablist" aria-label="Status or map">
+          <span
+            className="thumb"
+            style={{
+              left: view === "status" ? 3 : "calc(50% + 1px)",
+              width: "calc(50% - 4px)",
+            }}
+            aria-hidden
+          />
+          <button
+            role="tab"
+            aria-selected={view === "status"}
+            className={view === "status" ? "on" : ""}
+            onClick={() => setView("status")}
+          >
+            <Activity className="w-3.5 h-3.5" /> Status
+          </button>
+          <button
+            role="tab"
+            aria-selected={view === "map"}
+            className={view === "map" ? "on" : ""}
+            onClick={() => setView("map")}
+          >
+            <MapIcon className="w-3.5 h-3.5" /> Map
+          </button>
+        </div>
+      </div>
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         {isDemo && (
           <span className="f-pchip demo" style={{ position: "absolute", right: 14, top: 12, zIndex: 5 }}>
             <span className="dot" /> DEMO VALUES
           </span>
         )}
-        <div className="f-cut">
-          <div className="rings">
-            {[
-              [0, 0, 360, "var(--cut-ring)", 0, "solid"],
-              [0, 0, 360, "var(--cut-ring)", 50, "dashed"],
-              [0, 0, 360, "var(--cut-ring)", 100, "solid"],
-              [0, 0, 360, "var(--acc)", 150, "solid"],
-              [120, 120, 120, "var(--fg)", 205, "solid"],
-            ].map(([l, t, w, c, z, st], i) => (
-              <i
-                key={i}
-                style={{
-                  left: `${l}px`, top: `${t}px`, width: `${w}px`, height: `${w}px`,
-                  borderColor: c as string, borderStyle: st as string,
-                  transform: `translateZ(${z}px)`, animationDelay: `${i * 0.4}s`,
-                }}
-              />
-            ))}
+        {view === "status" ? (
+          <div className="f-cut">
+            <div className="rings">
+              {[
+                [0, 0, 360, "var(--cut-ring)", 0, "solid"],
+                [0, 0, 360, "var(--cut-ring)", 50, "dashed"],
+                [0, 0, 360, "var(--cut-ring)", 100, "solid"],
+                [0, 0, 360, "var(--acc)", 150, "solid"],
+                [120, 120, 120, "var(--fg)", 205, "solid"],
+              ].map(([l, t, w, c, z, st], i) => (
+                <i
+                  key={i}
+                  style={{
+                    left: `${l}px`, top: `${t}px`, width: `${w}px`, height: `${w}px`,
+                    borderColor: c as string, borderStyle: st as string,
+                    transform: `translateZ(${z}px)`, animationDelay: `${i * 0.4}s`,
+                  }}
+                />
+              ))}
+            </div>
+            <div className="labels mono">
+              {parts.map((p) => (
+                <div key={p.name} style={{ color: p.online ? "var(--fg)" : "var(--mute)" }}>
+                  {p.name.toUpperCase()} · {p.detail.toUpperCase()}
+                  <span style={{
+                    display: "inline-block", width: 8, height: 8, borderRadius: "50%",
+                    background: p.online ? "var(--ok)" : "var(--mute)", marginLeft: 8,
+                  }} />
+                </div>
+              ))}
+            </div>
+            <div className="suction card mono">
+              <div className="lbl">Suction · {intensity} mode</div>
+              <div style={{ fontSize: 20 }}>{SUCTION[intensity]} <span className="sm">kPa</span></div>
+              <div className="sm" style={{ marginTop: 8, lineHeight: 1.5 }}>
+                Eco 1.4 · Normal 2.2 · Turbo 3.1 kPa<br />
+                Mode: {mode.toUpperCase()} · {isLive ? "live" : "offline"}
+              </div>
+            </div>
           </div>
-          <div className="labels mono">
-            <div>LIDAR · RPLIDAR C1 · 10 Hz</div>
-            <div style={{ color: "var(--acc)" }}>PI 4 · ROS 2 JAZZY</div>
-            <div>ARDUINO MEGA · 115200</div>
-            <div>BATTERY · {Math.round(battery)}% · 14.4 V</div>
-            <div>ROOMBA 694 · BRUSH + VAC</div>
+        ) : (
+          <div style={{ padding: 16 }}>
+            <FMapBody />
           </div>
-          <div className="suction card mono">
-            <div className="lbl">Suction · {intensity} mode</div>
-            <div style={{ fontSize: 20 }}>{SUCTION[intensity]} <span className="sm">kPa</span></div>
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );
@@ -294,12 +316,24 @@ function FControl() {
   const displayMode = !isLive ? "OFFLINE" : mode === "cleaning" ? "ACTIVE" : mode === "docked" ? "CHARGING" : "STANDBY";
   const modeColor = displayMode === "ACTIVE" ? "var(--ok)" : displayMode === "CHARGING" ? "var(--warn)" : "var(--mute)";
 
-  const toggleTool = (key: "vacuum" | "main_brush" | "side_brush") =>
-    setCleaningMotors(
-      key === "vacuum" ? !cleaning.vacuum : cleaning.vacuum,
-      key === "main_brush" ? !cleaning.main_brush : cleaning.main_brush,
-      key === "side_brush" ? !cleaning.side_brush : cleaning.side_brush
-    );
+  // Local state mirrors the store for instant visual feedback
+  // Syncs back if the store changes externally
+  const [localTools, setLocalTools] = useState({ vacuum: false, main_brush: false, side_brush: false });
+  useEffect(() => {
+    setLocalTools({ vacuum: cleaning.vacuum, main_brush: cleaning.main_brush, side_brush: cleaning.side_brush });
+  }, [cleaning.vacuum, cleaning.main_brush, cleaning.side_brush]);
+
+  const toggleTool = (key: "vacuum" | "main_brush" | "side_brush") => {
+    const next = { ...localTools, [key]: !localTools[key] };
+    setLocalTools(next); // instant UI update
+    setCleaningMotors(next.vacuum, next.main_brush, next.side_brush);
+  };
+
+  const setAllTools = (on: boolean) => {
+    const next = { vacuum: on, main_brush: on, side_brush: on };
+    setLocalTools(next);
+    setCleaningMotors(next.vacuum, next.main_brush, next.side_brush);
+  };
 
   const actions = [
     { id: "clean", label: "Clean", icon: <Play className="w-4 h-4" />, cls: "pri", fn: () => cleanMode("all") },
@@ -345,12 +379,12 @@ function FControl() {
             </div>
             <div className="f-dt-tools">
               <div className="lbl" style={{ marginBottom: 4 }}>Cleaning tools</div>
-              <ToolToggle icon={<Fan className="w-4 h-4" />} label="Vacuum" on={cleaning.vacuum} disabled={!isLive} onToggle={() => toggleTool("vacuum")} />
-              <ToolToggle icon={<Brush className="w-4 h-4" />} label="Main brush" on={cleaning.main_brush} disabled={!isLive} onToggle={() => toggleTool("main_brush")} />
-              <ToolToggle icon={<Paintbrush className="w-4 h-4" />} label="Side brush" on={cleaning.side_brush} disabled={!isLive} onToggle={() => toggleTool("side_brush")} />
+              <ToolToggle icon={<Fan className="w-4 h-4" />} label="Vacuum" on={localTools.vacuum} disabled={!isLive} onToggle={() => toggleTool("vacuum")} />
+              <ToolToggle icon={<Brush className="w-4 h-4" />} label="Main brush" on={localTools.main_brush} disabled={!isLive} onToggle={() => toggleTool("main_brush")} />
+              <ToolToggle icon={<Paintbrush className="w-4 h-4" />} label="Side brush" on={localTools.side_brush} disabled={!isLive} onToggle={() => toggleTool("side_brush")} />
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <button className="btn" disabled={!isLive} onClick={() => setCleaningMotors(true, true, true)}>All on</button>
-                <button className="btn" disabled={!isLive} onClick={() => setCleaningMotors(false, false, false)}>All off</button>
+                <button className="btn" disabled={!isLive} onClick={() => setAllTools(true)}>All on</button>
+                <button className="btn" disabled={!isLive} onClick={() => setAllTools(false)}>All off</button>
               </div>
               {!isLive && (
                 <div className="sm" style={{ marginTop: 10, color: "var(--warn)" }}>
@@ -587,126 +621,6 @@ function PChip({ status }: { status: PStatus }) {
     <span className={`f-pchip ${cls}`}>
       <span className="dot" /> {label}
     </span>
-  );
-}
-
-function FHardware({
-  intensity,
-  setIntensity,
-}: {
-  intensity: Intensity;
-  setIntensity: (i: Intensity) => void;
-}) {
-  const { state, robotOnline } = useV3Robot();
-  const { connection, battery } = state;
-  const isLive = connection === "live";
-  const isDemo = connection === "demo";
-  const isChecking = connection === "connecting";
-
-  // Part status is derived from the two real signals the app polls:
-  // Pi reachability (connection=live) and /status connected (robotOnline).
-  // In demo mode everything simulated is labeled DEMO; offline is OFFLINE.
-  const hwUp: PStatus = isDemo ? "demo" : isLive ? "online" : isChecking ? "checking" : "offline";
-  const robotUp: PStatus = isDemo ? "demo" : isLive ? (robotOnline ? "online" : "offline") : isChecking ? "checking" : "offline";
-
-  const parts: { name: string; spec: string; status: PStatus }[] = [
-    { name: "LIDAR", spec: "RPLIDAR C1 · 10 Hz", status: robotUp },
-    { name: "Pi 4", spec: "ROS 2 Jazzy · brain", status: hwUp },
-    { name: "Arduino MEGA", spec: "115200 · motor bridge", status: robotUp },
-    {
-      name: "Battery",
-      spec: isLive || isDemo ? `${Math.round(battery)}%${isDemo ? " · simulated" : ""}` : "—",
-      status: isLive ? "online" : isDemo ? "demo" : "offline",
-    },
-    { name: "Roomba 694", spec: "brush + vac base", status: robotUp },
-  ];
-
-  return (
-    <div className="grid two">
-      <div className="card">
-        <div className="lbl" style={{ marginBottom: 10 }}>Suction mode</div>
-        <div className="seg" style={{ marginBottom: 8 }}>
-          {(["Eco", "Normal", "Turbo"] as Intensity[]).map((m) => (
-            <button key={m} className={intensity === m ? "on" : ""} onClick={() => setIntensity(m)}>
-              {m} · {SUCTION[m]} kPa
-            </button>
-          ))}
-        </div>
-        <div className="sm" style={{ marginBottom: 18 }}>Spec values — not sensor readings</div>
-        <div className="lbl" style={{ marginBottom: 6 }}>About suction</div>
-        <div className="sm" style={{ lineHeight: 1.6 }}>
-          Eco, Normal and Turbo are the fan power presets sent with each clean command.
-          They set how hard Stella&apos;s vacuum pulls — not a live sensor readout.
-        </div>
-      </div>
-      <div className="card">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-          <span className="lbl">Device status</span>
-          <span className="sm mono">{isLive ? "live poll · 10s" : isDemo ? "demo" : "offline"}</span>
-        </div>
-        {parts.map((p) => (
-          <div className="f-part" key={p.name}>
-            <div>
-              <div className="nm">{p.name}</div>
-              <div className="sp">{p.spec}</div>
-            </div>
-            <PChip status={p.status} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ── map section with Map | Hardware tab switcher ── */
-function FMapSection({
-  intensity,
-  setIntensity,
-}: {
-  intensity: Intensity;
-  setIntensity: (i: Intensity) => void;
-}) {
-  const [tab, setTab] = useState<"map" | "hardware">("map");
-  return (
-    <section id="map">
-      <div className="head">
-        <div>
-          <h1>{tab === "map" ? "Map" : "Hardware"}</h1>
-          <div className="sm" style={{ fontSize: 14, marginTop: 2 }}>
-            {tab === "map" ? "Apartment · lidar map · tap a room to clean it" : "Suction, tools and live part status"}
-          </div>
-        </div>
-        <div className="f-switch" role="tablist" aria-label="Map or hardware">
-          <span
-            className="thumb"
-            style={{
-              left: tab === "map" ? 3 : "calc(50% + 1px)",
-              width: "calc(50% - 4px)",
-            }}
-            aria-hidden
-          />
-          <button
-            role="tab"
-            aria-selected={tab === "map"}
-            className={tab === "map" ? "on" : ""}
-            onClick={() => setTab("map")}
-          >
-            <MapIcon className="w-3.5 h-3.5" /> Map
-          </button>
-          <button
-            role="tab"
-            aria-selected={tab === "hardware"}
-            className={tab === "hardware" ? "on" : ""}
-            onClick={() => setTab("hardware")}
-          >
-            <Cpu className="w-3.5 h-3.5" /> Hardware
-          </button>
-        </div>
-      </div>
-      <div className="f-tabbody" key={tab}>
-        {tab === "map" ? <FMapBody /> : <FHardware intensity={intensity} setIntensity={setIntensity} />}
-      </div>
-    </section>
   );
 }
 
@@ -1155,10 +1069,8 @@ function DashboardInner({
       </nav>
 
       <main className="f-main" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-        <FVoice onTalk={talk} />
         <FCutaway intensity={intensity} />
         <FControl />
-        <FMapSection intensity={intensity} setIntensity={setIntensity} />
         <FCamera />
         <FStatus intensity={intensity} />
         {!isDemo && <FSettings theme={theme} setTheme={setTheme} />}
