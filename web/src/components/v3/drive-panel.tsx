@@ -161,26 +161,36 @@ export function V3DrivePanel() {
   const [mode, setMode] = useState<"pad" | "stick">("pad");
 
   const dirBtn =
-    "w-14 h-14 rounded-lg border flex items-center justify-center hover:opacity-75 active:scale-95 transition-all";
+    "w-14 h-14 rounded-2xl border flex items-center justify-center hover:opacity-75 active:scale-95 transition-all";
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] tracking-widest font-bold" style={{ color: "var(--eng-muted)" }}>
-          CONTROL MODE
-        </span>
-        <div className="flex border" style={{ borderColor: "var(--eng-border-hi)" }}>
+      {/* Segmented mode switcher */}
+      <div className="flex justify-center mb-4">
+        <div
+          className="relative flex p-1 rounded-full"
+          style={{ background: "var(--eng-panel-2)", border: "1px solid var(--eng-border)" }}
+        >
           {(["pad", "stick"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className="px-4 py-1.5 text-[11px] font-bold tracking-widest uppercase"
+              className="relative z-10 px-6 py-2 text-[11px] font-bold tracking-widest uppercase rounded-full transition-all"
               style={{
-                background: mode === m ? "var(--eng-cyan)" : "transparent",
                 color: mode === m ? "var(--eng-bg-deep)" : "var(--eng-muted)",
               }}
             >
-              {m === "pad" ? "▦ PAD" : "⊕ STICK"}
+              {mode === m && (
+                <span
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: "var(--eng-cyan)",
+                    boxShadow: "0 0 15px rgba(0, 212, 255, 0.4)",
+                    zIndex: -1,
+                  }}
+                />
+              )}
+              <span className="relative z-10">{m === "pad" ? "▦ Pad" : "⊕ Stick"}</span>
             </button>
           ))}
         </div>

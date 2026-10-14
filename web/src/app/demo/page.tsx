@@ -217,30 +217,44 @@ function EngTelemetry() {
 function EngDrive() {
   const { state, wakeRobot } = useV3Robot();
   const isLive = state.connection === "live";
+  const [open, setOpen] = useState(true);
 
   return (
     <div className="eng-panel">
-      <div className="eng-panel-header">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="eng-panel-header w-full text-left cursor-pointer"
+        style={{ background: "var(--eng-panel-2)" }}
+      >
         <span className="eng-panel-title">Manual Drive</span>
-        <span className="text-[9px] tracking-widest" style={{ color: "var(--eng-muted)" }}>HOLD TO MOVE</span>
-      </div>
-      {!isLive && (
-        <div className="p-3" style={{ borderBottom: "1px solid var(--eng-border)" }}>
-          <button
-            onClick={() => wakeRobot()}
-            className="eng-btn eng-btn-primary w-full"
-            style={{ padding: "12px" }}
-          >
-            ⏰ WAKE STELLA
-          </button>
-          <div className="mt-2 text-[10px]" style={{ color: "var(--eng-muted)" }}>
-            Stella is not responding. Press to restart the driver and reconnect.
+        <span className="flex items-center gap-2">
+          <span className="text-[9px] tracking-widest" style={{ color: "var(--eng-muted)" }}>HOLD TO MOVE</span>
+          <span className="text-[10px] font-bold tracking-widest" style={{ color: "var(--eng-cyan)" }}>
+            {open ? "[−]" : "[+]"}
+          </span>
+        </span>
+      </button>
+      {open && (
+        <>
+          {!isLive && (
+            <div className="p-3" style={{ borderTop: "1px solid var(--eng-border)" }}>
+              <button
+                onClick={() => wakeRobot()}
+                className="eng-btn eng-btn-primary w-full"
+                style={{ padding: "12px" }}
+              >
+                ⏰ WAKE STELLA
+              </button>
+              <div className="mt-2 text-[10px]" style={{ color: "var(--eng-muted)" }}>
+                Stella is not responding. Press to restart the driver and reconnect.
+              </div>
+            </div>
+          )}
+          <div className="p-4 flex justify-center" style={{ borderTop: "1px solid var(--eng-border)" }}>
+            <V3DrivePanel />
           </div>
-        </div>
+        </>
       )}
-      <div className="p-4 flex justify-center">
-        <V3DrivePanel />
-      </div>
     </div>
   );
 }
