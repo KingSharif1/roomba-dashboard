@@ -530,6 +530,23 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
         });
       } catch {}
     }
+    else if (action === "tv_play" && robotUrl && connection === "live") {
+      // Play a movie/show on a streaming app
+      setVoiceLine(`"Opening ${cmd.app} and searching for ${cmd.query}..."`);
+      try {
+        const res = await fetch(`${robotUrl}/roku/search_play`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: cmd.query, app: cmd.app }),
+        });
+        const data = await res.json();
+        setVoiceLine(data.success
+          ? `"Playing ${cmd.query} on ${cmd.app}."`
+          : `"Couldn't play that: ${data.error}"`);
+      } catch {
+        setVoiceLine(`"Couldn't reach the TV."`);
+      }
+    }
     else if (action === "spotify") {
       const res = await fetch("/api/spotify/play", {
         method: "POST",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { V3RobotProvider, useV3Robot } from "@/lib/v3/store";
 import { V3DrivePanel } from "@/components/v3/drive-panel";
 import { V3FloorMap } from "@/components/v3/floor-map";
@@ -310,6 +310,16 @@ function EngTVRemote() {
   const { state } = useV3Robot();
   const isLive = state.connection === "live";
   const [open, setOpen] = useState(false);
+  const [tvs, setTvs] = useState<Array<{ip: string, name: string}>>([]);
+
+  // Fetch available TVs when connected
+  useEffect(() => {
+    if (!isLive || !state.robotUrl) return;
+    fetch(`${state.robotUrl}/roku/list`)
+      .then(r => r.json())
+      .then(d => setTvs(d.rokus || []))
+      .catch(() => {});
+  }, [isLive, state.robotUrl]);
 
   const sendKey = async (key: string) => {
     if (!isLive) return;
@@ -347,6 +357,18 @@ function EngTVRemote() {
       </button>
       {open && (
         <div className="p-4 space-y-4" style={{ borderTop: "1px solid var(--eng-border)" }}>
+          {/* Connected TVs */}
+          {tvs.length > 0 && (
+            <div className="text-[11px]" style={{ color: "var(--eng-muted)" }}>
+              <div className="font-bold mb-1" style={{ color: "var(--eng-cyan)" }}>CONNECTED TV{tvs.length > 1 ? "s" : ""}:</div>
+              {tvs.map((tv, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full" style={{ background: "var(--eng-green)" }} />
+                  {tv.name} <span style={{ color: "var(--eng-dim)" }}>({tv.ip})</span>
+                </div>
+              ))}
+            </div>
+          )}
           {/* D-pad */}
           <div className="grid grid-cols-3 gap-2 w-fit mx-auto">
             <span />
