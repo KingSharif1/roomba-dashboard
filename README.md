@@ -4,6 +4,16 @@ A DIY autonomous home robot built on a Roomba 694, with a Raspberry Pi 4 brain, 
 
 Live dashboard (demo mode for visitors): https://roomba-dashboard.vercel.app
 
+## Layout
+
+| Path | What it is |
+|---|---|
+| `web/` | Next.js dashboard. Install, dev, build, and tests all run here. |
+| `data/` | Rooms, doors, cleaning sessions, learning notes, no-go zones, and saved routes the dashboard reads. |
+| `docs/` | How the dashboard and the live link fit together. |
+
+Raw sensor recordings and video stay out of git (`data/recordings/`, `data/video/`). Robot build notes live in ARK, not in this repo.
+
 ---
 
 ## The build story
@@ -117,6 +127,7 @@ Ground rule: make it work before making it pretty.
 ## Local setup
 
 ```bash
+cd web
 npm install
 cp .env.example .env.local
 npm run dev
@@ -124,7 +135,7 @@ npm run dev
 
 Open http://localhost:3000
 
-Scripts:
+Scripts (run from `web/`):
 
 | Command | What it does |
 |---|---|
@@ -136,7 +147,7 @@ Scripts:
 
 ### Environment
 
-Copy `.env.example` to `.env.local` and fill in your own values. Never commit real values.
+In `web/`, copy `.env.example` to `.env.local` and fill in your own values. Never commit real values.
 
 - `ROBOT_URL`: the robot API origin (server-only). Leave it unset for demo mode.
 - `OWNER_EMAIL`: the one account allowed to control the robot.

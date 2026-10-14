@@ -1,4 +1,4 @@
-// Stella v3 — UI ↔ data contract (from ARK projects/roomba-dashboard/contract.md)
+// Stella v3 — UI ↔ data contract (ARK projects/stella/docs/contract.md)
 // UI renders room names as-is. No coordinates cross the UI boundary.
 
 export type RoomId = string;

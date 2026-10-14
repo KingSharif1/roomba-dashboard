@@ -49,7 +49,7 @@ Then set in Vercel (project `stella`):
 
 ## Pi WebSocket contract (when the API exists)
 
-The dashboard's probe (`src/lib/v3/store.tsx`) opens the socket and listens
+The dashboard's probe (`web/src/lib/v3/store.tsx`) opens the socket and listens
 for JSON state patches. Suggested message shapes:
 
 ```jsonc

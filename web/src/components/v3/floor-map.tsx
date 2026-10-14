@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Plus, Minus, Crosshair, Expand, ChevronUp } from "lucide-react";
-import { demoRooms } from "@/lib/v3/demo";
+import { demoRooms } from "@data/demo";
 import { modeLabel, useV3Robot } from "@/lib/v3/store";
 
 // Simplified floor-plan geometry for the SVG. Room names come from demo data;
