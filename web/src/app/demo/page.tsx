@@ -909,16 +909,29 @@ function VoiceBlob({
   return <canvas ref={ref} className="f-blob" aria-hidden />;
 }
 
-/* ── voice overlay: Grok's animated voice mode, wired to the real pipeline ── */
+/* ── voice overlay: simple push-to-talk toggle ── */
 function FVoiceOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { state, toggleListening } = useV3Robot();
-  const { voice, voiceLine } = state;
-  const analyser = useRef<AnalyserNode | null>(null);
-  const audio = useRef<{ ctx: AudioContext; stream: MediaStream } | null>(null);
-  const [micOn, setMicOn] = useState(false);
+  const { state, toggleListening, robotOnline } = useV3Robot();
+  const { voice, voiceLine, connection } = state;
+  const [tvOk, setTvOk] = useState<boolean | null>(null);
 
   const listening = voice === "listening";
-  const phase: "idle" | "listening" | "speaking" = voice;
+  const speaking = voice === "speaking";
+  const isLive = connection === "live";
+
+  // Check if TV control is available on the Pi
+  useEffect(() => {
+    if (!open || !isLive) { setTvOk(null); return; }
+    const check = async () => {
+      try {
+        const res = await fetch(`${state.robotUrl}/roku/list`);
+        setTvOk(res.ok);
+      } catch {
+        setTvOk(false);
+      }
+    };
+    check();
+  }, [open, isLive]);
 
   useEffect(() => {
     if (!open) return;
@@ -926,79 +939,61 @@ function FVoiceOverlay({ open, onClose }: { open: boolean; onClose: () => void }
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", esc);
-    return () => {
-      document.removeEventListener("keydown", esc);
-      // tear down the mic visualizer
-      if (audio.current) {
-        audio.current.stream.getTracks().forEach((tr) => tr.stop());
-        audio.current.ctx.close().catch(() => {});
-        audio.current = null;
-      }
-      analyser.current = null;
-      setMicOn(false);
-    };
+    return () => document.removeEventListener("keydown", esc);
   }, [open, onClose]);
 
-  // hold-to-talk on the blob: press starts the real pipeline, release sends
-  const holdStart = (e: React.PointerEvent) => {
-    e.preventDefault();
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-    if (voice === "idle") toggleListening();
-  };
-  const holdEnd = () => {
-    if (voice !== "idle") toggleListening();
-  };
-
-  const useMic = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (micOn) {
-      if (audio.current) {
-        audio.current.stream.getTracks().forEach((tr) => tr.stop());
-        audio.current.ctx.close().catch(() => {});
-        audio.current = null;
-      }
-      analyser.current = null;
-      setMicOn(false);
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const ctx = new AudioContext();
-      const an = ctx.createAnalyser();
-      an.fftSize = 256;
-      ctx.createMediaStreamSource(stream).connect(an);
-      analyser.current = an;
-      audio.current = { ctx, stream };
-      setMicOn(true);
-    } catch {
-      /* mic unavailable — blob keeps its demo animation */
-    }
+  // Simple toggle: press to start, press again to stop
+  const toggle = () => {
+    toggleListening();
   };
 
   if (!open) return null;
   return (
     <div className="f-voice" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="f-vstate">
-        {listening ? "Listening" : voice === "speaking" ? "Stella" : "Ready"}
+        {listening ? "Listening…" : speaking ? "Stella is speaking" : "Ready"}
       </div>
-      <div
-        onPointerDown={holdStart}
-        onPointerUp={holdEnd}
-        onPointerCancel={holdEnd}
-        onContextMenu={(e) => e.preventDefault()}
-        style={{ touchAction: "none" }}
-        role="button"
-        aria-label={listening ? "Release to send" : "Hold to talk"}
+
+      {/* Big toggle button */}
+      <button
+        onClick={toggle}
+        className="f-orb"
+        data-state={listening ? "listening" : speaking ? "speaking" : "idle"}
+        aria-label={listening ? "Stop listening" : "Start listening"}
+        style={{ cursor: "pointer", border: "none", background: "none" }}
       >
-        <VoiceBlob phase={phase} analyser={analyser} />
+        <span className="core">
+          {listening ? (
+            <span className="bars"><i /><i /><i /><i /><i /></span>
+          ) : (
+            <Mic className="w-8 h-8" />
+          )}
+        </span>
+      </button>
+
+      <div className="f-vtext">
+        {voiceLine || (listening ? "Talk now…" : "Tap the mic to talk")}
       </div>
-      <div className="f-vtext">{voiceLine || (listening ? "…" : "Hold the orb to talk")}</div>
-      <div className="f-vsub">Release to send · Esc to cancel</div>
-      <div className="f-vbtns">
-        <button className={`btn ${micOn ? "inv" : ""}`} onClick={useMic}>
-          <Mic className="w-4 h-4" /> {micOn ? "Mic on" : "Use real mic"}
-        </button>
+      <div className="f-vsub">
+        {listening ? "Tap again to stop" : "Esc to close"}
+      </div>
+
+      {/* Status indicators */}
+      <div style={{ display: "flex", gap: 12, marginTop: 16, fontSize: 12 }} className="mono">
+        <span style={{ color: isLive && robotOnline ? "var(--ok)" : "var(--mute)" }}>
+          ● Robot {isLive && robotOnline ? "online" : "offline"}
+        </span>
+        <span style={{ color: tvOk ? "var(--ok)" : tvOk === false ? "var(--warn)" : "var(--mute)" }}>
+          ● TV {tvOk ? "ready" : tvOk === false ? "not set up" : "…"}
+        </span>
+      </div>
+
+      <div className="f-vbtns" style={{ marginTop: 16 }}>
         <button className="btn" onClick={onClose}>Close</button>
+      </div>
+
+      <div className="sm" style={{ marginTop: 12, textAlign: "center", maxWidth: 300 }}>
+        Try: "move forward" · "volume up" · "play Stranger Things" · "twerk"
       </div>
     </div>
   );
