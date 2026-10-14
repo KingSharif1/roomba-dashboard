@@ -10,43 +10,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { DoorBlockedEvent, RobotLocation, RobotMode, VoiceState } from "./types";
-import { demoDoors, demoLocation, demoRobot, demoRooms, demoTimeline, type TimelineEvent } from "./demo";
+import type { DoorBlockedEvent, RobotLocation, RobotMode, VoiceState } from "@data/types";
+import { demoDoors, demoLocation, demoRobot, demoRooms, demoTimeline, type TimelineEvent } from "@data/demo";
 import { logTelemetry } from "./telemetry";
 
 /** Connection to the physical robot. Tailscale membership IS the auth:
  *  no login, no sessions. If the Pi is reachable on the tailnet → LIVE,
  *  otherwise the dashboard runs on demo data. */
 export type V3Connection = "connecting" | "live" | "demo";
-
-/** Dashboard settings — persisted to localStorage, each one affects demo behavior. */
-export interface V3Settings {
-  autoSchedule: boolean;
-  quietHours: boolean;
-  doorAlerts: boolean;
-  learning: boolean;
-  soundTrigger: boolean;
-}
-
-const SETTINGS_KEY = "stella-v3-settings";
-
-const DEFAULT_SETTINGS: V3Settings = {
-  autoSchedule: true,
-  quietHours: false,
-  doorAlerts: true,
-  learning: true,
-  soundTrigger: false,
-};
-
-function loadSettings(): V3Settings {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
-  } catch {
-    /* private mode etc. — fall through to defaults */
-  }
-  return DEFAULT_SETTINGS;
-}
 
 export interface V3RobotState {
   mode: RobotMode;
@@ -71,15 +42,9 @@ export interface V3RobotState {
   voiceLine: string | null;
   /** sound-triggered recording (UI only; default OFF for privacy) */
   soundTrigger: boolean;
-  /** persisted dashboard settings (all five toggles) */
-  settings: V3Settings;
   connection: V3Connection;
   /** resolved robot base URL (https), or null when unconfigured */
   robotUrl: string | null;
-  /** true when a background re-probe found the Pi reachable while in demo */
-  liveAvailable: boolean;
-  /** show the "switch to live data?" toast */
-  liveToast: boolean;
   /** per-check status for the mobile connection bar */
   checks: {
     tailscale: "checking" | "ok" | "off";
@@ -101,12 +66,6 @@ interface V3RobotApi {
    *  onTranscript → intent router → speak() → TTS → speaking. */
   toggleListening: () => void;
   setSoundTrigger: (v: boolean) => void;
-  setSetting: (k: keyof V3Settings, v: boolean) => void;
-  /** drive with a raw vector (joystick): dx/dy in SVG units, clamped ±48 */
-  driveVector: (dx: number, dy: number) => void;
-  /** background re-probe found the Pi — user taps to switch */
-  acceptLive: () => void;
-  dismissLiveToast: () => void;
   /** Send a command to the live robot. No-op in demo mode.
    *  Real wiring: JSON over the WebSocket opened by the probe below. */
   sendRobotCommand: (cmd: { type: string; [k: string]: unknown }) => void;
@@ -144,28 +103,9 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   const [timeline, setTimeline] = useState<TimelineEvent[]>(demoTimeline);
   const [voice, setVoice] = useState<VoiceState>("idle");
   const [voiceLine, setVoiceLine] = useState<string | null>(null);
-  // All five dashboard toggles live here and persist to localStorage.
-  const [settings, setSettings] = useState<V3Settings>(loadSettings);
-  const settingsRef = useRef(settings);
+  const [soundTrigger, setSoundTriggerState] = useState(false);
   const voiceTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [connection, setConnection] = useState<V3Connection>("connecting");
-  const connectionRef = useRef(connection);
-  const [liveAvailable, setLiveAvailable] = useState(false);
-  const [liveToast, setLiveToast] = useState(false);
-  const liveAvailableRef = useRef(false);
-
-  // Keep refs + localStorage in sync with settings.
-  useEffect(() => {
-    settingsRef.current = settings;
-    try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    } catch {
-      /* ignore */
-    }
-  }, [settings]);
-  useEffect(() => {
-    connectionRef.current = connection;
-  }, [connection]);
   const [robotUrl] = useState<string | null>(
     () => process.env.NEXT_PUBLIC_ROBOT_URL?.replace(/\/$/, "") || null
   );
@@ -253,10 +193,9 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     logTelemetry("room_select", { roomId: id });
     logTelemetry("run_start", { rooms: [id] });
     // Kitchen door is closed in demo data — tapping Kitchen raises a real
-    // door-blocked event (this is the ONLY path that shows the toast),
-    // unless the user turned door-blocked alerts off in Settings.
+    // door-blocked event (this is the ONLY path that shows the toast).
     const door = demoDoors.find((d) => d.id === "kitchen-door");
-    if (id === "kitchen" && door?.state === "closed" && settingsRef.current.doorAlerts) {
+    if (id === "kitchen" && door?.state === "closed") {
       setDoorEvent({
         type: "door_blocked",
         id: `evt-kitchen-door-${Date.now()}`,
@@ -273,20 +212,30 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     if (m === "stop") {
       setMode("idle");
       logTelemetry("run_stop", {});
+      if (robotUrl && connection === "live") {
+        fetch(`${robotUrl}/control/stop`, { method: "POST" }).catch(() => {});
+      }
     } else if (m === "dock") {
       setMode("docked");
       setLocation({ roomId: "living-room", label: "Dock · Living room" });
       logTelemetry("dock", {});
+      if (robotUrl && connection === "live") {
+        fetch(`${robotUrl}/control/dock`, { method: "POST" }).catch(() => {});
+      }
     } else {
       setMode("cleaning");
       setTargetRooms(demoRooms.map((r) => r.id));
       logTelemetry("run_start", { rooms: "all" });
     }
-  }, []);
+  }, [robotUrl, connection]);
 
   const drive = useCallback((dir: "up" | "down" | "left" | "right" | "stop") => {
     if (dir === "stop") {
       setMode("idle");
+      // Send stop to Pi if live
+      if (robotUrl && connection === "live") {
+        fetch(`${robotUrl}/control/stop`, { method: "POST" }).catch(() => {});
+      }
       return;
     }
     setMode("cleaning");
@@ -296,27 +245,23 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     if (dir === "left") setDx((v) => clamp(v - DRIVE_STEP));
     if (dir === "right") setDx((v) => clamp(v + DRIVE_STEP));
     logTelemetry("drive", { dir });
-  }, []);
-
-  const setSpeed = useCallback((s: number) => {
-    // Quiet hours caps the speed at 40%.
-    const cap = settingsRef.current.quietHours ? 40 : 100;
-    setSpeedState(Math.max(0, Math.min(cap, s)));
-  }, []);
-
-  /** Joystick drag: raw vector in SVG units. Moves Stella on the map. */
-  const driveVector = useCallback((dxv: number, dyv: number) => {
-    setMode("cleaning");
-    const cx = clamp(dxv);
-    const cy = clamp(dyv);
-    setDx(cx);
-    setDy(cy);
-    if (cx !== 0 || cy !== 0) {
-      if (Math.abs(cx) >= Math.abs(cy)) setHeading(cx >= 0 ? "E" : "W");
-      else setHeading(cy >= 0 ? "S" : "N");
+    // Send drive command to Pi if live
+    if (robotUrl && connection === "live") {
+      const cmd = {
+        up: { linear: 0.2, angular: 0 },
+        down: { linear: -0.2, angular: 0 },
+        left: { linear: 0, angular: 0.5 },
+        right: { linear: 0, angular: -0.5 },
+      }[dir];
+      fetch(`${robotUrl}/drive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cmd),
+      }).catch(() => {});
     }
-    logTelemetry("drive", { dx: cx, dy: cy });
-  }, []);
+  }, [robotUrl, connection]);
+
+  const setSpeed = useCallback((s: number) => setSpeedState(s), []);
 
   const dismissDoorEvent = useCallback(() => setDoorEvent(null), []);
 
@@ -328,11 +273,16 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // Demo voice loop: listening 2.5s → speaking 3s → idle.
-  // Real wiring: replace timers with mic/STT callbacks; keep the same
-  // state transitions so the UI doesn't change when the Pi arrives.
+  // Voice commands via Web Speech API. Basic intents for now:
+  // stop, forward/back/left/right, dock. 10s max per utterance.
   const toggleListening = useCallback(() => {
     clearVoiceTimers();
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setVoiceLine("Voice not supported in this browser.");
+      voiceTimers.current.push(setTimeout(() => setVoiceLine(null), 2500));
+      return;
+    }
     setVoice((v) => {
       if (v !== "idle") {
         setVoiceLine(null);
@@ -340,45 +290,55 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       }
       setVoiceLine(null);
       logTelemetry("voice_listen", {});
-      voiceTimers.current.push(
-        setTimeout(() => {
+      try {
+        const rec = new SR();
+        rec.lang = "en-US";
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+        voiceTimers.current.push(setTimeout(() => { try { rec.stop(); } catch {} }, 10000));
+        rec.onresult = (e: any) => {
+          const heard = (e.results[0][0].transcript || "").toLowerCase().trim();
+          logTelemetry("voice_heard", { heard });
+          let action: string | null = null;
+          if (/\bstop\b/.test(heard)) action = "stop";
+          else if (/\bdock\b|\bgo home\b|\bcharge\b/.test(heard)) action = "dock";
+          else if (/\bforward\b|\bahead\b|\bgo\b/.test(heard)) action = "up";
+          else if (/\bback\b|\breverse\b/.test(heard)) action = "down";
+          else if (/\bleft\b/.test(heard)) action = "left";
+          else if (/\bright\b/.test(heard)) action = "right";
           setVoice("speaking");
-          setVoiceLine("“On it — finishing the living room, then the kitchen.”");
-          logTelemetry("voice_speak", {});
-          voiceTimers.current.push(
-            setTimeout(() => {
-              setVoice("idle");
-              setVoiceLine(null);
-            }, 3200)
-          );
-        }, 2500)
-      );
+          if (action === "stop") { drive("stop"); setVoiceLine(`“Stopping.”`); }
+          else if (action === "dock") { cleanMode("dock"); setVoiceLine(`“Docking.”`); }
+          else if (action) { drive(action as any); setVoiceLine(`“On it — ${heard}.”`); }
+          else { setVoiceLine(`“Didn't catch that — try stop, forward, back, left, right, or dock.”`); }
+          logTelemetry("voice_speak", { heard, action });
+          voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 2800));
+        };
+        rec.onerror = () => { setVoice("idle"); setVoiceLine(null); };
+        rec.onend = () => { setVoice((vv) => vv === "listening" ? "idle" : vv); };
+        rec.start();
+      } catch {
+        setVoice("idle");
+      }
       return "listening";
     });
-  }, []);
+  }, [drive, cleanMode]);
 
-  const setSoundTrigger = useCallback(
-    (v: boolean) => setSettings((s) => ({ ...s, soundTrigger: v })),
-    []
-  );
+  const setSoundTrigger = useCallback((v: boolean) => setSoundTriggerState(v), []);
 
-  const setSetting = useCallback((k: keyof V3Settings, v: boolean) => {
-    setSettings((s) => ({ ...s, [k]: v }));
-    logTelemetry("setting", { key: k, value: v });
-  }, []);
-
-  // Full connect: open the Pi WebSocket and hot-swap to live state.
-  // Used on mount and when the user taps "Go live".
-  const connectLive = useCallback(() => {
-    const url = robotUrl;
-    if (!url) {
+  // Tailscale probe: try the Pi's WebSocket; 5s to prove we're on the
+  // tailnet. No credentials — reachability IS the authentication.
+  // Pi side: `tailscale serve https` so the browser gets valid HTTPS/WSS
+  // (see docs/TAILSCALE.md).
+  useEffect(() => {
+    if (!robotUrl) {
       setConnection("demo");
-      return () => {};
+      return;
     }
     let cancelled = false;
     let ws: WebSocket | null = null;
     const wsPath = process.env.NEXT_PUBLIC_ROBOT_WS_PATH || "/ws";
-    const wsUrl = url.replace(/^http/, "ws") + wsPath;
+    const wsUrl = robotUrl.replace(/^http/, "ws") + wsPath;
     const timer = setTimeout(() => {
       if (!cancelled && ws?.readyState !== WebSocket.OPEN) {
         try { ws?.close(); } catch { /* noop */ }
@@ -392,9 +352,6 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         clearTimeout(timer);
         setConnection("live");
-        liveAvailableRef.current = false;
-        setLiveAvailable(false);
-        setLiveToast(false);
       };
       ws.onerror = () => {
         if (cancelled) return;
@@ -404,9 +361,6 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       ws.onclose = () => {
         if (cancelled) return;
         setConnection((c) => (c === "live" ? "demo" : c));
-        // Dropped back to demo — allow a future re-probe to re-offer live.
-        liveAvailableRef.current = false;
-        setLiveAvailable(false);
       };
       // Pi → dashboard state patches. Hot-swaps the UI to live values
       // WITHOUT a page refresh — state updates re-render everything.
@@ -461,78 +415,6 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     };
   }, [robotUrl]);
 
-  // Tailscale probe: try the Pi's WebSocket; 5s to prove we're on the
-  // tailnet. No credentials — reachability IS the authentication.
-  // Pi side: `tailscale serve https` so the browser gets valid HTTPS/WSS
-  // (see docs/TAILSCALE.md).
-  useEffect(() => connectLive(), [connectLive]);
-
-  // Background re-probe: every 30s, if we're still in demo mode, do a
-  // LIGHT reachability check (open + immediately close). If the Pi answers,
-  // offer the "switch to live data?" toast — never auto-switch.
-  useEffect(() => {
-    if (!robotUrl) return;
-    const id = setInterval(() => {
-      if (connectionRef.current !== "demo") return;
-      let ws: WebSocket | null = null;
-      const wsPath = process.env.NEXT_PUBLIC_ROBOT_WS_PATH || "/ws";
-      const wsUrl = robotUrl.replace(/^http/, "ws") + wsPath;
-      const timer = setTimeout(() => {
-        try { ws?.close(); } catch { /* noop */ }
-      }, 5000);
-      try {
-        ws = new WebSocket(wsUrl);
-        ws.onopen = () => {
-          clearTimeout(timer);
-          try { ws?.close(); } catch { /* noop */ }
-          // Still in demo and not already offered? Offer live — once per
-          // availability window (dismissing keeps liveAvailable true).
-          if (connectionRef.current === "demo" && !liveAvailableRef.current) {
-            liveAvailableRef.current = true;
-            setLiveAvailable(true);
-            setLiveToast(true);
-          }
-        };
-        ws.onerror = () => {
-          clearTimeout(timer);
-          try { ws?.close(); } catch { /* noop */ }
-        };
-      } catch {
-        clearTimeout(timer);
-      }
-    }, 30000);
-    return () => clearInterval(id);
-  }, [robotUrl]);
-
-  /** User tapped "Go live" — run the full connect now. */
-  const acceptLive = useCallback(() => {
-    setLiveToast(false);
-    liveAvailableRef.current = false;
-    setLiveAvailable(false);
-    connectLive();
-  }, [connectLive]);
-
-  const dismissLiveToast = useCallback(() => {
-    // Stay in demo. Keep liveAvailable so we don't nag again this window;
-    // it resets if the connection drops back from live later.
-    setLiveToast(false);
-  }, []);
-
-  // Auto-return to dock: battery ≤ 15% while cleaning in demo → the robot
-  // heads home by itself (only when Auto schedule is on).
-  useEffect(() => {
-    if (mode === "cleaning" && connection === "demo" && battery <= 15 && settings.autoSchedule) {
-      setMode("returning");
-      logTelemetry("auto_return", { battery });
-      const t = setTimeout(() => {
-        setMode("docked");
-        setLocation({ roomId: "living-room", label: "Dock · Living room" });
-        logTelemetry("dock", { reason: "low_battery" });
-      }, 8000);
-      return () => clearTimeout(t);
-    }
-  }, [battery, mode, connection, settings.autoSchedule]);
-
   const sendRobotCommand = useCallback((cmd: { type: string; [k: string]: unknown }) => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(cmd));
@@ -571,34 +453,27 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
         timeline,
         voice,
         voiceLine,
-        soundTrigger: settings.soundTrigger,
-        settings,
+        soundTrigger,
         connection,
         robotUrl,
-        liveAvailable,
-        liveToast,
         checks,
       },
       selectRoom,
       cleanMode,
       drive,
-      driveVector,
       setSpeed,
       dismissDoorEvent,
       dismissTimeline,
       toggleListening,
       setSoundTrigger,
-      setSetting,
-      acceptLive,
-      dismissLiveToast,
       sendRobotCommand,
     }),
     [
       mode, battery, batteryMinutesLeft, location, runMinutes, heading, speed,
       targetRooms, dx, dy, mx, my, doorEvent, timelineHidden, timeline,
-      voice, voiceLine, settings, connection, robotUrl, liveAvailable, liveToast, checks,
-      selectRoom, cleanMode, drive, driveVector, setSpeed, dismissDoorEvent, dismissTimeline,
-      toggleListening, setSoundTrigger, setSetting, acceptLive, dismissLiveToast, sendRobotCommand,
+      voice, voiceLine, soundTrigger, connection, robotUrl, checks,
+      selectRoom, cleanMode, drive, setSpeed, dismissDoorEvent, dismissTimeline,
+      toggleListening, setSoundTrigger, sendRobotCommand,
     ]
   );
 
