@@ -39,7 +39,8 @@ async function spotifyFetch(
 export async function POST(req: Request) {
   const cookieStore = await cookies();
   let accessToken = cookieStore.get("spotify_access_token")?.value;
-  const refreshToken = cookieStore.get("spotify_refresh_token")?.value;
+  // Fallback to env var for cross-device support (set after first OAuth)
+  const refreshToken = cookieStore.get("spotify_refresh_token")?.value || process.env.SPOTIFY_REFRESH_TOKEN;
 
   if (!accessToken && refreshToken) {
     const tokens = await refreshAccessToken(refreshToken);
