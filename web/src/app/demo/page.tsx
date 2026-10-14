@@ -4,7 +4,6 @@ import { useState } from "react";
 import { V3RobotProvider, useV3Robot } from "@/lib/v3/store";
 import { V3DrivePanel } from "@/components/v3/drive-panel";
 import { V3FloorMap } from "@/components/v3/floor-map";
-import { EngAssistant } from "@/components/v3/eng-assistant";
 
 /* Engineering status header */
 function EngHeader() {
@@ -61,8 +60,12 @@ function EngVoice() {
         <span className={`eng-led ${voice === "listening" ? "eng-led-green" : voice === "speaking" ? "eng-led-amber" : "eng-led-off"}`} />
       </div>
       <div className="p-3">
-        <button onClick={() => toggleListening()} className="eng-btn eng-btn-primary w-full">
-          {voice === "listening" ? "● LISTENING..." : voice === "speaking" ? "◐ SPEAKING..." : "○ PUSH TO TALK"}
+        <button
+          onClick={() => toggleListening()}
+          className="eng-btn eng-btn-primary w-full"
+          style={{ padding: "18px", fontSize: "15px" }}
+        >
+          {voice === "listening" ? "● LISTENING..." : voice === "speaking" ? "◐ SPEAKING..." : "🎤 PUSH TO TALK"}
         </button>
         {voiceLine && (
           <div className="mt-2 p-2 text-xs" style={{ background: "var(--eng-panel-2)", border: "1px solid var(--eng-border)" }}>
@@ -163,7 +166,6 @@ function EngDashboardInner() {
       </div>
 
       <main className="flex-1 p-3 space-y-3 max-w-2xl mx-auto w-full pb-8">
-        <EngAssistant />
         <EngVoice />
         <EngDrive />
         <EngMap />
