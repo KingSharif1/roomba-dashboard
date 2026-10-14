@@ -4,6 +4,7 @@ import { useState } from "react";
 import { V3RobotProvider, useV3Robot } from "@/lib/v3/store";
 import { V3DrivePanel } from "@/components/v3/drive-panel";
 import { V3FloorMap } from "@/components/v3/floor-map";
+import { StellaMascot } from "@/components/v3/stella-mascot";
 
 /* Engineering status header */
 function EngHeader() {
@@ -307,6 +308,7 @@ function EngDashboardInner() {
         <EngDrive />
         <EngMap />
         <EngTelemetry />
+        <StellaMascot />
 
         <div className="text-center text-[10px] tracking-widest pt-4" style={{ color: "var(--eng-dim)" }}>
           STELLA UNIT-01 // ENGINEERING BUILD

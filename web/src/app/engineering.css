@@ -628,3 +628,90 @@
 .jarvis-orb[data-state="speaking"] .jarvis-label {
   color: var(--eng-amber);
 }
+
+/* Stella mascot animations */
+.stella-mascot {
+  transition: all 0.3s ease;
+}
+
+.stella-mascot-active .mascot-body {
+  animation: mascot-bounce 0.6s ease-in-out infinite;
+}
+
+.stella-mascot-active .mascot-shadow {
+  animation: mascot-shadow-pulse 0.6s ease-in-out infinite;
+}
+
+.stella-mascot-charging .mascot-body {
+  animation: mascot-breathe 2s ease-in-out infinite;
+}
+
+.stella-mascot-standby .mascot-body {
+  animation: mascot-breathe 4s ease-in-out infinite;
+}
+
+.stella-mascot-offline {
+  opacity: 0.5;
+  filter: grayscale(0.7);
+}
+
+@keyframes mascot-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes mascot-shadow-pulse {
+  0%, 100% { transform: scaleX(1); opacity: 0.3; }
+  50% { transform: scaleX(0.85); opacity: 0.2; }
+}
+
+@keyframes mascot-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.mascot-eye {
+  animation: mascot-blink 4s ease-in-out infinite;
+}
+
+@keyframes mascot-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+
+.mascot-z {
+  animation: mascot-float 2s ease-in-out infinite;
+}
+
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(-4px); opacity: 0.6; }
+}
+
+.mascot-bolt {
+  animation: mascot-bolt-flash 1.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes mascot-bolt-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.mascot-motion line {
+  animation: mascot-motion-dash 0.5s linear infinite;
+}
+
+@keyframes mascot-motion-dash {
+  0% { transform: translateX(0); opacity: 0.8; }
+  100% { transform: translateX(-6px); opacity: 0; }
+}
+
+.mascot-btn {
+  animation: mascot-btn-glow 2s ease-in-out infinite;
+}
+
+@keyframes mascot-btn-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
