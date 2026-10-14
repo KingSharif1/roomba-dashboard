@@ -16,7 +16,9 @@ export type TelemetryKind =
   | "audio_trigger"
   | "battery_snapshot"
   | "setting"
-  | "auto_return";
+  | "auto_return"
+  | "twerk"
+  | "voice_heard";
 
 export interface TelemetryEvent {
   kind: TelemetryKind;
