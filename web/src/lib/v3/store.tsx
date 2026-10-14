@@ -419,6 +419,28 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
 
   const setSoundTrigger = useCallback((v: boolean) => setSoundTriggerState(v), []);
 
+  // Listen for commands from the text assistant
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail?.action) return;
+      const { action, app, dir } = detail;
+      if (action === "twerk") twerk();
+      else if (action === "stop") drive("stop");
+      else if (action === "dock") cleanMode("dock");
+      else if (action === "drive" && dir) drive(dir);
+      else if (action === "roku" && app && robotUrl && connection === "live") {
+        fetch(`${robotUrl}/roku/launch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ app }),
+        }).catch(() => {});
+      }
+    };
+    window.addEventListener("stella-cmd", handler);
+    return () => window.removeEventListener("stella-cmd", handler);
+  }, [twerk, drive, cleanMode, robotUrl, connection]);
+
   // Tailscale probe: try the Pi's WebSocket; 5s to prove we're on the
   // tailnet. No credentials — reachability IS the authentication.
   // Pi side: `tailscale serve https` so the browser gets valid HTTPS/WSS
