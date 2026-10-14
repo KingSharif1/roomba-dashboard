@@ -66,6 +66,8 @@ interface V3RobotApi {
   availableVoices: SpeechSynthesisVoice[];
   cleaning: { vacuum: boolean; main_brush: boolean; side_brush: boolean };
   setCleaningMotors: (v: boolean, m: boolean, s: boolean) => void;
+  robotOnline: boolean;
+  checkRobotCapability: () => Promise<boolean>;
   activeDirection: string | null;
   setSpeed: (s: number) => void;
   dismissDoorEvent: () => void;
@@ -115,6 +117,9 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   const [soundTrigger, setSoundTriggerState] = useState(false);
   const voiceTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [connection, setConnection] = useState<V3Connection>("connecting");
+  // Robot hardware status (separate from Pi API connectivity)
+  // connection=live means Pi API is up; robotOnline means hardware can move
+  const [robotOnline, setRobotOnline] = useState(false);
   const [robotUrl] = useState<string | null>(
     () => process.env.NEXT_PUBLIC_ROBOT_URL?.replace(/\/$/, "") || null
   );
@@ -333,6 +338,36 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 3000));
   }, [robotUrl]);
 
+  // Check if robot hardware can actually perform actions
+  // Polls /status which reports connected:false when robot is offline
+  const checkRobotCapability = useCallback(async (): Promise<boolean> => {
+    if (!robotUrl) {
+      setRobotOnline(false);
+      return false;
+    }
+    try {
+      const res = await fetch(`${robotUrl}/status`);
+      const data = await res.json();
+      const capable = data.connected === true && data.state !== "error";
+      setRobotOnline(capable);
+      return capable;
+    } catch {
+      setRobotOnline(false);
+      return false;
+    }
+  }, [robotUrl]);
+
+  // Poll robot status every 10s when Pi is live
+  useEffect(() => {
+    if (!robotUrl || connection !== "live") {
+      setRobotOnline(false);
+      return;
+    }
+    checkRobotCapability();
+    const id = setInterval(checkRobotCapability, 10000);
+    return () => clearInterval(id);
+  }, [robotUrl, connection, checkRobotCapability]);
+
   const drive = useCallback((dir: "up" | "down" | "left" | "right" | "stop") => {
     if (dir === "stop") {
       setMode("idle");
@@ -341,6 +376,11 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
         fetch(`${robotUrl}/control/stop`, { method: "POST" }).catch(() => {});
       }
       return;
+    }
+    // If robot is offline, warn but still try (Pi may recover)
+    if (!robotOnline) {
+      console.warn("[drive] Robot reports offline — command may not execute");
+      setVoiceLine("\u201cStella can't move right now — robot is offline.\u201d");
     }
     setMode("cleaning");
     setHeading(HEADINGS[dir]);
@@ -896,6 +936,8 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       availableVoices,
       cleaning,
       setCleaningMotors,
+      robotOnline,
+      checkRobotCapability,
       activeDirection,
       setSpeed,
       dismissDoorEvent,

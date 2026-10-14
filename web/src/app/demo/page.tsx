@@ -8,7 +8,7 @@ import { StellaMascot } from "@/components/v3/stella-mascot";
 
 /* Engineering status header */
 function EngHeader() {
-  const { state } = useV3Robot();
+  const { state, robotOnline } = useV3Robot();
   const { connection, battery, mode } = state;
   const isLive = connection === "live";
 
@@ -30,6 +30,11 @@ function EngHeader() {
             <div className={`font-bold text-sm ${isLive ? "eng-glow-green" : "eng-glow-amber"}`}>
               {isLive ? "● LIVE" : "○ " + connection.toUpperCase()}
             </div>
+            {isLive && (
+              <div className="text-[9px] tracking-widest" style={{ color: robotOnline ? "var(--eng-green)" : "var(--eng-amber)" }}>
+                {robotOnline ? "ROBOT ONLINE" : "ROBOT OFFLINE"}
+              </div>
+            )}
           </div>
           <div className="text-right min-w-[80px]">
             <div className="text-[10px] tracking-widest mb-1" style={{ color: "var(--eng-muted)" }}>
