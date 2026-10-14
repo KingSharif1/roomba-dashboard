@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { BatteryCharging } from "lucide-react";
-import { demoBatteryHistory, demoBatteryDetail } from "@/lib/v3/demo";
+import { demoBatteryHistory, demoBatteryDetail } from "../../../../data/demo";
 import { useV3Robot } from "@/lib/v3/store";
 import { V3Collapsible } from "./collapsible-card";
 
