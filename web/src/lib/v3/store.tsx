@@ -347,8 +347,11 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
           logTelemetry("voice_heard", { heard });
           let action: string | null = null;
           let rokuApp: string | null = null;
+          let playQuery: string | null = null;
+          const playMatch = heard.match(/\bplay\s+(.+)/);
           const openMatch = heard.match(/\bopen\s+(spotify|youtube|netflix|hulu|disney)/);
-          if (openMatch) { action = "roku"; rokuApp = openMatch[1]; }
+          if (playMatch) { action = "spotify_play"; playQuery = playMatch[1].trim(); }
+          else if (openMatch) { action = "roku"; rokuApp = openMatch[1]; }
           else if (/\btwerk\b/.test(heard)) action = "twerk";
           else if (/\bstop\b/.test(heard)) action = "stop";
           else if (/\bdock\b|\bgo home\b|\bcharge\b/.test(heard)) action = "dock";
@@ -357,7 +360,21 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
           else if (/\bleft\b/.test(heard)) action = "left";
           else if (/\bright\b/.test(heard)) action = "right";
           setVoice("speaking");
-          if (action === "roku" && rokuApp) {
+          if (action === "spotify_play" && playQuery) {
+            setVoiceLine(`“Playing ${playQuery} on Spotify.”`);
+            fetch("/api/spotify/play", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query: playQuery }),
+            })
+              .then((r) => r.json())
+              .then((d) => {
+                if (d.success) setVoiceLine(`“Now playing ${d.track} by ${d.artist}.”`);
+                else setVoiceLine(`“Couldn't play that: ${d.error}”`);
+              })
+              .catch(() => setVoiceLine("“Spotify isn't connected. Visit /api/spotify/login first.”"));
+          }
+          else if (action === "roku" && rokuApp) {
             setVoiceLine(`“Opening ${rokuApp}.”`);
             if (robotUrl && connection === "live") {
               fetch(`${robotUrl}/roku/launch`, {
