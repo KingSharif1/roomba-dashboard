@@ -305,6 +305,88 @@ function EngTelemetry() {
 }
 
 /* Engineering drive control */
+/* TV Remote - full Roku remote control */
+function EngTVRemote() {
+  const { state } = useV3Robot();
+  const isLive = state.connection === "live";
+  const [open, setOpen] = useState(false);
+
+  const sendKey = async (key: string) => {
+    if (!isLive) return;
+    try {
+      await fetch(`${state.robotUrl}/roku/key`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key }),
+      });
+    } catch {}
+  };
+
+  const keyBtn = (key: string, label: string, wide = false) => (
+    <button
+      onClick={() => sendKey(key)}
+      disabled={!isLive}
+      className="eng-btn"
+      style={{ minWidth: wide ? "80px" : "48px", opacity: isLive ? 1 : 0.4 }}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="eng-panel">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="eng-panel-header w-full text-left cursor-pointer"
+        style={{ background: "var(--eng-panel-2)" }}
+      >
+        <span className="eng-panel-title">📺 TV Remote</span>
+        <span className="text-[10px] font-bold tracking-widest" style={{ color: "var(--eng-cyan)" }}>
+          {open ? "[−]" : "[+]"}
+        </span>
+      </button>
+      {open && (
+        <div className="p-4 space-y-4" style={{ borderTop: "1px solid var(--eng-border)" }}>
+          {/* D-pad */}
+          <div className="grid grid-cols-3 gap-2 w-fit mx-auto">
+            <span />
+            {keyBtn("Up", "▲")}
+            <span />
+            {keyBtn("Left", "◀")}
+            {keyBtn("Select", "OK")}
+            {keyBtn("Right", "▶")}
+            <span />
+            {keyBtn("Down", "▼")}
+            <span />
+          </div>
+          {/* Navigation */}
+          <div className="flex gap-2 justify-center">
+            {keyBtn("Home", "🏠 Home", true)}
+            {keyBtn("Back", "◀ Back", true)}
+          </div>
+          {/* Playback */}
+          <div className="flex gap-2 justify-center">
+            {keyBtn("Rev", "⏮")}
+            {keyBtn("PlayPause", "⏯")}
+            {keyBtn("Fwd", "⏭")}
+          </div>
+          {/* Volume */}
+          <div className="flex gap-2 justify-center items-center">
+            {keyBtn("VolumeMute", "🔇")}
+            {keyBtn("VolumeDown", "🔉 −")}
+            {keyBtn("VolumeUp", "🔊 +")}
+          </div>
+          {!isLive && (
+            <div className="text-[10px] text-center" style={{ color: "var(--eng-amber)" }}>
+              Connect to Stella to control TV
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* Unified Controller - drive + cleaning in one panel */
 function EngController() {
   const [tab, setTab] = useState<"drive" | "clean">("drive");
@@ -509,6 +591,7 @@ function EngDashboardInner() {
         <EngVoice />
         <EngVoiceSettings />
         <EngController />
+        <EngTVRemote />
         <EngMap />
         <EngTelemetry />
 

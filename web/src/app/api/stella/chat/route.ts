@@ -10,6 +10,7 @@ Your capabilities (return as JSON):
 - dance_party: {"action": "dance_party", "song": "song name", "room": "optional room name"}
 - roku: {"action": "roku", "app": "spotify|youtube|netflix|hulu|disney"}
 - spotify: {"action": "spotify", "song": "song name", "room": "optional"}
+- tv_key: {"action": "tv_key", "key": "Home|Back|Up|Down|Left|Right|Select|Play|Pause|PlayPause|VolumeUp|VolumeDown|VolumeMute"}
 - dock: {"action": "dock"}
 - status: {"action": "status"}
 
@@ -29,6 +30,9 @@ Examples:
 - "twerk and play youngboy on bedroom" → {"reply": "Dance party in the bedroom!", "commands": [{"action": "dance_party", "song": "youngboy", "room": "bedroom"}]}
 - "how are you" → {"reply": "All systems nominal and ready for commands.", "commands": []}
 - "open netflix" → {"reply": "Opening Netflix.", "commands": [{"action": "roku", "app": "netflix"}]}
+- "volume up" → {"reply": "Turning it up.", "commands": [{"action": "tv_key", "key": "VolumeUp"}]}
+- "pause" → {"reply": "Paused.", "commands": [{"action": "tv_key", "key": "Pause"}]}
+- "go back" → {"reply": "Going back.", "commands": [{"action": "tv_key", "key": "Back"}]}
 
 Keep replies short and fun. You're a robot, not a chatbot — if they ask something you can't do, say so briefly.`;
 

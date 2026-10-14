@@ -521,6 +521,15 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
         await new Promise((r) => setTimeout(r, 4000));
       } catch {}
     }
+    else if (action === "tv_key" && robotUrl && connection === "live") {
+      try {
+        await fetch(`${robotUrl}/roku/key`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: cmd.key }),
+        });
+      } catch {}
+    }
     else if (action === "spotify") {
       const res = await fetch("/api/spotify/play", {
         method: "POST",
@@ -607,6 +616,14 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
           if (playMatch) { action = "spotify_play"; playQuery = playMatch[1].trim(); }
           else if (openMatch) { action = "roku"; rokuApp = openMatch[1]; }
           else if (/\btwerk\b/.test(text)) action = "twerk";
+          // TV remote voice commands
+          else if (/\bvolume up\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "VolumeUp"}); setVoiceLine("\u201cVolume up.\u201d"); return; }
+          else if (/\bvolume down\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "VolumeDown"}); setVoiceLine("\u201cVolume down.\u201d"); return; }
+          else if (/\bmute\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "VolumeMute"}); setVoiceLine("\u201cMuted.\u201d"); return; }
+          else if (/\bpause\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "Pause"}); setVoiceLine("\u201cPaused.\u201d"); return; }
+          else if (/\bplay\b/.test(text) && !playMatch) { await executeClaudeCommand({action: "tv_key", key: "Play"}); setVoiceLine("\u201cPlaying.\u201d"); return; }
+          else if (/\bgo back\b|\bback\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "Back"}); setVoiceLine("\u201cGoing back.\u201d"); return; }
+          else if (/\bhome\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "Home"}); setVoiceLine("\u201cGoing home.\u201d"); return; }
           else if (/\bstop\b/.test(text)) action = "stop";
           else if (/\bdock\b|\bgo home\b|\bcharge\b/.test(text)) action = "dock";
           else if (/\bforward\b|\bahead\b|\bgo\b/.test(text)) action = "up";
