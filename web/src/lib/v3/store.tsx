@@ -489,13 +489,48 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
 
   const setSpeed = useCallback((s: number) => setSpeedState(s), []);
 
-  // Log interaction for Stella's learning
-  const logInteraction = useCallback(async (heard: string, action: string, success: boolean, details: any = {}) => {
+  // Log interaction for Stella's learning (model-agnostic training data)
+  const logInteraction = useCallback(async (
+    heard: string,
+    action: string,
+    success: boolean,
+    details: any = {},
+    model: string = "claude-sonnet-4-5",  // Track which model handled it
+  ) => {
+    // Training-friendly format: instruction → action → outcome
+    // Works for fine-tuning any model later (open-source, local, etc.)
+    const trainingSample = {
+      // Metadata
+      timestamp: new Date().toISOString(),
+      model,  // Which model produced this (for comparison across models)
+      version: "1.0",
+      // Instruction tuning format
+      instruction: heard,  // What the user said
+      input: {
+        context: {
+          connection: details.connection || "unknown",
+          battery: details.battery || null,
+        },
+      },
+      // Expected output
+      output: {
+        reply: details.reply || "",
+        commands: details.commands || [{ action }],
+      },
+      // Outcome for RLHF / preference learning
+      outcome: {
+        success,
+        error: details.error || null,
+        duration_ms: details.duration_ms || null,
+      },
+      // Raw for debugging
+      raw: { action, details },
+    };
     try {
       await fetch("/api/stella/log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ heard, action, success, details }),
+        body: JSON.stringify(trainingSample),
       });
     } catch {}
   }, []);
