@@ -121,7 +121,7 @@ function EngVoiceSettings() {
       {open && (
         <div className="p-3 space-y-2" style={{ borderTop: "1px solid var(--eng-border)" }}>
           <div className="text-[10px]" style={{ color: "var(--eng-muted)" }}>
-            Choose Stella's voice:
+            Choose Stella's voice ({englishVoices.length} available):
           </div>
           <select
             value={ttsVoiceURI || ""}
@@ -147,6 +147,11 @@ function EngVoiceSettings() {
           >
             🔊 Test Voice
           </button>
+          {englishVoices.length <= 2 && (
+            <div className="text-[10px]" style={{ color: "var(--eng-amber)" }}>
+              Your device only has {englishVoices.length} voice(s). For more voices, try Chrome on desktop or install additional TTS voices in your device settings.
+            </div>
+          )}
         </div>
       )}
     </div>

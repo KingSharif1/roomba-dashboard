@@ -264,8 +264,11 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
     const voices = window.speechSynthesis.getVoices();
-    // Use selected voice, or prefer a natural-sounding one
-    const selected = ttsVoiceURI && voices.find(v => v.voiceURI === ttsVoiceURI);
+    // Use selected voice (match by URI or name), or prefer a natural-sounding one
+    const selected = ttsVoiceURI && (
+      voices.find(v => v.voiceURI === ttsVoiceURI) ||
+      voices.find(v => v.name === ttsVoiceURI)
+    );
     const preferred = selected ||
                       voices.find(v => v.name.includes("Google US English")) ||
                       voices.find(v => v.name.includes("Samantha")) ||
