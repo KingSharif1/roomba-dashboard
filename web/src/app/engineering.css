@@ -37,7 +37,7 @@
 .eng-panel {
   background: var(--eng-panel);
   border: 1px solid var(--eng-border);
-  border-radius: 16px;
+  border-radius: 8px;
   position: relative;
   overflow: hidden;
 }
@@ -142,9 +142,9 @@
   letter-spacing: 0.15em;
   text-transform: uppercase;
   font-weight: 700;
-  padding: 10px 16px;
+  padding: 8px 20px;
   border: 1px solid var(--eng-border-hi);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--eng-panel-2);
   color: var(--eng-text);
   cursor: pointer;

@@ -48,7 +48,7 @@ export async function POST(req: Request) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-5",
         max_tokens: 300,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: message }],
@@ -58,14 +58,6 @@ export async function POST(req: Request) {
     const data = await res.json();
     const text = data.content?.[0]?.text || "";
 
-    // Debug: if empty, return what Claude actually sent
-    if (!text && !data.content) {
-      return NextResponse.json({
-        reply: "",
-        commands: [],
-        _debug: { status: res.status, error: data.error?.message || JSON.stringify(data).slice(0, 200) }
-      });
-    }
 
     // Parse the JSON response
     try {
