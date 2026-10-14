@@ -1,13 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { BatteryCharging } from "lucide-react";
-import { demoBatteryHistory, demoBatteryDetail } from "@data/demo";
+import { demoBatteryHistory, demoBatteryDetail } from "@/lib/v3/demo";
 import { useV3Robot } from "@/lib/v3/store";
 import { V3Collapsible } from "./collapsible-card";
 
 export function V3BatteryPanel() {
   const { state } = useV3Robot();
   const { battery, mode } = state;
+  const [tab, setTab] = useState<"details" | "history">("details");
   const charging = mode === "docked" || demoBatteryDetail.charging;
   const accent = charging ? "var(--v3-mint)" : "var(--v3-coral)";
 
@@ -69,14 +71,46 @@ export function V3BatteryPanel() {
       <svg viewBox="0 0 200 34" className="w-full h-9 mt-1" aria-hidden>
         <polyline points={pts} fill="none" stroke={accent} strokeWidth="1.5" opacity="0.8" />
       </svg>
-      <dl className="mt-1 divide-y text-[13px]" style={{ borderColor: "var(--v3-border-soft)" }}>
-        {rows.map(([k, v]) => (
-          <div key={k} className="flex items-center justify-between py-1.5">
-            <dt style={{ color: "var(--v3-muted)" }}>{k}</dt>
-            <dd className="mono font-medium">{v}</dd>
-          </div>
+      {/* Progressive disclosure: secondary details behind tabs */}
+      <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: "var(--v3-border)" }}>
+        {(["details", "history"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className="flex-1 px-3 py-1.5 text-xs font-semibold capitalize"
+            style={{
+              background: tab === t ? "var(--v3-coral)" : "transparent",
+              color: tab === t ? "#1a0f0a" : "var(--v3-text)",
+            }}
+          >
+            {t}
+          </button>
         ))}
-      </dl>
+      </div>
+      {tab === "details" ? (
+        <dl className="divide-y text-[13px]" style={{ borderColor: "var(--v3-border-soft)" }}>
+          {rows.map(([k, v]) => (
+            <div key={k} className="flex items-center justify-between py-1.5">
+              <dt style={{ color: "var(--v3-muted)" }}>{k}</dt>
+              <dd className="mono font-medium">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <dl className="divide-y text-[13px]" style={{ borderColor: "var(--v3-border-soft)" }}>
+          {[
+            ["Capacity", `${demoBatteryDetail.capacityMah} mAh`],
+            ["Health", `${demoBatteryDetail.health}% · ${demoBatteryDetail.cycles} cycles`],
+            ["Last full charge", demoBatteryDetail.lastFullCharge],
+            ["Charge sessions (7d)", "6"],
+          ].map(([k, v]) => (
+            <div key={k} className="flex items-center justify-between py-1.5">
+              <dt style={{ color: "var(--v3-muted)" }}>{k}</dt>
+              <dd className="mono font-medium">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </V3Collapsible>
   );
 }
