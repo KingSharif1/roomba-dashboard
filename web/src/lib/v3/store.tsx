@@ -64,6 +64,8 @@ interface V3RobotApi {
   ttsVoiceURI: string | null;
   setVoicePreference: (uri: string) => void;
   availableVoices: SpeechSynthesisVoice[];
+  cleaning: { vacuum: boolean; main_brush: boolean; side_brush: boolean };
+  setCleaningMotors: (v: boolean, m: boolean, s: boolean) => void;
   setSpeed: (s: number) => void;
   dismissDoorEvent: () => void;
   dismissTimeline: (id: string) => void;
@@ -286,6 +288,25 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     };
     window.speechSynthesis.speak(utterance);
   }, [ttsVoiceURI]);
+
+  // Cleaning motors state
+  const [cleaning, setCleaning] = useState({ vacuum: false, main_brush: false, side_brush: false });
+
+  const setCleaningMotors = useCallback(async (vacuum: boolean, main_brush: boolean, side_brush: boolean) => {
+    if (!robotUrl || connection !== "live") return;
+    try {
+      const res = await fetch(`${robotUrl}/clean`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vacuum, main_brush, side_brush }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCleaning({ vacuum, main_brush, side_brush });
+        logTelemetry("clean", { vacuum, main_brush, side_brush });
+      }
+    } catch {}
+  }, [robotUrl, connection]);
 
   // Wake Stella: restarts the ROS2 driver to reconnect to the robot
   const wakeRobot = useCallback(async () => {
@@ -755,6 +776,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
         connection,
         robotUrl,
         checks,
+        cleaning,
       },
       selectRoom,
       cleanMode,
@@ -765,6 +787,8 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       ttsVoiceURI,
       setVoicePreference,
       availableVoices,
+      cleaning,
+      setCleaningMotors,
       setSpeed,
       dismissDoorEvent,
       dismissTimeline,

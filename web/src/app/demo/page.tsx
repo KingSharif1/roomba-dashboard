@@ -142,17 +142,98 @@ function EngVoiceSettings() {
               </option>
             ))}
           </select>
-          <button
-            onClick={() => speak("Hello, I'm Stella. How do I sound?")}
-            className="eng-btn w-full"
-          >
-            🔊 Test Voice
-          </button>
+          <div className="flex justify-center">
+            <button
+              onClick={() => speak("Hello, I'm Stella. How do I sound?")}
+              className="eng-btn"
+            >
+              🔊 Test
+            </button>
+          </div>
           {englishVoices.length <= 2 && (
             <div className="text-[10px]" style={{ color: "var(--eng-amber)" }}>
               Your device only has {englishVoices.length} voice(s). For more voices, try Chrome on desktop or install additional TTS voices in your device settings.
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* Cleaning controls - vacuum and brushes */
+function EngCleaning() {
+  const { state, cleaning, setCleaningMotors } = useV3Robot();
+  const isLive = state.connection === "live";
+  const [open, setOpen] = useState(false);
+  const anyOn = cleaning.vacuum || cleaning.main_brush || cleaning.side_brush;
+
+  const toggle = (key: "vacuum" | "main_brush" | "side_brush") => {
+    const next = { ...cleaning, [key]: !cleaning[key] };
+    setCleaningMotors(next.vacuum, next.main_brush, next.side_brush);
+  };
+
+  const allOff = () => setCleaningMotors(false, false, false);
+  const allOn = () => setCleaningMotors(true, true, true);
+
+  return (
+    <div className="eng-panel">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="eng-panel-header w-full text-left cursor-pointer"
+        style={{ background: "var(--eng-panel-2)" }}
+      >
+        <span className="eng-panel-title">
+          Cleaning {anyOn && <span style={{ color: "var(--eng-green)" }}>●</span>}
+        </span>
+        <span className="text-[10px] font-bold tracking-widest" style={{ color: "var(--eng-cyan)" }}>
+          {open ? "[−]" : "[+]"}
+        </span>
+      </button>
+      {open && (
+        <div className="p-3 space-y-2" style={{ borderTop: "1px solid var(--eng-border)" }}>
+          {!isLive && (
+            <div className="text-[10px]" style={{ color: "var(--eng-amber)" }}>
+              Connect to Stella to control cleaning
+            </div>
+          )}
+          {[
+            { key: "vacuum" as const, label: "Vacuum", icon: "🌀" },
+            { key: "main_brush" as const, label: "Main Brush", icon: "🧹" },
+            { key: "side_brush" as const, label: "Side Brush", icon: "🖌️" },
+          ].map(({ key, label, icon }) => (
+            <button
+              key={key}
+              onClick={() => toggle(key)}
+              disabled={!isLive}
+              className="w-full flex items-center justify-between p-2"
+              style={{
+                background: cleaning[key] ? "rgba(0, 255, 136, 0.1)" : "var(--eng-panel-2)",
+                border: `1px solid ${cleaning[key] ? "var(--eng-green)" : "var(--eng-border)"}`,
+                borderRadius: "8px",
+                opacity: isLive ? 1 : 0.5,
+              }}
+            >
+              <span className="text-xs">{icon} {label}</span>
+              <span
+                className="text-[10px] font-bold px-2 py-1 rounded-full"
+                style={{
+                  background: cleaning[key] ? "var(--eng-green)" : "var(--eng-border)",
+                  color: cleaning[key] ? "var(--eng-bg-deep)" : "var(--eng-muted)",
+                }}
+              >
+                {cleaning[key] ? "ON" : "OFF"}
+              </span>
+            </button>
+          ))}
+          <div className="flex gap-2 justify-center pt-1">
+            <button onClick={allOn} disabled={!isLive} className="eng-btn">
+              All On
+            </button>
+            <button onClick={allOff} disabled={!isLive} className="eng-btn">
+              All Off
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -243,16 +324,15 @@ function EngDrive() {
       {open && (
         <>
           {!isLive && (
-            <div className="p-3" style={{ borderTop: "1px solid var(--eng-border)" }}>
+            <div className="p-3 flex flex-col items-center gap-2" style={{ borderTop: "1px solid var(--eng-border)" }}>
               <button
                 onClick={() => wakeRobot()}
-                className="eng-btn eng-btn-primary w-full"
-                style={{ padding: "12px" }}
+                className="eng-btn eng-btn-primary"
               >
-                ⏰ WAKE STELLA
+                ⏰ Wake Stella
               </button>
-              <div className="mt-2 text-[10px]" style={{ color: "var(--eng-muted)" }}>
-                Stella is not responding. Press to restart the driver and reconnect.
+              <div className="text-[10px] text-center" style={{ color: "var(--eng-muted)" }}>
+                Not responding — press to reconnect
               </div>
             </div>
           )}
@@ -306,6 +386,7 @@ function EngDashboardInner() {
         <EngVoice />
         <EngVoiceSettings />
         <EngDrive />
+        <EngCleaning />
         <EngMap />
         <EngTelemetry />
         <StellaMascot />

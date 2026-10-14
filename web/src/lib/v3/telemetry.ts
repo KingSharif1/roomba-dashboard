@@ -20,7 +20,8 @@ export type TelemetryKind =
   | "twerk"
   | "voice_heard"
   | "dance_party"
-  | "wake";
+  | "wake"
+  | "clean";
 
 export interface TelemetryEvent {
   kind: TelemetryKind;
