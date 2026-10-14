@@ -382,20 +382,28 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       } catch {}
     }
     setVoiceLine(`"Dance party — playing ${query}."`);
-    // Start music and dance at the same time
-    const musicPromise = fetch("/api/spotify/play", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, target }),
-    }).then((r) => r.json());
-    // Start twerk immediately (don't wait for music)
-    twerk(true); // true = party mode (repeat 3x, no beep at end)
-    const result = await musicPromise;
-    if (result.success) {
-      setVoiceLine(`"Now playing ${result.track} — Stella's dancing."`);
-    } else {
-      setVoiceLine(`"Dancing anyway — Spotify issue: ${result.error}"`);
+    // Play music FIRST, confirm it's playing, THEN dance
+    let musicOk = false;
+    try {
+      const res = await fetch("/api/spotify/play", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, target }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        musicOk = true;
+        setVoiceLine(`"Now playing ${result.track} — watch this."`);
+        // Give the song a moment to actually start
+        await new Promise((r) => setTimeout(r, 2000));
+      } else {
+        setVoiceLine(`"Spotify issue: ${result.error} — dancing anyway."`);
+      }
+    } catch {
+      setVoiceLine(`"Couldn't reach Spotify — dancing anyway."`);
     }
+    // NOW start dancing (music is confirmed playing)
+    twerk(true);
     voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 3000));
   }, []);
 
