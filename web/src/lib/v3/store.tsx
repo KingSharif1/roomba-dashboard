@@ -248,6 +248,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     if (dir === "right") setDx((v) => clamp(v + DRIVE_STEP));
     logTelemetry("drive", { dir });
     // Send drive command to Pi if live
+    console.log("[drive]", dir, { robotUrl, connection });
     if (robotUrl && connection === "live") {
       const cmd = {
         up: { linear: 0.2, angular: 0 },
@@ -255,11 +256,14 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
         left: { linear: 0, angular: 0.5 },
         right: { linear: 0, angular: -0.5 },
       }[dir];
+      console.log("[drive] sending", cmd, "to", `${robotUrl}/drive`);
       fetch(`${robotUrl}/drive`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(cmd),
-      }).catch(() => {});
+      }).then(r => console.log("[drive] response", r.status)).catch(e => console.error("[drive] failed", e));
+    } else {
+      console.warn("[drive] blocked: robotUrl=", robotUrl, "connection=", connection);
     }
   }, [robotUrl, connection]);
 
