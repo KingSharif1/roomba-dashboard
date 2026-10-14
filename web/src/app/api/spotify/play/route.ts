@@ -107,9 +107,11 @@ export async function POST(req: Request) {
         d.name.toLowerCase().includes(target.toLowerCase())
       ) || null;
   }
-  // Fallback: most recently active TV, then any TV, then active device, then first
+  // Fallback: default to '75 Living' (living room), then most recently active TV,
+  // then any TV, then active device, then first
   targetDevice =
     targetDevice ||
+    tvDevices.find((d: any) => d.name.toLowerCase().includes("75 living")) ||
     tvDevices.find((d: any) => d.is_active) ||
     tvDevices[0] ||
     devices.find((d: any) => d.is_active) ||

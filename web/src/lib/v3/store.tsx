@@ -59,6 +59,7 @@ interface V3RobotApi {
   cleanMode: (m: "all" | "stop" | "dock") => void;
   drive: (dir: "up" | "down" | "left" | "right" | "stop") => void;
   twerk: () => void;
+  wakeRobot: () => void;
   setSpeed: (s: number) => void;
   dismissDoorEvent: () => void;
   dismissTimeline: (id: string) => void;
@@ -230,6 +231,22 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       logTelemetry("run_start", { rooms: "all" });
     }
   }, [robotUrl, connection]);
+
+  // Wake Stella: restarts the ROS2 driver to reconnect to the robot
+  const wakeRobot = useCallback(async () => {
+    if (!robotUrl) return;
+    logTelemetry("wake", {});
+    setVoiceLine("\u201cWaking Stella...\u201d");
+    setVoice("speaking");
+    try {
+      const res = await fetch(`${robotUrl}/wake`, { method: "POST" });
+      const data = await res.json();
+      setVoiceLine(data.success ? "\u201cStella is waking up.\u201d" : `"Wake failed: ${data.error}"`);
+    } catch {
+      setVoiceLine("\u201cCould not reach Stella.\u201d");
+    }
+    voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 3000));
+  }, [robotUrl]);
 
   const drive = useCallback((dir: "up" | "down" | "left" | "right" | "stop") => {
     if (dir === "stop") {
@@ -623,6 +640,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       cleanMode,
       drive,
       twerk,
+      wakeRobot,
       setSpeed,
       dismissDoorEvent,
       dismissTimeline,

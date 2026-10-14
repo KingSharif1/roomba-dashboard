@@ -62,10 +62,19 @@ function EngVoice() {
       <div className="p-3">
         <button
           onClick={() => toggleListening()}
-          className="eng-btn eng-btn-primary w-full"
+          className="eng-btn eng-btn-primary w-full relative overflow-hidden"
           style={{ padding: "18px", fontSize: "15px" }}
         >
-          {voice === "listening" ? "● LISTENING..." : voice === "speaking" ? "◐ SPEAKING..." : "🎤 PUSH TO TALK"}
+          {voice === "listening" && (
+            <span className="voice-waves" aria-hidden="true">
+              {[...Array(5)].map((_, i) => (
+                <span key={i} className="voice-bar" style={{ animationDelay: `${i * 0.1}s` }} />
+              ))}
+            </span>
+          )}
+          <span className="relative z-10">
+            {voice === "listening" ? "● LISTENING..." : voice === "speaking" ? "◐ SPEAKING..." : "🎤 PUSH TO TALK"}
+          </span>
         </button>
         {voiceLine && (
           <div className="mt-2 p-2 text-xs" style={{ background: "var(--eng-panel-2)", border: "1px solid var(--eng-border)" }}>
@@ -115,12 +124,29 @@ function EngTelemetry() {
 
 /* Engineering drive control */
 function EngDrive() {
+  const { state, wakeRobot } = useV3Robot();
+  const isLive = state.connection === "live";
+
   return (
     <div className="eng-panel">
       <div className="eng-panel-header">
         <span className="eng-panel-title">Manual Drive</span>
         <span className="text-[9px] tracking-widest" style={{ color: "var(--eng-muted)" }}>HOLD TO MOVE</span>
       </div>
+      {!isLive && (
+        <div className="p-3" style={{ borderBottom: "1px solid var(--eng-border)" }}>
+          <button
+            onClick={() => wakeRobot()}
+            className="eng-btn eng-btn-primary w-full"
+            style={{ padding: "12px" }}
+          >
+            ⏰ WAKE STELLA
+          </button>
+          <div className="mt-2 text-[10px]" style={{ color: "var(--eng-muted)" }}>
+            Stella is not responding. Press to restart the driver and reconnect.
+          </div>
+        </div>
+      )}
       <div className="p-4 flex justify-center">
         <V3DrivePanel />
       </div>
