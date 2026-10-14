@@ -595,7 +595,9 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     if (!cmd?.action) return;
     const { action } = cmd;
     if (action === "drive") {
-      if (!robotOnline) {
+      // Fresh check: don't rely on cached robotOnline which may be stale
+      const canMove = await checkRobotCapability();
+      if (!canMove) {
         setVoiceLine("\u201cI can't move right now — the robot is offline.\u201d");
         return;
       }
