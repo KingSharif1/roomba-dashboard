@@ -403,7 +403,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   // Browser beep via Web Audio (Pi has no beep endpoint yet).
   const twerk = useCallback((partyMode = false) => {
     // Twerk shake: rapid alternating moves for that booty-shake effect
-    // ~50 moves at 450ms each = ~22 seconds
+    // ~68 moves at 450ms each = ~30 seconds
     const twerkShake = [
       // Warm up: forward/back
       "up", "down", "up", "down",
@@ -421,13 +421,18 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       "left", "right", "left", "right", "left", "right", "left", "right",
       // Finale: bounce out
       "up", "down", "up", "down",
+      // Extended: keep the party going (~30 sec total)
+      "left", "right", "left", "right", "left", "right",
+      "up", "down", "up", "down",
+      "left", "left", "right", "right",
+      "up", "down", "left", "right",
     ] as Array<"up" | "down" | "left" | "right">;
     const single = [
       "up", "down", "up", "down",
       "left", "right", "left", "right",
       "up", "down",
     ] as Array<"up" | "down" | "left" | "right">;
-    // Party mode / twerk: use the long shake (~22 sec)
+    // Party mode / twerk: use the long shake (~30 sec)
     const moves = partyMode ? twerkShake : single;
     logTelemetry("twerk", {});
     setVoiceLine("“Watch this.”");
@@ -584,18 +589,8 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
           else if (/\bright\b/.test(text)) action = "right";
           setVoice("speaking");
           if (action === "spotify_play" && playQuery) {
-            setVoiceLine(`“Playing ${playQuery} on Spotify.”`);
-            fetch("/api/spotify/play", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ query: playQuery }),
-            })
-              .then((r) => r.json())
-              .then((d) => {
-                if (d.success) setVoiceLine(`“Now playing ${d.track} by ${d.artist}.”`);
-                else setVoiceLine(`“Couldn't play that: ${d.error}”`);
-              })
-              .catch(() => setVoiceLine("“Spotify isn't connected. Visit /api/spotify/login first.”"));
+            // Full flow: open Spotify on TV → wait → play → dance 30s
+            danceParty(playQuery);
           }
           else if (action === "roku" && rokuApp) {
             setVoiceLine(`“Opening ${rokuApp}.”`);
