@@ -1,5 +1,5 @@
 import type { CleaningSession, CustomRoute, LearningItem, NoGoZone, RobotStatus } from "./types";
-import { learningItems, noGoZones, routes, sessions } from "@data/catalog";
+import { learningItems, noGoZones, routes, sessions } from "../../../data/catalog";
 import { forceDemoDrop, demoLinkPhase, initialDemoLink, stepDemoLink, type DemoLinkPhase, type DemoLinkState } from "./demo/link";
 import { DOCK, stepMotion } from "./demo/physics";
 import { applyShowcase, statusForPreview, type MarkPreview } from "./demo/showcase";

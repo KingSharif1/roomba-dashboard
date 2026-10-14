@@ -10,8 +10,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { DoorBlockedEvent, RobotLocation, RobotMode, VoiceState } from "@data/types";
-import { demoDoors, demoLocation, demoRobot, demoRooms, demoTimeline, type TimelineEvent } from "@data/demo";
+import type { DoorBlockedEvent, RobotLocation, RobotMode, VoiceState } from "../../../../data/types";
+import { demoDoors, demoLocation, demoRobot, demoRooms, demoTimeline, type TimelineEvent } from "../../../../data/demo";
 import { logTelemetry } from "./telemetry";
 
 /** Connection to the physical robot. Tailscale membership IS the auth:
