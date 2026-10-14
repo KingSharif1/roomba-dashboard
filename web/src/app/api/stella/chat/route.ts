@@ -59,9 +59,10 @@ export async function POST(req: Request) {
     const text = data.content?.[0]?.text || "";
 
 
-    // Parse the JSON response
+    // Parse the JSON response (strip markdown code blocks first)
     try {
-      const parsed = JSON.parse(text);
+      const clean = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const parsed = JSON.parse(clean);
       return NextResponse.json(parsed);
     } catch {
       // If Claude didn't return valid JSON, wrap it
