@@ -35,7 +35,11 @@ Detailed project docs: https://github.com/KingSharif1/ARK/tree/main/projects/roo
 
 ## Key Files
 
-### Data Layer (`src/lib/`)
+### Data Layer
+
+Room, door, session, note, zone, and route seed lives in `data/` (`types.ts`, `demo.ts`, `catalog.ts`). The dashboard reads it through `web/src/lib/`.
+
+### App code (`web/src/lib/`)
 
 - **`types.ts`** — TypeScript interfaces for all data shapes
 - **`robot.ts`** — Legacy facade over the shared session. Browser-saved URLs are ignored.
@@ -43,24 +47,24 @@ Detailed project docs: https://github.com/KingSharif1/ARK/tree/main/projects/roo
 - **`mockRobot.ts`** — Simulated robot: battery, drive odometry, sample collections, link drops
 - **`access.ts`** — Owner-email gate. `OWNER_EMAIL` is compared on the server; the robot URL is omitted for everyone else.
 - **`connection/`** — WebSocket reconnect (backoff + jitter, stale heartbeat, resume on visibility/online) and emergency stop
-- **`hooks/use-robot.ts`** — Public state and commands for the UI
+- **`web/src/hooks/use-robot.ts`** — Public state and commands for the UI
 - **`utils.ts`** — Formatting helpers (time, duration, etc.)
-- **`src/hooks/use-robot-mode.ts`** — `true` while the session is in demo mode
+- **`web/src/hooks/use-robot-mode.ts`** — `true` while the session is in demo mode
 
-### Supabase (`src/lib/supabase/`)
+### Supabase (`web/src/lib/supabase/`)
 
 - **`client.ts`** — Browser-side Supabase client
 - **`server.ts`** — Server-side Supabase client
 - **`middleware.ts`** — Auth session management
 
-### Components
+### Components (`web/src/components/`)
 
-- **`components/ui/`** — Reusable UI primitives (Button, Card, etc.)
-- **`components/dashboard/`** — Dashboard-specific components
-- **`components/dashboard/drive-pad.tsx`** — Manual Drive pad (hold-to-drive buttons, WASD/arrows keyboard, speed slider, dead-man stop)
-- **`components/layout/`** — Layout components (Header)
+- **`ui/`** — Reusable UI primitives (Button, Card, etc.)
+- **`dashboard/`** — Dashboard-specific components
+- **`dashboard/drive-pad.tsx`** — Manual Drive pad (hold-to-drive buttons, WASD/arrows keyboard, speed slider, dead-man stop)
+- **`layout/`** — Layout components (Header)
 
-### Pages (`src/app/`)
+### Pages (`web/src/app/`)
 
 - **`/`** — Main dashboard (status, controls, map, camera)
 - **`/map`** — Full map view with no-go zones and route editing
@@ -166,7 +170,7 @@ Visitors are not redirected to `/login`. Demo mode is the default.
 
 Live control requires a Supabase session whose email matches `OWNER_EMAIL` (case-insensitive, server-side `getUser()`). The decision is `GET /api/access`. Mutating and status proxy calls go through `POST|GET /api/robot/*`, which returns 403 for non-owners and never forwards the request. The owner's browser still talks to the Pi directly after that check, because the Pi is tailnet-only and the hosting server usually cannot reach it.
 
-`src/proxy.ts` refreshes the Supabase cookie when the project env is set. It does not gate pages.
+`web/src/proxy.ts` refreshes the Supabase cookie when the project env is set. It does not gate pages.
 
 ## UI contract
 

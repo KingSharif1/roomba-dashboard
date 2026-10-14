@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
  * writes. Graceful no-op when Supabase isn't configured or the table
  * is missing — the dashboard must never depend on this.
  *
- * Expected table (see docs/TELEMETRY.md):
+ * Expected table (see data/TELEMETRY.md):
  *   stella_telemetry(id uuid pk, kind text, at timestamptz,
  *                    session text, data jsonb, created_at timestamptz)
  */

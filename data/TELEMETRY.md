@@ -31,7 +31,7 @@ directly.
 If either is missing, the route returns `{ ok: false, reason: "unconfigured" }`
 and the dashboard keeps working. Telemetry must never break the demo.
 
-## Event kinds (`src/lib/v3/telemetry.ts`)
+## Event kinds (`web/src/lib/v3/telemetry.ts`)
 
 | kind | when | data |
 |---|---|---|

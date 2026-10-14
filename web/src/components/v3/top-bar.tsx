@@ -3,7 +3,7 @@
 import { Settings, Mic } from "lucide-react";
 import { StellaMark } from "@/components/v3/stella-logo";
 import { modeLabel, useV3Robot } from "@/lib/v3/store";
-import type { RobotMode, VoiceState } from "@/lib/v3/types";
+import type { RobotMode, VoiceState } from "@data/types";
 
 function logoAnimClass(mode: RobotMode, voice: VoiceState): string {
   if (voice === "listening") return "v3-logo-listen";
