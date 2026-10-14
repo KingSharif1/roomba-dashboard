@@ -23,20 +23,22 @@ function EngHeader() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-4">
           <div className="text-right">
-            <div className="text-[9px] tracking-widest" style={{ color: "var(--eng-muted)" }}>LINK</div>
-            <div className={`font-bold ${isLive ? "eng-readout-green" : "eng-readout"}`}>
-              {isLive ? "LIVE" : connection.toUpperCase()}
+            <div className="text-[10px] tracking-widest" style={{ color: "var(--eng-muted)" }}>LINK</div>
+            <div className={`font-bold text-sm ${isLive ? "eng-glow-green" : "eng-glow-amber"}`}>
+              {isLive ? "● LIVE" : "○ " + connection.toUpperCase()}
+            </div>
+          </div>
+          <div className="text-right min-w-[80px]">
+            <div className="text-[10px] tracking-widest mb-1" style={{ color: "var(--eng-muted)" }}>PWR {Math.round(battery)}%</div>
+            <div className={`eng-bar ${battery > 50 ? "eng-bar-green" : battery > 20 ? "eng-bar-amber" : "eng-bar-red"}`}>
+              <div className="eng-bar-fill" style={{ width: `${battery}%` }} />
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[9px] tracking-widest" style={{ color: "var(--eng-muted)" }}>PWR</div>
-            <div className="eng-readout font-bold">{Math.round(battery)}%</div>
-          </div>
-          <div className="text-right">
-            <div className="text-[9px] tracking-widest" style={{ color: "var(--eng-muted)" }}>MODE</div>
-            <div className="eng-readout-cyan font-bold text-xs">{mode.toUpperCase()}</div>
+            <div className="text-[10px] tracking-widest" style={{ color: "var(--eng-muted)" }}>MODE</div>
+            <div className="eng-glow-cyan font-bold text-sm">{mode.toUpperCase()}</div>
           </div>
         </div>
       </div>
@@ -146,9 +148,16 @@ function EngMap() {
 }
 
 function EngDashboardInner() {
+  const { state } = useV3Robot();
+  const isLiveHeader = state.connection === "live";
+  const batteryHeader = state.battery;
   return (
     <div className="eng eng-grid-bg min-h-screen flex flex-col">
       <EngHeader />
+
+      <div className="eng-ticker">
+        <span>STELLA UNIT-01 // SYSTEMS NOMINAL // {isLiveHeader ? "UPLINK ACTIVE" : "STANDBY MODE"} // BATTERY {Math.round(batteryHeader)}% // READY FOR COMMANDS //</span>
+      </div>
 
       <main className="flex-1 p-3 space-y-3 max-w-2xl mx-auto w-full pb-8">
         <EngVoice />

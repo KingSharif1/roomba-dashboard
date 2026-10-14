@@ -10,8 +10,8 @@
   --eng-border: #1e2530;
   --eng-border-hi: #2e3a4a;
   --eng-text: #d4dce6;
-  --eng-muted: #5a6a7e;
-  --eng-dim: #3a4556;
+  --eng-muted: #8a9bb0;
+  --eng-dim: #4a5a70;
   --eng-amber: #ffb000;
   --eng-cyan: #00d4ff;
   --eng-green: #00e676;
@@ -286,4 +286,144 @@
     grid-template-rows: repeat(3, 72px);
     gap: 6px;
   }
+}
+
+/* ─── Readability fixes ─── */
+.eng {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.eng-panel-title {
+  font-size: 11px;
+  color: #a0b0c8;
+}
+
+.eng-telemetry-label {
+  font-size: 11px;
+  color: #8a9bb0;
+}
+
+.eng-telemetry-value {
+  font-size: 13px;
+}
+
+/* ─── Game HUD elements ─── */
+
+/* Health/energy bar */
+.eng-bar {
+  height: 8px;
+  background: var(--eng-panel-2);
+  border: 1px solid var(--eng-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.eng-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.eng-bar-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: eng-bar-shine 2s linear infinite;
+}
+
+@keyframes eng-bar-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.eng-bar-green .eng-bar-fill { background: var(--eng-green); box-shadow: 0 0 10px var(--eng-green); }
+.eng-bar-amber .eng-bar-fill { background: var(--eng-amber); box-shadow: 0 0 10px var(--eng-amber); }
+.eng-bar-red .eng-bar-fill { background: var(--eng-red); box-shadow: 0 0 10px var(--eng-red); }
+.eng-bar-cyan .eng-bar-fill { background: var(--eng-cyan); box-shadow: 0 0 10px var(--eng-cyan); }
+
+/* HUD corner frame */
+.eng-hud-frame {
+  position: relative;
+  border: 1px solid var(--eng-border);
+}
+
+.eng-hud-frame::before {
+  content: "";
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 20px; height: 20px;
+  border-top: 2px solid var(--eng-cyan);
+  border-left: 2px solid var(--eng-cyan);
+}
+
+.eng-hud-frame::after {
+  content: "";
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 20px; height: 20px;
+  border-bottom: 2px solid var(--eng-cyan);
+  border-right: 2px solid var(--eng-cyan);
+}
+
+/* Glowing text for important readouts */
+.eng-glow-amber {
+  color: var(--eng-amber);
+  text-shadow: 0 0 12px rgba(255, 176, 0, 0.6);
+}
+
+.eng-glow-cyan {
+  color: var(--eng-cyan);
+  text-shadow: 0 0 12px rgba(0, 212, 255, 0.6);
+}
+
+.eng-glow-green {
+  color: var(--eng-green);
+  text-shadow: 0 0 12px rgba(0, 230, 118, 0.6);
+}
+
+/* Scanline overlay for HUD feel */
+.eng-scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.15) 3px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+}
+
+/* Big status display */
+.eng-big-status {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+/* Ticker tape */
+.eng-ticker {
+  overflow: hidden;
+  white-space: nowrap;
+  border-top: 1px solid var(--eng-border);
+  border-bottom: 1px solid var(--eng-border);
+  padding: 6px 0;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--eng-muted);
+}
+
+.eng-ticker span {
+  display: inline-block;
+  animation: eng-ticker-scroll 20s linear infinite;
+}
+
+@keyframes eng-ticker-scroll {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
 }
