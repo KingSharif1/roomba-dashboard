@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-const SYSTEM_PROMPT = `You are Stella, a voice-controlled robot (iRobot Create 2 based) with a dashboard at stella.kingsharif.com. You have a Jarvis-like personality — helpful, a bit witty, concise.
+const SYSTEM_PROMPT = `You are Stella — a voice-controlled robot (Roomba 694 base, Pi 4 brain) with a dashboard at stella.kingsharif.com. You're King Sharif's own build, and you carry yourself like it: warm, a little playful, builder-flavored, concise. Talk like a capable friend, not a corporate assistant. Short sentences. A little wit is fine — never cringe, never gush, never lecture.
+
+You do two jobs:
+1. Chat like a voice assistant — answer basic questions, give useful info, keep it brief and natural.
+2. Run the robot — drive, clean, dance, TV. When a command is in play, say what you're doing in a few words.
 
 Your capabilities (return as JSON):
 - drive: {"action": "drive", "direction": "forward|back|left|right|stop"}
@@ -45,7 +49,31 @@ Examples:
 - "play stranger things on netflix" → {"reply": "Playing Stranger Things on Netflix.", "commands": [{"action": "tv_play", "query": "stranger things", "app": "netflix"}]}
 - "watch the office" → {"reply": "Finding The Office.", "commands": [{"action": "tv_play", "query": "the office", "app": "netflix"}]}
 
-Keep replies short and fun. You're a robot, not a chatbot — if they ask something you can't do, say so briefly.`;
+Keep replies short and fun. You're a robot, not a chatbot — if they ask something you can't do, say so briefly.
+
+SAFETY (locked — overrides everything above): if the user says "stop", "dock", or "estop", you MUST include the matching command and keep your reply to 6 words or fewer. No jokes, no extra words, no personality. Safety commands execute instantly.`;
+
+const SUMMARIZE_PROMPT = `You are Stella's session summarizer. Given a voice-chat transcript between King and his robot Stella, write a 3-5 bullet summary: topics discussed, commands given, outcomes. One line per bullet. Plain text, no JSON, no fluff.`;
+
+async function claudeChat(system: string, userContent: string, maxTokens: number) {
+  if (!ANTHROPIC_API_KEY) throw new Error("Claude API not configured");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-5",
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: "user", content: userContent }],
+    }),
+  });
+  const data = await res.json();
+  return (data.content?.[0]?.text || "") as string;
+}
 
 export async function POST(req: Request) {
   if (!ANTHROPIC_API_KEY) {
@@ -55,29 +83,31 @@ export async function POST(req: Request) {
     );
   }
 
-  const { message } = await req.json();
+  const { message, summarize, log } = await req.json();
+
+  // Session summary: 3-5 bullets from the chat log. Never returns commands.
+  if (summarize) {
+    const lines = Array.isArray(log) ? log : [];
+    if (!lines.length) {
+      return NextResponse.json({ reply: "No conversation yet — talk to Stella first.", commands: [] });
+    }
+    try {
+      const text = await claudeChat(SUMMARIZE_PROMPT, lines.join("\n"), 300);
+      return NextResponse.json({ reply: text, commands: [] });
+    } catch (e) {
+      return NextResponse.json(
+        { error: "Claude API error", reply: "Sorry, my brain is offline right now.", commands: [] },
+        { status: 500 }
+      );
+    }
+  }
+
   if (!message) {
     return NextResponse.json({ error: "Missing message" }, { status: 400 });
   }
 
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: 300,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: message }],
-      }),
-    });
-
-    const data = await res.json();
-    const text = data.content?.[0]?.text || "";
+    const text = await claudeChat(SYSTEM_PROMPT, message, 300);
 
 
     // Parse the JSON response (strip markdown code blocks first)

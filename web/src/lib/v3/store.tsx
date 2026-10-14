@@ -77,6 +77,16 @@ interface V3RobotApi {
    *  onTranscript → intent router → speak() → TTS → speaking. */
   toggleListening: () => void;
   setSoundTrigger: (v: boolean) => void;
+  /** Continuous conversation: auto-listen after Stella speaks (default off) */
+  conversation: boolean;
+  setConversation: (v: boolean) => void;
+  /** Mic granted for barge-in (interrupt Stella mid-sentence) */
+  bargeInReady: boolean;
+  /** Turn-by-turn voice chat log (persisted) */
+  chatLog: ChatTurn[];
+  clearChatLog: () => void;
+  /** Ask Claude for a 3-5 bullet summary of the session */
+  summarizeChat: () => Promise<string>;
   /** Send a command to the live robot. No-op in demo mode.
    *  Real wiring: JSON over the WebSocket opened by the probe below. */
   sendRobotCommand: (cmd: { type: string; [k: string]: unknown }) => void;
@@ -98,6 +108,8 @@ const roomName = (id: string) => demoRooms.find((r) => r.id === id)?.name ?? id;
 const roomLabel = (id: string) =>
   id === "living-room" ? "Living room" : roomName(id);
 
+export interface ChatTurn { role: "user" | "stella"; text: string; ts: number; }
+
 export function V3RobotProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<RobotMode>(demoRobot.mode);
   const [battery, setBattery] = useState(demoRobot.battery);
@@ -116,6 +128,36 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   const [voiceLine, setVoiceLine] = useState<string | null>(null);
   const [soundTrigger, setSoundTriggerState] = useState(false);
   const voiceTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Voice v2: continuous conversation mode (default off), barge-in, chat log.
+  const [conversation, setConversationState] = useState<boolean>(() => {
+    try { return localStorage.getItem("stella-conversation") === "1"; } catch { return false; }
+  });
+  const [bargeInReady, setBargeInReady] = useState(false);
+  const [chatLog, setChatLog] = useState<ChatTurn[]>(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem("stella-chat-log") || "[]");
+      return Array.isArray(raw) ? raw.slice(-100) : [];
+    } catch { return []; }
+  });
+  const conversationRef = useRef(conversation);
+  const chatLogRef = useRef(chatLog);
+  const voiceRef = useRef<VoiceState>("idle");
+  const recRef = useRef<any>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const bargeRafRef = useRef(0);
+  const bargeNodesRef = useRef<{ src: MediaStreamAudioSourceNode } | null>(null);
+  const bargeCtxRef = useRef<AudioContext | null>(null);
+  const speakTokenRef = useRef(0);
+  const silentRestartsRef = useRef(0);
+  const startListeningRef = useRef<() => void>(() => {});
+  useEffect(() => { voiceRef.current = voice; }, [voice]);
+  useEffect(() => { chatLogRef.current = chatLog; }, [chatLog]);
+  useEffect(() => {
+    conversationRef.current = conversation;
+  }, [conversation]);
+  useEffect(() => {
+    try { localStorage.setItem("stella-chat-log", JSON.stringify(chatLog.slice(-100))); } catch {}
+  }, [chatLog]);
   const [connection, setConnection] = useState<V3Connection>("connecting");
   // Robot hardware status (separate from Pi API connectivity)
   // connection=live means Pi API is up; robotOnline means hardware can move
@@ -268,6 +310,9 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     // Cancel any ongoing speech
     window.speechSynthesis.cancel();
+    // Invalidate any prior utterance's onend (barge-in / newer speak wins)
+    speakTokenRef.current++;
+    const myToken = speakTokenRef.current;
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
@@ -287,10 +332,19 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     utterance.onstart = () => {
       setVoice("speaking");
       setVoiceLine(`"${text}"`);
+      if (conversationRef.current) startBargeWatch();
     };
     utterance.onend = () => {
-      setVoice("idle");
-      voiceTimers.current.push(setTimeout(() => setVoiceLine(null), 2000));
+      stopBargeWatch();
+      if (speakTokenRef.current !== myToken) return; // superseded (barge-in / newer speak)
+      if (conversationRef.current) {
+        // Continuous conversation: no dead air — straight back to listening
+        silentRestartsRef.current = 0;
+        startListeningRef.current();
+      } else {
+        setVoice("idle");
+        voiceTimers.current.push(setTimeout(() => setVoiceLine(null), 2000));
+      }
     };
     window.speechSynthesis.speak(utterance);
   }, [ttsVoiceURI]);
@@ -302,10 +356,10 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   const [activeDirection, setActiveDirection] = useState<string | null>(null);
 
   const setCleaningMotors = useCallback(async (vacuum: boolean, main_brush: boolean, side_brush: boolean) => {
-    if (!robotUrl || connection !== "live") return;
-    // Update UI immediately (optimistic)
+    // Update UI immediately (optimistic) — always, so demo mode previews presets too
     setCleaning({ vacuum, main_brush, side_brush });
     logTelemetry("clean", { vacuum, main_brush, side_brush });
+    if (!robotUrl || connection !== "live") return;
     try {
       const res = await fetch(`${robotUrl}/clean`, {
         method: "POST",
@@ -665,123 +719,282 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
 
   // Voice commands via Web Speech API. Basic intents for now:
   // stop, forward/back/left/right, dock. 10s max per utterance.
-  const toggleListening = useCallback(() => {
+  // ---------- Voice v2: continuous conversation + barge-in + chat log ----------
+  // NOTE: staying on the Web Speech API for now. Whisper (server-side STT) is a
+  // future accuracy upgrade — needs mic streaming + API cost; revisit when the
+  // Pi mic + speaker hardware lands.
+
+  const stopBargeWatch = useCallback(() => {
+    cancelAnimationFrame(bargeRafRef.current);
+    try { bargeNodesRef.current?.src.disconnect(); } catch {}
+    bargeNodesRef.current = null;
+  }, []);
+
+  const doBarge = useCallback(() => {
+    // User started talking over Stella: kill TTS + barge watch, go straight to listening.
+    stopBargeWatch();
+    speakTokenRef.current++; // invalidate the current utterance's onend
+    try { window.speechSynthesis.cancel(); } catch {}
+    startListeningRef.current();
+  }, [stopBargeWatch]);
+
+  const startBargeWatch = useCallback(() => {
+    const stream = micStreamRef.current;
+    if (!stream || typeof window === "undefined") return;
+    try {
+      const AC = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AC) return;
+      const ac = bargeCtxRef.current ?? new AC();
+      bargeCtxRef.current = ac;
+      if (ac.state === "suspended") ac.resume().catch(() => {});
+      const src = ac.createMediaStreamSource(stream);
+      const analyser = ac.createAnalyser();
+      analyser.fftSize = 512;
+      src.connect(analyser);
+      bargeNodesRef.current = { src };
+      const buf = new Float32Array(analyser.fftSize);
+      let hot = 0;
+      const loop = () => {
+        analyser.getFloatTimeDomainData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+        const rms = Math.sqrt(sum / buf.length);
+        // Speech energy vs speaker echo: sustained loud input only.
+        // Raise the threshold if Stella's own voice false-triggers barge-in.
+        if (rms > 0.09) hot++; else hot = 0;
+        if (hot >= 6) { doBarge(); return; } // ~350ms of sustained speech
+        bargeRafRef.current = requestAnimationFrame(loop);
+      };
+      bargeRafRef.current = requestAnimationFrame(loop);
+    } catch { /* barge-in unavailable — tap the mic to interrupt instead */ }
+  }, [doBarge]);
+
+  const addChatTurn = useCallback((role: "user" | "stella", text: string) => {
+    setChatLog((l) => [...l.slice(-99), { role, text, ts: Date.now() }]);
+  }, []);
+
+  const clearChatLog = useCallback(() => setChatLog([]), []);
+
+  const startListening = useCallback(() => {
     clearVoiceTimers();
+    stopBargeWatch();
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
       setVoiceLine("Voice not supported in this browser.");
       voiceTimers.current.push(setTimeout(() => setVoiceLine(null), 2500));
       return;
     }
-    setVoice((v) => {
-      if (v !== "idle") {
-        setVoiceLine(null);
-        return "idle";
-      }
-      setVoiceLine(null);
-      logTelemetry("voice_listen", {});
-      try {
-        const rec = new SR();
-        rec.lang = "en-US";
-        rec.interimResults = false;
-        rec.maxAlternatives = 1;
-        voiceTimers.current.push(setTimeout(() => { try { rec.stop(); } catch {} }, 10000));
-        rec.onresult = async (e: any) => {
-          const heard = (e.results[0][0].transcript || "").trim();
-          logTelemetry("voice_heard", { heard });
-          setVoice("speaking");
-          setVoiceLine(`"Heard: ${heard}"`);
+    setVoiceLine(null);
+    logTelemetry("voice_listen", {});
+    // Stella's spoken line: shows in the orb + lands in the chat log.
+    const stellaSay = (t: string) => {
+      setVoiceLine(`\u201c${t}\u201d`);
+      addChatTurn("stella", t);
+    };
+    try {
+      const rec = new SR();
+      rec.lang = "en-US";
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      let gotResult = false;
+      voiceTimers.current.push(setTimeout(() => { try { rec.stop(); } catch {} }, 12000));
+      rec.onresult = async (e: any) => {
+        gotResult = true;
+        silentRestartsRef.current = 0;
+        const heard = (e.results[0][0].transcript || "").trim();
+        logTelemetry("voice_heard", { heard });
+        setVoice("speaking");
+        setVoiceLine(`"Heard: ${heard}"`);
+        addChatTurn("user", heard);
 
-          // Send to Claude for smart parsing
-          try {
-            const res = await fetch("/api/stella/chat", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ message: heard }),
-            });
-            const data = await res.json();
+        // Send to Claude for smart parsing
+        try {
+          const res = await fetch("/api/stella/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: heard }),
+          });
+          const data = await res.json();
 
-            if (data.error && !data.reply) {
-              setVoiceLine(`"Claude not configured."`);
-              // Fall through to pattern matching
-            } else {
-              // Speak the reply out loud
-              if (data.reply) speak(data.reply);
-              // Execute commands
-              for (const cmd of (data.commands || [])) {
-                await executeClaudeCommand(cmd);
-                logInteraction(heard, cmd.action || "unknown", true, { reply: data.reply });
-              }
-              return;
+          if (data.error && !data.reply) {
+            stellaSay("Claude not configured.");
+            // Fall through to pattern matching
+          } else {
+            // Speak the reply out loud
+            if (data.reply) {
+              addChatTurn("stella", data.reply);
+              speak(data.reply);
             }
-          } catch (err) {
-            setVoiceLine(`"Brain offline, using basic commands."`);
-          }
-
-          // Fallback: pattern matching
-          const text = heard.toLowerCase();
-          let action: string | null = null;
-          let rokuApp: string | null = null;
-          let playQuery: string | null = null;
-          const playMatch = text.match(/\bplay\s+(.+)/);
-          const openMatch = text.match(/\bopen\s+(spotify|youtube|netflix|hulu|disney)/);
-          // Twerk with auto Sexy Red: "twerk" alone plays Sexy Red + dances
-          const twerkAlone = /\btwerk\b/.test(text) && !playMatch;
-          if (twerkAlone) {
-            setVoice("speaking");
-            // Auto dance party with Sexy Red - twerk anthem
-            danceParty("sexy red throw", undefined);
+            // SAFETY NET (locked): stop/dock/estop always execute instantly, even if
+            // the model forgot the command or buried it in chatter. Personality bypassed.
+            const lowHeard = heard.toLowerCase();
+            let cmds: any[] = data.commands || [];
+            if (/\bestop\b|\bstop\b/.test(lowHeard) &&
+                !cmds.some((c) => c.action === "drive" && c.direction === "stop")) {
+              cmds = [{ action: "drive", direction: "stop" }, ...cmds];
+            } else if (/\bdock\b/.test(lowHeard) &&
+                !cmds.some((c) => c.action === "dock")) {
+              cmds = [{ action: "dock" }, ...cmds];
+            }
+            // Execute commands
+            for (const cmd of cmds) {
+              await executeClaudeCommand(cmd);
+              logInteraction(heard, cmd.action || "unknown", true, { reply: data.reply });
+            }
             return;
           }
-          if (playMatch) { action = "spotify_play"; playQuery = playMatch[1].trim(); }
-          else if (openMatch) { action = "roku"; rokuApp = openMatch[1]; }
-          else if (/\btwerk\b/.test(text)) action = "twerk";
-          // TV remote voice commands
-          else if (/\bvolume up\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "VolumeUp"}); setVoiceLine("\u201cVolume up.\u201d"); return; }
-          else if (/\bvolume down\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "VolumeDown"}); setVoiceLine("\u201cVolume down.\u201d"); return; }
-          else if (/\bmute\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "VolumeMute"}); setVoiceLine("\u201cMuted.\u201d"); return; }
-          else if (/\bpause\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "Pause"}); setVoiceLine("\u201cPaused.\u201d"); return; }
-          else if (/\bplay\b/.test(text) && !playMatch) { await executeClaudeCommand({action: "tv_key", key: "Play"}); setVoiceLine("\u201cPlaying.\u201d"); return; }
-          else if (/\bgo back\b|\bback\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "Back"}); setVoiceLine("\u201cGoing back.\u201d"); return; }
-          else if (/\bhome\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "Home"}); setVoiceLine("\u201cGoing home.\u201d"); return; }
-          else if (/\bstop\b/.test(text)) action = "stop";
-          else if (/\bdock\b|\bgo home\b|\bcharge\b/.test(text)) action = "dock";
-          else if (/\bforward\b|\bahead\b|\bgo\b/.test(text)) action = "up";
-          else if (/\bback\b|\breverse\b/.test(text)) action = "down";
-          else if (/\bleft\b/.test(text)) action = "left";
-          else if (/\bright\b/.test(text)) action = "right";
+        } catch (err) {
+          stellaSay("Brain offline, using basic commands.");
+        }
+
+        // Fallback: pattern matching
+        const text = heard.toLowerCase();
+        let action: string | null = null;
+        let rokuApp: string | null = null;
+        let playQuery: string | null = null;
+        const playMatch = text.match(/\bplay\s+(.+)/);
+        const openMatch = text.match(/\bopen\s+(spotify|youtube|netflix|hulu|disney)/);
+        // Twerk with auto Sexy Red: "twerk" alone plays Sexy Red + dances
+        const twerkAlone = /\btwerk\b/.test(text) && !playMatch;
+        if (twerkAlone) {
           setVoice("speaking");
-          if (action === "spotify_play" && playQuery) {
-            // Full flow: open Spotify on TV → wait → play → dance 30s
-            danceParty(playQuery);
+          addChatTurn("stella", "Dance party — opening Spotify on TV.");
+          // Auto dance party with Sexy Red - twerk anthem
+          danceParty("sexy red throw", undefined);
+          return;
+        }
+        if (playMatch) { action = "spotify_play"; playQuery = playMatch[1].trim(); }
+        else if (openMatch) { action = "roku"; rokuApp = openMatch[1]; }
+        else if (/\btwerk\b/.test(text)) action = "twerk";
+        // TV remote voice commands
+        else if (/\bvolume up\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "VolumeUp"}); stellaSay("Volume up."); return; }
+        else if (/\bvolume down\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "VolumeDown"}); stellaSay("Volume down."); return; }
+        else if (/\bmute\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "VolumeMute"}); stellaSay("Muted."); return; }
+        else if (/\bpause\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "Pause"}); stellaSay("Paused."); return; }
+        else if (/\bplay\b/.test(text) && !playMatch) { await executeClaudeCommand({action: "tv_key", key: "Play"}); stellaSay("Playing."); return; }
+        else if (/\bgo back\b|\bback\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "Back"}); stellaSay("Going back."); return; }
+        else if (/\bhome\b/.test(text)) { await executeClaudeCommand({action: "tv_key", key: "Home"}); stellaSay("Going home."); return; }
+        else if (/\bstop\b/.test(text)) action = "stop";
+        else if (/\bdock\b|\bgo home\b|\bcharge\b/.test(text)) action = "dock";
+        else if (/\bforward\b|\bahead\b|\bgo\b/.test(text)) action = "up";
+        else if (/\bback\b|\breverse\b/.test(text)) action = "down";
+        else if (/\bleft\b/.test(text)) action = "left";
+        else if (/\bright\b/.test(text)) action = "right";
+        setVoice("speaking");
+        if (action === "spotify_play" && playQuery) {
+          // Full flow: open Spotify on TV → wait → play → dance 30s
+          stellaSay(`Playing ${playQuery} on Spotify.`);
+          danceParty(playQuery);
+        }
+        else if (action === "roku" && rokuApp) {
+          stellaSay(`Opening ${rokuApp}.`);
+          if (robotUrl && connection === "live") {
+            fetch(`${robotUrl}/roku/launch`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ app: rokuApp }),
+            }).catch(() => {});
           }
-          else if (action === "roku" && rokuApp) {
-            setVoiceLine(`“Opening ${rokuApp}.”`);
-            if (robotUrl && connection === "live") {
-              fetch(`${robotUrl}/roku/launch`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ app: rokuApp }),
-              }).catch(() => {});
-            }
-          }
-          else if (action === "twerk") { twerk(); }
-          else if (action === "stop") { drive("stop"); setVoiceLine(`“Stopping.”`); }
-          else if (action === "dock") { cleanMode("dock"); setVoiceLine(`“Docking.”`); }
-          else if (action) { drive(action as any); setVoiceLine(`“On it — ${heard}.”`); }
-          else { setVoiceLine(`“Didn't catch that — try stop, forward, back, left, right, dock, twerk, or open spotify.”`); }
-          logTelemetry("voice_speak", { heard: text, action });
+        }
+        else if (action === "twerk") { stellaSay("Let's move."); twerk(); }
+        else if (action === "stop") { drive("stop"); stellaSay("Stopping."); }
+        else if (action === "dock") { cleanMode("dock"); stellaSay("Docking."); }
+        else if (action) { drive(action as any); stellaSay(`On it — ${heard}.`); }
+        else { stellaSay("Didn't catch that — try stop, forward, back, left, right, dock, twerk, or open spotify."); }
+        logTelemetry("voice_speak", { heard: text, action });
+        if (!conversationRef.current) {
           voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 2800));
-        };
-        rec.onerror = () => { setVoice("idle"); setVoiceLine(null); };
-        rec.onend = () => { setVoice((vv) => vv === "listening" ? "idle" : vv); };
-        rec.start();
-      } catch {
+        }
+      };
+      rec.onerror = () => {
+        // In conversation mode a no-speech error just looks like a silent timeout
+        if (!conversationRef.current) { setVoice("idle"); setVoiceLine(null); }
+      };
+      rec.onend = () => {
+        if (recRef.current !== rec) return; // superseded by a newer session
+        if (gotResult) return; // result path owns the state machine (TTS → conversation restart)
+        // Silent timeout: in conversation mode keep the mic warm (capped)
+        if (conversationRef.current && voiceRef.current === "listening") {
+          silentRestartsRef.current += 1;
+          if (silentRestartsRef.current <= 3) {
+            voiceTimers.current.push(setTimeout(() => {
+              if (conversationRef.current && voiceRef.current === "listening") startListeningRef.current();
+            }, 500));
+            return;
+          }
+        }
         setVoice("idle");
+        setVoiceLine(null);
+      };
+      recRef.current = rec;
+      setVoice("listening");
+      rec.start();
+    } catch {
+      setVoice("idle");
+    }
+  }, [drive, cleanMode, twerk, danceParty, speak, addChatTurn, stopBargeWatch]);
+
+  useEffect(() => { startListeningRef.current = startListening; }, [startListening]);
+
+  const stopVoice = useCallback(() => {
+    clearVoiceTimers();
+    stopBargeWatch();
+    speakTokenRef.current++; // invalidate any in-flight utterance onend
+    try { recRef.current?.stop(); } catch {}
+    recRef.current = null;
+    try { window.speechSynthesis.cancel(); } catch {}
+    setVoice("idle");
+    setVoiceLine(null);
+  }, [stopBargeWatch]);
+
+  const toggleListening = useCallback(() => {
+    // Tap the mic: if anything is active (listening OR speaking) → full stop incl. TTS;
+    // otherwise start listening.
+    if (voiceRef.current !== "idle") stopVoice();
+    else startListeningRef.current();
+  }, [stopVoice]);
+
+  const setConversation = useCallback(async (v: boolean) => {
+    setConversationState(v);
+    conversationRef.current = v;
+    try { localStorage.setItem("stella-conversation", v ? "1" : "0"); } catch {}
+    if (v) {
+      // Mic access powers barge-in (interrupt Stella mid-sentence).
+      try {
+        if (!micStreamRef.current) {
+          micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
+        setBargeInReady(true);
+      } catch {
+        setBargeInReady(false);
       }
-      return "listening";
-    });
-  }, [drive, cleanMode, twerk]);
+    } else {
+      stopBargeWatch();
+      try { micStreamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
+      micStreamRef.current = null;
+      setBargeInReady(false);
+      if (voiceRef.current !== "idle") stopVoice();
+    }
+  }, [stopVoice, stopBargeWatch]);
+
+  const summarizeChat = useCallback(async (): Promise<string> => {
+    const log = chatLogRef.current.slice(-30);
+    if (!log.length) return "No conversation yet — talk to Stella first.";
+    try {
+      const res = await fetch("/api/stella/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          summarize: true,
+          log: log.map((t) => `${t.role === "user" ? "King" : "Stella"}: ${t.text}`),
+        }),
+      });
+      const data = await res.json();
+      return data.reply || "Couldn't summarize that.";
+    } catch {
+      return "Summary unavailable — brain offline.";
+    }
+  }, []);
 
   const setSoundTrigger = useCallback((v: boolean) => setSoundTriggerState(v), []);
 
@@ -961,6 +1174,12 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       toggleListening,
       setSoundTrigger,
       sendRobotCommand,
+      conversation,
+      setConversation,
+      bargeInReady,
+      chatLog,
+      clearChatLog,
+      summarizeChat,
     }),
     [
       mode, battery, batteryMinutesLeft, location, runMinutes, heading, speed,
@@ -968,6 +1187,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       voice, voiceLine, soundTrigger, connection, robotUrl, checks,
       selectRoom, cleanMode, drive, twerk, setSpeed, dismissDoorEvent, dismissTimeline,
       toggleListening, setSoundTrigger, sendRobotCommand,
+      conversation, setConversation, bargeInReady, chatLog, clearChatLog, summarizeChat,
     ]
   );
 

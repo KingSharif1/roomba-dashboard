@@ -17,8 +17,15 @@ import "../design-f.css";
    connection, demo fallback). This file is UI only. */
 
 type Theme = "light" | "dark";
-type Intensity = "Eco" | "Normal" | "Turbo";
-const SUCTION: Record<Intensity, string> = { Eco: "1.4", Normal: "2.2", Turbo: "3.1" };
+type Intensity = "Off" | "Eco" | "Normal" | "Turbo";
+const SUCTION: Record<Intensity, string> = { Off: "0", Eco: "1.4", Normal: "2.2", Turbo: "3.1" };
+// Real motor presets behind each suction mode (sent to the Pi via /clean).
+const SUCTION_PRESETS: Record<Intensity, { vacuum: boolean; main_brush: boolean; side_brush: boolean; desc: string }> = {
+  Off: { vacuum: false, main_brush: false, side_brush: false, desc: "motors off" },
+  Eco: { vacuum: true, main_brush: false, side_brush: false, desc: "vacuum only · quiet" },
+  Normal: { vacuum: true, main_brush: true, side_brush: false, desc: "vacuum + main brush" },
+  Turbo: { vacuum: true, main_brush: true, side_brush: true, desc: "all motors · max pickup" },
+};
 
 function useLocal<T>(key: string, initial: T): [T, (v: T | ((p: T) => T)) => void] {
   const [val, setVal] = useState<T>(() => {
@@ -164,22 +171,22 @@ function FTop({
 
 /* ── cutaway: F signature visual — hardware readouts + suction ── */
 /* ── cutaway: suction card with map/status toggle ── */
-function FCutaway({ intensity }: { intensity: Intensity }) {
+function FCutaway() {
   const { state, robotOnline } = useV3Robot();
-  const { battery, connection, mode } = state;
+  const { battery, connection } = state;
   const isLive = connection === "live";
   const isDemo = connection === "demo";
   const [view, setView] = useState<"status" | "map">("status");
 
-  // Part status: LiDAR is never connected (user doesn't have one)
-  // Everything else uses live data from /status polling
+  // Part status — every row carries its own unique spec value.
+  // LiDAR is never connected (user doesn't have one); the rest use live /status polling.
   const parts = [
-    { name: "Pi 4", detail: "ROS 2 Jazzy · brain", online: isLive },
-    { name: "Arduino", detail: "Uno · 115200 · motor bridge", online: isLive && robotOnline },
-    { name: "Roomba 694", detail: "brush + vac base", online: isLive && robotOnline },
-    { name: "Battery", detail: isLive ? `${Math.round(battery)}%` : "—", online: isLive },
-    { name: "LiDAR", detail: "not connected", online: false },
-    { name: "Camera", detail: "imx219", online: isLive },
+    { name: "Pi 4", detail: "BCM2711 · Cortex-A72 · ROS 2 Jazzy", online: isLive },
+    { name: "Arduino", detail: "ATmega328P · 115200 baud · motor bridge", online: isLive && robotOnline },
+    { name: "Roomba 694", detail: "3-stage clean · cliff detect · 0.6 L bin", online: isLive && robotOnline },
+    { name: "Battery", detail: isLive ? `14.4V NiMH · ${Math.round(battery)}%` : "14.4V NiMH · —", online: isLive },
+    { name: "LiDAR", detail: "RPLIDAR C1 · not installed", online: false },
+    { name: "Camera", detail: "IMX219 · 8 MP · 1080p30", online: isLive },
   ];
 
   return (
@@ -191,7 +198,13 @@ function FCutaway({ intensity }: { intensity: Intensity }) {
             {isLive ? (robotOnline ? "Online · ready" : "Pi online · robot offline") : isDemo ? "Demo mode" : "Offline"}
           </div>
         </div>
-        <div className="f-switch" role="tablist" aria-label="Status or map">
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {isDemo && (
+            <span className="f-pchip demo">
+              <span className="dot" /> DEMO VALUES
+            </span>
+          )}
+          <div className="f-switch" role="tablist" aria-label="Status or map">
           <span
             className="thumb"
             style={{
@@ -217,13 +230,9 @@ function FCutaway({ intensity }: { intensity: Intensity }) {
             <MapIcon className="w-3.5 h-3.5" /> Map
           </button>
         </div>
+        </div>
       </div>
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-        {isDemo && (
-          <span className="f-pchip demo" style={{ position: "absolute", right: 14, top: 12, zIndex: 5 }}>
-            <span className="dot" /> DEMO VALUES
-          </span>
-        )}
+      <div className="card" style={{ padding: 0, overflow: "hidden", position: "relative" }}>
         {view === "status" ? (
           <div className="f-cut">
             <div className="rings">
@@ -254,14 +263,6 @@ function FCutaway({ intensity }: { intensity: Intensity }) {
                   }} />
                 </div>
               ))}
-            </div>
-            <div className="suction card mono">
-              <div className="lbl">Suction · {intensity} mode</div>
-              <div style={{ fontSize: 20 }}>{SUCTION[intensity]} <span className="sm">kPa</span></div>
-              <div className="sm" style={{ marginTop: 8, lineHeight: 1.5 }}>
-                Eco 1.4 · Normal 2.2 · Turbo 3.1 kPa<br />
-                Mode: {mode.toUpperCase()} · {isLive ? "live" : "offline"}
-              </div>
             </div>
           </div>
         ) : (
@@ -308,8 +309,60 @@ function ToolToggle({
 }
 
 /* ── control: actions + manual drive & cleaning tools in one card ── */
-function FControl() {
-  const { state, cleanMode, wakeRobot, cleaning, setCleaningMotors } = useV3Robot();
+/* ── compact status-aware action strip: indicates state + offers the right control ── */
+function FActionStrip() {
+  const { state, cleanMode, drive, wakeRobot, activeDirection } = useV3Robot();
+  const { connection, mode } = state;
+  const isLive = connection === "live";
+  const driving = activeDirection != null;
+
+  // Offline: subtle wake affordance
+  if (!isLive) {
+    return (
+      <button className="btn xs ghost" onClick={wakeRobot} title="Not responding — press to reconnect">
+        <Zap className="w-3.5 h-3.5" /> Wake Stella
+      </button>
+    );
+  }
+  // Driving (stick active): Stop halts motion → yields to manual control
+  if (driving) {
+    return (
+      <div className="f-strip">
+        <span className="f-strip-status"><span className="dot" style={{ background: "var(--ok)" }} /> DRIVING · {activeDirection.toUpperCase()}</span>
+        <button className="btn xs danger" onClick={() => drive("stop")}><Square className="w-3.5 h-3.5" /> Stop</button>
+      </div>
+    );
+  }
+  // Cleaning: Stop yields the route to manual control
+  if (mode === "cleaning") {
+    return (
+      <div className="f-strip">
+        <span className="f-strip-status"><span className="dot" style={{ background: "var(--ok)" }} /> CLEANING</span>
+        <button className="btn xs danger" onClick={() => cleanMode("stop")}><Square className="w-3.5 h-3.5" /> Stop</button>
+      </div>
+    );
+  }
+  // Docked/charging: Clean starts a run (undocks first)
+  if (mode === "docked") {
+    return (
+      <div className="f-strip">
+        <span className="f-strip-status"><span className="dot" style={{ background: "var(--warn)" }} /> CHARGING</span>
+        <button className="btn xs pri" onClick={() => cleanMode("all")}><Play className="w-3.5 h-3.5" /> Clean</button>
+      </div>
+    );
+  }
+  // Idle / returning: the full pair, compact
+  return (
+    <div className="f-strip">
+      <span className="f-strip-status"><span className="dot" style={{ background: "var(--mute)" }} /> {mode === "returning" ? "RETURNING" : "STANDBY"}</span>
+      <button className="btn xs pri" onClick={() => cleanMode("all")}><Play className="w-3.5 h-3.5" /> Clean</button>
+      <button className="btn xs" onClick={() => cleanMode("dock")}><House className="w-3.5 h-3.5" /> Dock</button>
+    </div>
+  );
+}
+
+function FControl({ intensity, setIntensity }: { intensity: Intensity; setIntensity: (i: Intensity) => void }) {
+  const { state, cleaning, setCleaningMotors } = useV3Robot();
   const { connection, mode, battery } = state;
   const isLive = connection === "live";
 
@@ -329,17 +382,29 @@ function FControl() {
     setCleaningMotors(next.vacuum, next.main_brush, next.side_brush);
   };
 
-  const setAllTools = (on: boolean) => {
-    const next = { vacuum: on, main_brush: on, side_brush: on };
-    setLocalTools(next);
+  // Two-way suction binding: the selector highlight is DERIVED from how many
+  // tools are actually on — manually toggling tools moves the indicator too.
+  const toolCount =
+    (localTools.vacuum ? 1 : 0) + (localTools.main_brush ? 1 : 0) + (localTools.side_brush ? 1 : 0);
+  const derivedMode: Intensity =
+    toolCount === 0 ? "Off" : toolCount === 1 ? "Eco" : toolCount === 2 ? "Normal" : "Turbo";
+  useEffect(() => {
+    if (intensity !== derivedMode) setIntensity(derivedMode);
+  }, [derivedMode, intensity, setIntensity]);
+
+  const applyPreset = (m: Intensity) => {
+    setIntensity(m);
+    const p = SUCTION_PRESETS[m];
+    const next = { vacuum: p.vacuum, main_brush: p.main_brush, side_brush: p.side_brush };
+    setLocalTools(next); // instant UI update
     setCleaningMotors(next.vacuum, next.main_brush, next.side_brush);
   };
 
-  const actions = [
-    { id: "clean", label: "Clean", icon: <Play className="w-4 h-4" />, cls: "pri", fn: () => cleanMode("all") },
-    { id: "stop", label: "Stop", icon: <Square className="w-4 h-4" />, cls: "danger", fn: () => cleanMode("stop") },
-    { id: "dock", label: "Dock", icon: <House className="w-4 h-4" />, cls: "", fn: () => cleanMode("dock") },
-  ];
+  const onNames = [
+    localTools.vacuum && "vacuum",
+    localTools.main_brush && "main brush",
+    localTools.side_brush && "side brush",
+  ].filter(Boolean) as string[];
 
   return (
     <section id="control">
@@ -351,47 +416,46 @@ function FControl() {
             {displayMode} · Battery {isLive ? `${Math.round(battery)}%` : "—"}
           </div>
         </div>
+        <FActionStrip />
       </div>
-      <div className="grid two">
-        <div className="card">
-          <div className="lbl" style={{ marginBottom: 10 }}>Actions</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 20 }}>
-            {actions.map((a) => (
-              <button key={a.id} className={`btn ${a.cls}`} onClick={a.fn}>
-                {a.icon} {a.label}
-              </button>
-            ))}
+      <div className="card">
+        <div className="f-dt">
+          <div className="f-dt-drive">
+            <div className="lbl" style={{ marginBottom: 10 }}>Manual drive</div>
+            <FDrivePanel />
           </div>
-          {!isLive && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <button onClick={() => wakeRobot()} className="btn inv">
-                <Zap className="w-4 h-4" /> Wake Stella
-              </button>
-              <div className="sm" style={{ textAlign: "center" }}>Not responding — press to reconnect</div>
+          <div className="f-dt-tools">
+            <div className="lbl" style={{ marginBottom: 8 }}>Suction</div>
+            <div className="seg" style={{ marginBottom: 8 }}>
+              {(["Off", "Eco", "Normal", "Turbo"] as Intensity[]).map((m) => (
+                <button
+                  key={m}
+                  className={derivedMode === m ? "on" : ""}
+                  onClick={() => applyPreset(m)}
+                  title={SUCTION_PRESETS[m].desc}
+                >
+                  {m}
+                </button>
+              ))}
             </div>
-          )}
-        </div>
-        <div className="card">
-          <div className="f-dt">
-            <div className="f-dt-drive">
-              <div className="lbl" style={{ marginBottom: 10 }}>Manual drive</div>
-              <FDrivePanel />
+            <div className="mono" style={{ fontSize: 13, marginBottom: 2 }}>
+              {SUCTION[derivedMode]} <span className="sm">kPa</span>
+              <span className="sm" style={{ marginLeft: 8 }}>
+                {toolCount} of 3 tools on{toolCount > 0 ? ` · ${onNames.join(" + ")}` : ""}
+              </span>
             </div>
-            <div className="f-dt-tools">
-              <div className="lbl" style={{ marginBottom: 4 }}>Cleaning tools</div>
-              <ToolToggle icon={<Fan className="w-4 h-4" />} label="Vacuum" on={localTools.vacuum} disabled={!isLive} onToggle={() => toggleTool("vacuum")} />
-              <ToolToggle icon={<Brush className="w-4 h-4" />} label="Main brush" on={localTools.main_brush} disabled={!isLive} onToggle={() => toggleTool("main_brush")} />
-              <ToolToggle icon={<Paintbrush className="w-4 h-4" />} label="Side brush" on={localTools.side_brush} disabled={!isLive} onToggle={() => toggleTool("side_brush")} />
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <button className="btn" disabled={!isLive} onClick={() => setAllTools(true)}>All on</button>
-                <button className="btn" disabled={!isLive} onClick={() => setAllTools(false)}>All off</button>
+            <div className="sm" style={{ opacity: 0.65, marginBottom: 12 }}>
+              kPa are spec values, not sensor readings
+            </div>
+            <div className="lbl" style={{ marginBottom: 4 }}>Cleaning tools</div>
+            <ToolToggle icon={<Fan className="w-4 h-4" />} label="Vacuum" on={localTools.vacuum} disabled={!isLive} onToggle={() => toggleTool("vacuum")} />
+            <ToolToggle icon={<Brush className="w-4 h-4" />} label="Main brush" on={localTools.main_brush} disabled={!isLive} onToggle={() => toggleTool("main_brush")} />
+            <ToolToggle icon={<Paintbrush className="w-4 h-4" />} label="Side brush" on={localTools.side_brush} disabled={!isLive} onToggle={() => toggleTool("side_brush")} />
+            {!isLive && (
+              <div className="sm" style={{ marginTop: 10, color: "var(--warn)" }}>
+                Connect to Stella to control cleaning tools
               </div>
-              {!isLive && (
-                <div className="sm" style={{ marginTop: 10, color: "var(--warn)" }}>
-                  Connect to Stella to control cleaning tools
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -911,9 +975,16 @@ function VoiceBlob({
 
 /* ── voice overlay: simple push-to-talk toggle ── */
 function FVoiceOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { state, toggleListening, robotOnline } = useV3Robot();
+  const {
+    state, toggleListening, robotOnline,
+    conversation, setConversation, bargeInReady,
+    chatLog, clearChatLog, summarizeChat,
+  } = useV3Robot();
   const { voice, voiceLine, connection } = state;
   const [tvOk, setTvOk] = useState<boolean | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summarizing, setSummarizing] = useState(false);
+  const logRef = useRef<HTMLDivElement>(null);
 
   const listening = voice === "listening";
   const speaking = voice === "speaking";
@@ -942,9 +1013,25 @@ function FVoiceOverlay({ open, onClose }: { open: boolean; onClose: () => void }
     return () => document.removeEventListener("keydown", esc);
   }, [open, onClose]);
 
+  // Auto-scroll the chat log to the newest turn
+  useEffect(() => {
+    const el = logRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [chatLog, open]);
+
   // Simple toggle: press to start, press again to stop
   const toggle = () => {
     toggleListening();
+  };
+
+  const doSummarize = async () => {
+    setSummarizing(true);
+    try {
+      const s = await summarizeChat();
+      setSummary(s);
+    } finally {
+      setSummarizing(false);
+    }
   };
 
   if (!open) return null;
@@ -978,6 +1065,52 @@ function FVoiceOverlay({ open, onClose }: { open: boolean; onClose: () => void }
         {listening ? "Tap again to stop" : "Esc to close"}
       </div>
 
+      {/* Conversation mode: continuous listen ↔ speak, barge-in */}
+      <div className="f-conv" style={{ marginTop: 14 }}>
+        <button
+          className={`toggle ${conversation ? "on" : ""}`}
+          role="switch"
+          aria-checked={conversation}
+          aria-label="Conversation mode"
+          onClick={() => setConversation(!conversation)}
+        />
+        <span style={{ fontSize: 13 }}>
+          Conversation mode
+          <span className="sm" style={{ display: "block", opacity: 0.7 }}>
+            {conversation
+              ? bargeInReady
+                ? "auto-listens after Stella speaks · talk over her anytime"
+                : "auto-listens after Stella speaks · mic blocked, tap to interrupt"
+              : "keep the mic open between turns"}
+          </span>
+        </span>
+      </div>
+
+      {/* Chat log */}
+      {chatLog.length > 0 && (
+        <div className="f-chatlog" ref={logRef} aria-label="Conversation log">
+          {chatLog.map((t, i) => (
+            <div key={i} className={`f-turn ${t.role}`}>
+              {t.text}
+              <span className="ts">
+                {t.role === "user" ? "You" : "Stella"} · {new Date(t.ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Session summary */}
+      {summary && (
+        <div className="f-sumcard">
+          <div className="lbl" style={{ marginBottom: 6 }}>Session summary</div>
+          {summary}
+          <div style={{ marginTop: 8 }}>
+            <button className="btn xs" onClick={() => setSummary(null)}>Dismiss</button>
+          </div>
+        </div>
+      )}
+
       {/* Status indicators */}
       <div style={{ display: "flex", gap: 12, marginTop: 16, fontSize: 12 }} className="mono">
         <span style={{ color: isLive && robotOnline ? "var(--ok)" : "var(--mute)" }}>
@@ -989,6 +1122,12 @@ function FVoiceOverlay({ open, onClose }: { open: boolean; onClose: () => void }
       </div>
 
       <div className="f-vbtns" style={{ marginTop: 16 }}>
+        <button className="btn" onClick={doSummarize} disabled={summarizing || chatLog.length === 0}>
+          {summarizing ? "Summarizing…" : "Summarize"}
+        </button>
+        {chatLog.length > 0 && (
+          <button className="btn" onClick={() => { clearChatLog(); setSummary(null); }}>Clear log</button>
+        )}
         <button className="btn" onClick={onClose}>Close</button>
       </div>
 
@@ -1064,8 +1203,8 @@ function DashboardInner({
       </nav>
 
       <main className="f-main" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-        <FCutaway intensity={intensity} />
-        <FControl />
+        <FCutaway />
+        <FControl intensity={intensity} setIntensity={setIntensity} />
         <FCamera />
         <FStatus intensity={intensity} />
         {!isDemo && <FSettings theme={theme} setTheme={setTheme} />}
