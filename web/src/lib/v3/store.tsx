@@ -341,7 +341,10 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
           const heard = (e.results[0][0].transcript || "").toLowerCase().trim();
           logTelemetry("voice_heard", { heard });
           let action: string | null = null;
-          if (/\btwerk\b/.test(heard)) action = "twerk";
+          let rokuApp: string | null = null;
+          const openMatch = heard.match(/\bopen\s+(spotify|youtube|netflix|hulu|disney)/);
+          if (openMatch) { action = "roku"; rokuApp = openMatch[1]; }
+          else if (/\btwerk\b/.test(heard)) action = "twerk";
           else if (/\bstop\b/.test(heard)) action = "stop";
           else if (/\bdock\b|\bgo home\b|\bcharge\b/.test(heard)) action = "dock";
           else if (/\bforward\b|\bahead\b|\bgo\b/.test(heard)) action = "up";
@@ -349,11 +352,21 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
           else if (/\bleft\b/.test(heard)) action = "left";
           else if (/\bright\b/.test(heard)) action = "right";
           setVoice("speaking");
-          if (action === "twerk") { twerk(); }
+          if (action === "roku" && rokuApp) {
+            setVoiceLine(`“Opening ${rokuApp}.”`);
+            if (robotUrl && connection === "live") {
+              fetch(`${robotUrl}/roku/launch`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ app: rokuApp }),
+              }).catch(() => {});
+            }
+          }
+          else if (action === "twerk") { twerk(); }
           else if (action === "stop") { drive("stop"); setVoiceLine(`“Stopping.”`); }
           else if (action === "dock") { cleanMode("dock"); setVoiceLine(`“Docking.”`); }
           else if (action) { drive(action as any); setVoiceLine(`“On it — ${heard}.”`); }
-          else { setVoiceLine(`“Didn't catch that — try stop, forward, back, left, right, dock, or twerk.”`); }
+          else { setVoiceLine(`“Didn't catch that — try stop, forward, back, left, right, dock, twerk, or open spotify.”`); }
           logTelemetry("voice_speak", { heard, action });
           voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 2800));
         };
