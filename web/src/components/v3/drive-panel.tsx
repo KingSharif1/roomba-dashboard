@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { ChevronUp, ChevronLeft, ChevronRight, Square, Joystick } from "lucide-react";
 import { useV3Robot } from "@/lib/v3/store";
 import { V3Collapsible } from "./collapsible-card";
@@ -16,15 +16,14 @@ function JoystickStick() {
 
   const sendDrive = useCallback((x: number, y: number) => {
     // x: -1 (left) to 1 (right), y: -1 (up) to 1 (down)
+    // Send continuously — Pi watchdog stops wheels 0.2s after last cmd
     const threshold = 0.3;
     let dir = "stop";
     if (Math.abs(x) < threshold && Math.abs(y) < threshold) dir = "stop";
     else if (Math.abs(y) > Math.abs(x)) dir = y < 0 ? "up" : "down";
     else dir = x < 0 ? "left" : "right";
-    if (dir !== lastDir.current) {
-      lastDir.current = dir;
-      drive(dir as any);
-    }
+    lastDir.current = dir;
+    drive(dir as any);
   }, [drive]);
 
   const handleMove = useCallback((clientX: number, clientY: number) => {
@@ -57,6 +56,18 @@ function JoystickStick() {
     lastDir.current = "stop";
     drive("stop");
   };
+
+  // Continuous drive: resend current direction every 100ms while active
+  // (Pi watchdog stops wheels 0.2s after last command)
+  useEffect(() => {
+    if (!active) return;
+    const id = setInterval(() => {
+      if (lastDir.current !== "stop") {
+        drive(lastDir.current as any);
+      }
+    }, 100);
+    return () => clearInterval(id);
+  }, [active, drive]);
 
   return (
     <div className="flex items-center justify-center py-2 select-none">
@@ -95,6 +106,55 @@ function JoystickStick() {
   );
 }
 
+
+function HoldPad({ drive, dirBtn }: { drive: (d: "up"|"down"|"left"|"right"|"stop") => void; dirBtn: string }) {
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const start = (dir: "up"|"down"|"left"|"right") => {
+    drive(dir);
+    timer.current = setInterval(() => drive(dir), 100);
+  };
+  const stop = () => {
+    if (timer.current) clearInterval(timer.current);
+    timer.current = null;
+    drive("stop");
+  };
+  useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
+  const btn = (dir: "up"|"down"|"left"|"right", label: string, icon: React.ReactNode) => (
+    <button
+      aria-label={label}
+      onPointerDown={(e) => { e.preventDefault(); start(dir); }}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
+      onContextMenu={(e) => e.preventDefault()}
+      className={dirBtn + " touch-none select-none"}
+      style={{ borderColor: "var(--v3-border)" }}
+    >
+      {icon}
+    </button>
+  );
+  return (
+    <div className="grid grid-cols-3 gap-2 w-fit mx-auto">
+      <span />
+      {btn("up", "Forward", <ChevronUp className="w-6 h-6" />)}
+      <span />
+      {btn("left", "Left", <ChevronLeft className="w-6 h-6" />)}
+      <button
+        aria-label="Stop"
+        onClick={() => { if (timer.current) clearInterval(timer.current); drive("stop"); }}
+        className={dirBtn}
+        style={{ borderColor: "var(--v3-coral)", background: "rgba(255,122,92,0.1)" }}
+      >
+        <Square className="w-4 h-4" style={{ color: "var(--v3-coral)" }} fill="currentColor" />
+      </button>
+      {btn("right", "Right", <ChevronRight className="w-6 h-6" />)}
+      <span />
+      {btn("down", "Back", <ChevronUp className="w-6 h-6 rotate-180" />)}
+      <span />
+    </div>
+  );
+}
+
 export function V3DrivePanel() {
   const { state, drive, setSpeed } = useV3Robot();
   const { speed, heading } = state;
@@ -128,32 +188,7 @@ export function V3DrivePanel() {
       </div>
 
       {mode === "pad" ? (
-        <div className="grid grid-cols-3 gap-2 w-fit mx-auto">
-          <span />
-          <button aria-label="Forward" onClick={() => drive("up")} className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
-            <ChevronUp className="w-6 h-6" />
-          </button>
-          <span />
-          <button aria-label="Left" onClick={() => drive("left")} className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <button
-            aria-label="Stop"
-            onClick={() => drive("stop")}
-            className={dirBtn}
-            style={{ borderColor: "var(--v3-coral)", background: "rgba(255,122,92,0.1)" }}
-          >
-            <Square className="w-4 h-4" style={{ color: "var(--v3-coral)" }} fill="currentColor" />
-          </button>
-          <button aria-label="Right" onClick={() => drive("right")} className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
-            <ChevronRight className="w-6 h-6" />
-          </button>
-          <span />
-          <button aria-label="Back" onClick={() => drive("down")} className={dirBtn} style={{ borderColor: "var(--v3-border)" }}>
-            <ChevronUp className="w-6 h-6 rotate-180" />
-          </button>
-          <span />
-        </div>
+        <HoldPad drive={drive} dirBtn={dirBtn} />
       ) : (
         <JoystickStick />
       )}
