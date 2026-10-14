@@ -88,10 +88,31 @@ export async function POST(req: Request) {
   const devicesData = await devicesRes.json();
   const devices = devicesData.devices || [];
 
-  // Prefer Roku/TV, otherwise use any active device
-  const targetDevice =
+  // His 3 TVs: '75 Living' (living room), 'ds twin' (PC setup), 'sharif d ace' (by window)
+  const KNOWN_TVS = ["75 living", "ds twin", "sharif d ace"];
+  const isTV = (d: any) => {
+    const name = (d.name || "").toLowerCase();
+    return (
+      KNOWN_TVS.some((tv) => name.includes(tv)) ||
+      /roku|tv|television/i.test(d.name || "")
+    ) && !d.is_restricted;
+  };
+  const tvDevices = devices.filter(isTV);
+
+  // If a target room was named, match it against TV names
+  let targetDevice: any = null;
+  if (target && tvDevices.length > 0) {
+    targetDevice =
+      tvDevices.find((d: any) =>
+        d.name.toLowerCase().includes(target.toLowerCase())
+      ) || null;
+  }
+  // Fallback: most recently active TV, then any TV, then active device, then first
+  targetDevice =
+    targetDevice ||
+    tvDevices.find((d: any) => d.is_active) ||
+    tvDevices[0] ||
     devices.find((d: any) => d.is_active) ||
-    devices.find((d: any) => /roku|tv/i.test(d.name)) ||
     devices[0];
 
   if (!targetDevice) {
