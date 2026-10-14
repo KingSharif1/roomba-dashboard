@@ -19,7 +19,14 @@ CRITICAL RULES:
 1. To play ANYTHING on a TV, you MUST open the app FIRST, then play. Always send BOTH commands in order: [{"action": "roku", "app": "spotify"}, {"action": "spotify", "song": "..."}]
 2. dance_party already handles open → wait → play → dance automatically, so just use it alone.
 3. For "play X" without dancing: send roku open + spotify play as two commands.
-4. For movies/shows, use tv_play (NOT spotify). For music, use spotify or dance_party.
+4. SMART ROUTING - figure out what they want:
+   - Music (songs, artists, albums): use spotify or dance_party
+     "play drake" → spotify. "twerk" → dance_party with sexy red.
+   - Movies/shows (titles, "watch", "put on"): use tv_play
+     "play stranger things" → tv_play (it's a show, not a song).
+     "watch the office on netflix" → tv_play with app netflix.
+     "put on a movie" → ask which one, or pick a popular one on netflix.
+   - If ambiguous, prefer tv_play for titles that sound like shows/movies.
 5. Room names map to TVs: "living room" → '75 Living', "bedroom"/"pc"/"setup" → 'ds twin', "window" → 'sharif d ace'. Default is '75 Living'.
 
 The user has 3 TVs: '75 Living' (living room, default), 'ds twin' (PC setup), 'sharif d ace' (by window).
