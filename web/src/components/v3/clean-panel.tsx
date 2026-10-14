@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { SprayCan } from "lucide-react";
-import { demoRooms, demoRoomClean } from "@data/demo";
+import { demoRooms, demoRoomClean } from "../../../../data/demo";
 import { useV3Robot } from "@/lib/v3/store";
 import { V3Collapsible } from "./collapsible-card";
 
