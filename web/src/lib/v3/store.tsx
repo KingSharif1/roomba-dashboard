@@ -590,6 +590,10 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     if (!cmd?.action) return;
     const { action } = cmd;
     if (action === "drive") {
+      if (!robotOnline) {
+        setVoiceLine("\u201cI can't move right now — the robot is offline.\u201d");
+        return;
+      }
       const dirMap: Record<string, string> = { forward: "up", back: "down", left: "left", right: "right", stop: "stop" };
       drive((dirMap[cmd.direction] || "stop") as "up" | "down" | "left" | "right" | "stop");
     }
@@ -609,12 +613,17 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     }
     else if (action === "tv_key" && robotUrl && connection === "live") {
       try {
-        await fetch(`${robotUrl}/roku/key`, {
+        const res = await fetch(`${robotUrl}/roku/key`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ key: cmd.key }),
         });
-      } catch {}
+        if (res.status === 404) {
+          setVoiceLine("\u201cTV control isn't set up on the Pi yet.\u201d");
+        }
+      } catch {
+        setVoiceLine("\u201cCouldn't reach the TV.\u201d");
+      }
     }
     else if (action === "tv_play" && robotUrl && connection === "live") {
       // Play a movie/show on a streaming app
