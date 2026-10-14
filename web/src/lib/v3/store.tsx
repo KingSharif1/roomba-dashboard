@@ -10,8 +10,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { DoorBlockedEvent, RobotLocation, RobotMode, VoiceState } from "../../../../data/types";
-import { demoDoors, demoLocation, demoRobot, demoRooms, demoTimeline, type TimelineEvent } from "../../../../data/demo";
+import type { DoorBlockedEvent, RobotLocation, RobotMode, VoiceState } from "@data/types";
+import { demoDoors, demoLocation, demoRobot, demoRooms, demoTimeline, type TimelineEvent } from "@data/demo";
 import { logTelemetry } from "./telemetry";
 
 /** Connection to the physical robot. Tailscale membership IS the auth:
@@ -128,9 +128,10 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   const my = PATH[seg][1] + (PATH[seg + 1][1] - PATH[seg][1]) * frac;
 
   useEffect(() => {
-    // Marker glide (only while cleaning — idle/docked parks the marker)
+    // Marker glide (only while cleaning in DEMO — never animate when live,
+    // there's no real position data from the Pi yet)
     const glide = setInterval(() => {
-      setPathT((t) => (mode === "cleaning" ? (t + 0.04) % 1 : t));
+      setPathT((t) => (mode === "cleaning" && connection !== "live" ? (t + 0.04) % 1 : t));
     }, 700);
     // Battery slow drain in demo
     const drain = setInterval(() => {
@@ -160,7 +161,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   );
   useEffect(() => {
     const id = setInterval(() => {
-      if (mode !== "cleaning") return;
+      if (mode !== "cleaning" || connection === "live") return;
       const tpl = AMBIENT[ambientIdx.current % AMBIENT.length];
       ambientIdx.current += 1;
       const ev: TimelineEvent = { ...tpl, id: `tl-ambient-${Date.now()}` };
@@ -171,7 +172,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       });
     }, 75000);
     return () => clearInterval(id);
-  }, [mode, AMBIENT]);
+  }, [mode, connection, AMBIENT]);
 
   const clearVoiceTimers = () => {
     voiceTimers.current.forEach(clearTimeout);
