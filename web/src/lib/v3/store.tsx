@@ -510,11 +510,16 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     else if (action === "twerk") twerk();
     else if (action === "dance_party") await danceParty(cmd.song || "", cmd.room);
     else if (action === "roku" && robotUrl && connection === "live") {
-      fetch(`${robotUrl}/roku/launch`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ app: cmd.app }),
-      }).catch(() => {});
+      setVoiceLine(`"Opening ${cmd.app} on TV..."`);
+      try {
+        await fetch(`${robotUrl}/roku/launch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ app: cmd.app }),
+        });
+        // Wait for app to load before next command
+        await new Promise((r) => setTimeout(r, 4000));
+      } catch {}
     }
     else if (action === "spotify") {
       const res = await fetch("/api/spotify/play", {
