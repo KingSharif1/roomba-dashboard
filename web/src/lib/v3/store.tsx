@@ -267,22 +267,46 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     }
   }, [robotUrl, connection]);
 
+  // Dance party: twerk + Spotify simultaneously
+  const danceParty = useCallback(async (query: string) => {
+    logTelemetry("dance_party", { query });
+    setVoiceLine(`"Dance party — playing ${query}."`);
+    setVoice("speaking");
+    // Start music and dance at the same time
+    const musicPromise = fetch("/api/spotify/play", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    }).then((r) => r.json());
+    // Start twerk immediately (don't wait for music)
+    twerk(true); // true = party mode (repeat 3x, no beep at end)
+    const result = await musicPromise;
+    if (result.success) {
+      setVoiceLine(`"Now playing ${result.track} — Stella's dancing."`);
+    } else {
+      setVoiceLine(`"Dancing anyway — Spotify issue: ${result.error}"`);
+    }
+    voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 3000));
+  }, []);
+
   // Twerk dance: back/forth + left/right sequence, then beep.
   // Browser beep via Web Audio (Pi has no beep endpoint yet).
-  const twerk = useCallback(() => {
-    const moves: Array<"up" | "down" | "left" | "right"> = [
+  const twerk = useCallback((partyMode = false) => {
+    const single = [
       "up", "down", "up", "down",
       "left", "right", "left", "right",
       "up", "down",
-    ];
+    ] as Array<"up" | "down" | "left" | "right">;
+    // Party mode: repeat 3x for ~13 seconds of dancing
+    const moves = partyMode ? [...single, ...single, ...single] : single;
     logTelemetry("twerk", {});
     setVoiceLine("“Watch this.”");
     setVoice("speaking");
     let i = 0;
     const step = () => {
       if (i >= moves.length) {
-        // Dance done — beep!
-        try {
+        // Dance done — beep (unless party mode, music is the soundtrack)
+        if (!partyMode) try {
           const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
           const play = (freq: number, t: number, dur: number) => {
             const o = ctx.createOscillator();
@@ -346,6 +370,14 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
           const heard = (e.results[0][0].transcript || "").toLowerCase().trim();
           logTelemetry("voice_heard", { heard });
           // Multi-command: split on "and" / "then" and execute in sequence
+          // Dance party: "twerk and play X" or "dance and play X"
+          const dancePartyMatch = heard.match(/\b(?:twerk|dance)\b.*\bplay\s+(.+)/);
+          if (dancePartyMatch) {
+            const query = dancePartyMatch[1].trim();
+            setVoice("speaking");
+            danceParty(query);
+            return;
+          }
           const parts = heard.split(/\s+\b(?:and|then)\b\s+/);
           const runPart = (part: string, delay: number) => {
             voiceTimers.current.push(setTimeout(() => runSingleCommand(part.trim()), delay));

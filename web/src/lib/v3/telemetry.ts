@@ -18,7 +18,8 @@ export type TelemetryKind =
   | "setting"
   | "auto_return"
   | "twerk"
-  | "voice_heard";
+  | "voice_heard"
+  | "dance_party";
 
 export interface TelemetryEvent {
   kind: TelemetryKind;
