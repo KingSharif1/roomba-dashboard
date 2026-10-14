@@ -613,7 +613,6 @@ function EngDashboardInner() {
         <EngVoice />
         <EngVoiceSettings />
         <EngController />
-        <EngTVRemote />
         <EngMap />
         <EngTelemetry />
 
