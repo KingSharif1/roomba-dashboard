@@ -58,6 +58,7 @@ interface V3RobotApi {
   selectRoom: (id: string) => void;
   cleanMode: (m: "all" | "stop" | "dock") => void;
   drive: (dir: "up" | "down" | "left" | "right" | "stop") => void;
+  twerk: () => void;
   setSpeed: (s: number) => void;
   dismissDoorEvent: () => void;
   dismissTimeline: (id: string) => void;
@@ -261,6 +262,46 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     }
   }, [robotUrl, connection]);
 
+  // Twerk dance: back/forth + left/right sequence, then beep.
+  // Browser beep via Web Audio (Pi has no beep endpoint yet).
+  const twerk = useCallback(() => {
+    const moves: Array<"up" | "down" | "left" | "right"> = [
+      "up", "down", "up", "down",
+      "left", "right", "left", "right",
+      "up", "down",
+    ];
+    logTelemetry("twerk", {});
+    setVoiceLine("“Watch this.”");
+    setVoice("speaking");
+    let i = 0;
+    const step = () => {
+      if (i >= moves.length) {
+        // Dance done — beep!
+        try {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const play = (freq: number, t: number, dur: number) => {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.frequency.value = freq;
+            g.gain.setValueAtTime(0.3, t);
+            g.gain.exponentialRampToValueAtTime(0.01, t + dur);
+            o.start(t); o.stop(t + dur);
+          };
+          const now = ctx.currentTime;
+          play(880, now, 0.15); play(1174, now + 0.18, 0.15); play(1568, now + 0.36, 0.3);
+        } catch {}
+        drive("stop");
+        voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 1500));
+        return;
+      }
+      drive(moves[i]);
+      i++;
+      voiceTimers.current.push(setTimeout(step, 450));
+    };
+    step();
+  }, [drive]);
+
   const setSpeed = useCallback((s: number) => setSpeedState(s), []);
 
   const dismissDoorEvent = useCallback(() => setDoorEvent(null), []);
@@ -300,17 +341,19 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
           const heard = (e.results[0][0].transcript || "").toLowerCase().trim();
           logTelemetry("voice_heard", { heard });
           let action: string | null = null;
-          if (/\bstop\b/.test(heard)) action = "stop";
+          if (/\btwerk\b/.test(heard)) action = "twerk";
+          else if (/\bstop\b/.test(heard)) action = "stop";
           else if (/\bdock\b|\bgo home\b|\bcharge\b/.test(heard)) action = "dock";
           else if (/\bforward\b|\bahead\b|\bgo\b/.test(heard)) action = "up";
           else if (/\bback\b|\breverse\b/.test(heard)) action = "down";
           else if (/\bleft\b/.test(heard)) action = "left";
           else if (/\bright\b/.test(heard)) action = "right";
           setVoice("speaking");
-          if (action === "stop") { drive("stop"); setVoiceLine(`“Stopping.”`); }
+          if (action === "twerk") { twerk(); }
+          else if (action === "stop") { drive("stop"); setVoiceLine(`“Stopping.”`); }
           else if (action === "dock") { cleanMode("dock"); setVoiceLine(`“Docking.”`); }
           else if (action) { drive(action as any); setVoiceLine(`“On it — ${heard}.”`); }
-          else { setVoiceLine(`“Didn't catch that — try stop, forward, back, left, right, or dock.”`); }
+          else { setVoiceLine(`“Didn't catch that — try stop, forward, back, left, right, dock, or twerk.”`); }
           logTelemetry("voice_speak", { heard, action });
           voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 2800));
         };
@@ -322,7 +365,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       }
       return "listening";
     });
-  }, [drive, cleanMode]);
+  }, [drive, cleanMode, twerk]);
 
   const setSoundTrigger = useCallback((v: boolean) => setSoundTriggerState(v), []);
 
@@ -461,6 +504,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       selectRoom,
       cleanMode,
       drive,
+      twerk,
       setSpeed,
       dismissDoorEvent,
       dismissTimeline,
@@ -472,7 +516,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       mode, battery, batteryMinutesLeft, location, runMinutes, heading, speed,
       targetRooms, dx, dy, mx, my, doorEvent, timelineHidden, timeline,
       voice, voiceLine, soundTrigger, connection, robotUrl, checks,
-      selectRoom, cleanMode, drive, setSpeed, dismissDoorEvent, dismissTimeline,
+      selectRoom, cleanMode, drive, twerk, setSpeed, dismissDoorEvent, dismissTimeline,
       toggleListening, setSoundTrigger, sendRobotCommand,
     ]
   );
