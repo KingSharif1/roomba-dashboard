@@ -48,42 +48,54 @@ function EngHeader() {
   );
 }
 
-/* Engineering voice control */
+/* Jarvis-style voice interface */
 function EngVoice() {
   const { state, toggleListening } = useV3Robot();
   const { voice, voiceLine } = state;
+  const isListening = voice === "listening";
+  const isSpeaking = voice === "speaking";
+  const isActive = isListening || isSpeaking;
 
   return (
     <div className="eng-panel">
       <div className="eng-panel-header">
-        <span className="eng-panel-title">Voice Command</span>
-        <span className={`eng-led ${voice === "listening" ? "eng-led-green" : voice === "speaking" ? "eng-led-amber" : "eng-led-off"}`} />
+        <span className="eng-panel-title">Stella Voice</span>
+        <span className={`eng-led ${isListening ? "eng-led-green" : isSpeaking ? "eng-led-amber" : "eng-led-off"}`} />
       </div>
-      <div className="p-3">
+      <div className="p-4 flex flex-col items-center">
+        {/* Jarvis circular HUD */}
         <button
           onClick={() => toggleListening()}
-          className="eng-btn eng-btn-primary w-full relative overflow-hidden"
-          style={{ padding: "18px", fontSize: "15px" }}
+          className="jarvis-orb"
+          data-state={isListening ? "listening" : isSpeaking ? "speaking" : "idle"}
+          aria-label={isListening ? "Stop listening" : "Push to talk"}
         >
-          {voice === "listening" && (
-            <span className="voice-waves" aria-hidden="true">
-              {[...Array(5)].map((_, i) => (
-                <span key={i} className="voice-bar" style={{ animationDelay: `${i * 0.1}s` }} />
-              ))}
-            </span>
-          )}
-          <span className="relative z-10">
-            {voice === "listening" ? "● LISTENING..." : voice === "speaking" ? "◐ SPEAKING..." : "🎤 PUSH TO TALK"}
+          <span className="jarvis-ring jarvis-ring-1" />
+          <span className="jarvis-ring jarvis-ring-2" />
+          <span className="jarvis-ring jarvis-ring-3" />
+          <span className="jarvis-core">
+            {isListening ? (
+              <span className="jarvis-bars">
+                {[...Array(7)].map((_, i) => (
+                  <span key={i} className="jarvis-bar" style={{ animationDelay: `${i * 0.08}s` }} />
+                ))}
+              </span>
+            ) : (
+              <span className="jarvis-mic">◉</span>
+            )}
+          </span>
+          <span className="jarvis-label">
+            {isListening ? "LISTENING" : isSpeaking ? "SPEAKING" : "TAP TO TALK"}
           </span>
         </button>
         {voiceLine && (
-          <div className="mt-2 p-2 text-xs" style={{ background: "var(--eng-panel-2)", border: "1px solid var(--eng-border)" }}>
+          <div className="mt-3 p-2 text-xs w-full" style={{ background: "var(--eng-panel-2)", border: "1px solid var(--eng-border)" }}>
             <span style={{ color: "var(--eng-muted)" }}>&gt; </span>
             <span className="eng-readout-cyan">{voiceLine}</span>
           </div>
         )}
-        <div className="mt-2 text-[10px] leading-relaxed" style={{ color: "var(--eng-muted)" }}>
-          CMDS: forward · back · left · right · stop · dock · twerk · open spotify
+        <div className="mt-2 text-[10px] leading-relaxed text-center" style={{ color: "var(--eng-muted)" }}>
+          Try: "twerk" · "play YoungBoy" · "open Spotify" · "twerk and play YoungBoy on living room"
         </div>
       </div>
     </div>

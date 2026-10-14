@@ -60,6 +60,7 @@ interface V3RobotApi {
   drive: (dir: "up" | "down" | "left" | "right" | "stop") => void;
   twerk: () => void;
   wakeRobot: () => void;
+  speak: (text: string) => void;
   setSpeed: (s: number) => void;
   dismissDoorEvent: () => void;
   dismissTimeline: (id: string) => void;
@@ -232,6 +233,31 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     }
   }, [robotUrl, connection]);
 
+  // Speak a response out loud (talk back)
+  const speak = useCallback((text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 0.9; // Slightly lower for a more "robot" feel
+    // Prefer a good voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => v.name.includes("Google US English")) ||
+                      voices.find(v => v.lang.startsWith("en") && v.name.includes("Male")) ||
+                      voices.find(v => v.lang.startsWith("en-US"));
+    if (preferred) utterance.voice = preferred;
+    utterance.onstart = () => {
+      setVoice("speaking");
+      setVoiceLine(`"${text}"`);
+    };
+    utterance.onend = () => {
+      setVoice("idle");
+      voiceTimers.current.push(setTimeout(() => setVoiceLine(null), 2000));
+    };
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
   // Wake Stella: restarts the ROS2 driver to reconnect to the robot
   const wakeRobot = useCallback(async () => {
     if (!robotUrl) return;
@@ -322,13 +348,33 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   // Twerk dance: back/forth + left/right sequence, then beep.
   // Browser beep via Web Audio (Pi has no beep endpoint yet).
   const twerk = useCallback((partyMode = false) => {
+    // Twerk shake: rapid alternating moves for that booty-shake effect
+    // ~50 moves at 450ms each = ~22 seconds
+    const twerkShake = [
+      // Warm up: forward/back
+      "up", "down", "up", "down",
+      // Shake: rapid left/right (the twerk)
+      "left", "right", "left", "right", "left", "right", "left", "right",
+      // Bounce: up/down quick
+      "up", "down", "up", "down", "up", "down",
+      // Big shake: alternating with spins
+      "left", "left", "right", "right", "left", "right",
+      "down", "up", "down", "up",
+      // Intense shake section
+      "left", "right", "left", "right", "left", "right",
+      "up", "down", "left", "right",
+      "down", "down", "up", "up",
+      "left", "right", "left", "right", "left", "right", "left", "right",
+      // Finale: bounce out
+      "up", "down", "up", "down",
+    ] as Array<"up" | "down" | "left" | "right">;
     const single = [
       "up", "down", "up", "down",
       "left", "right", "left", "right",
       "up", "down",
     ] as Array<"up" | "down" | "left" | "right">;
-    // Party mode: repeat 3x for ~13 seconds of dancing
-    const moves = partyMode ? [...single, ...single, ...single] : single;
+    // Party mode / twerk: use the long shake (~22 sec)
+    const moves = partyMode ? twerkShake : single;
     logTelemetry("twerk", {});
     setVoiceLine("“Watch this.”");
     setVoice("speaking");
@@ -373,6 +419,37 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  // Execute a structured command from Claude
+  const executeClaudeCommand = useCallback(async (cmd: any) => {
+    if (!cmd?.action) return;
+    const { action } = cmd;
+    if (action === "drive") {
+      const dirMap: Record<string, string> = { forward: "up", back: "down", left: "left", right: "right", stop: "stop" };
+      drive((dirMap[cmd.direction] || "stop") as "up" | "down" | "left" | "right" | "stop");
+    }
+    else if (action === "twerk") twerk();
+    else if (action === "dance_party") await danceParty(cmd.song || "", cmd.room);
+    else if (action === "roku" && robotUrl && connection === "live") {
+      fetch(`${robotUrl}/roku/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ app: cmd.app }),
+      }).catch(() => {});
+    }
+    else if (action === "spotify") {
+      const res = await fetch("/api/spotify/play", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: cmd.song, target: cmd.room }),
+      }).then(r => r.json()).catch(() => ({}));
+      if (!res.success) setVoiceLine(`"Spotify issue: ${res.error || "unknown"}"`);
+    }
+    else if (action === "dock") cleanMode("dock");
+    else if (action === "status") {
+      speak(`Battery at ${Math.round(battery)} percent. ${connection === "live" ? "Connected." : "Offline."}`);
+    }
+  }, [drive, twerk, danceParty, robotUrl, connection, cleanMode, speak, battery]);
+
   // Voice commands via Web Speech API. Basic intents for now:
   // stop, forward/back/left/right, dock. 10s max per utterance.
   const toggleListening = useCallback(() => {
@@ -396,38 +473,61 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
         rec.interimResults = false;
         rec.maxAlternatives = 1;
         voiceTimers.current.push(setTimeout(() => { try { rec.stop(); } catch {} }, 10000));
-        rec.onresult = (e: any) => {
-          const heard = (e.results[0][0].transcript || "").toLowerCase().trim();
+        rec.onresult = async (e: any) => {
+          const heard = (e.results[0][0].transcript || "").trim();
           logTelemetry("voice_heard", { heard });
-          // Multi-command: split on "and" / "then" and execute in sequence
-          // Dance party: "twerk and play X" or "dance and play X [on room]"
-          const dancePartyMatch = heard.match(/\b(?:twerk|dance)\b.*\bplay\s+(.+?)(?:\s+on\s+(.+))?$/);
-          if (dancePartyMatch) {
-            const query = dancePartyMatch[1].trim();
-            const target = dancePartyMatch[2]?.trim();
-            setVoice("speaking");
-            danceParty(query, target);
-            return;
+          setVoice("speaking");
+          setVoiceLine(`"Heard: ${heard}"`);
+
+          // Send to Claude for smart parsing
+          try {
+            const res = await fetch("/api/stella/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ message: heard }),
+            });
+            const data = await res.json();
+
+            if (data.error && !data.reply) {
+              setVoiceLine(`"Claude not configured."`);
+              // Fall through to pattern matching
+            } else {
+              // Speak the reply out loud
+              if (data.reply) speak(data.reply);
+              // Execute commands
+              for (const cmd of (data.commands || [])) {
+                await executeClaudeCommand(cmd);
+              }
+              return;
+            }
+          } catch (err) {
+            setVoiceLine(`"Brain offline, using basic commands."`);
           }
-          const parts = heard.split(/\s+\b(?:and|then)\b\s+/);
-          const runPart = (part: string, delay: number) => {
-            voiceTimers.current.push(setTimeout(() => runSingleCommand(part.trim()), delay));
-          };
-          const runSingleCommand = (text: string) => {
+
+          // Fallback: pattern matching
+          const text = heard.toLowerCase();
           let action: string | null = null;
           let rokuApp: string | null = null;
           let playQuery: string | null = null;
           const playMatch = text.match(/\bplay\s+(.+)/);
           const openMatch = text.match(/\bopen\s+(spotify|youtube|netflix|hulu|disney)/);
+          // Twerk with auto Sexy Red: "twerk" alone plays Sexy Red + dances
+          const twerkAlone = /\btwerk\b/.test(text) && !playMatch;
+          if (twerkAlone) {
+            setVoice("speaking");
+            // Auto dance party with Sexy Red
+            danceParty("sexy red", undefined);
+            return;
+          }
           if (playMatch) { action = "spotify_play"; playQuery = playMatch[1].trim(); }
           else if (openMatch) { action = "roku"; rokuApp = openMatch[1]; }
-          else if (/\btwerk\b/.test(heard)) action = "twerk";
-          else if (/\bstop\b/.test(heard)) action = "stop";
-          else if (/\bdock\b|\bgo home\b|\bcharge\b/.test(heard)) action = "dock";
-          else if (/\bforward\b|\bahead\b|\bgo\b/.test(heard)) action = "up";
-          else if (/\bback\b|\breverse\b/.test(heard)) action = "down";
-          else if (/\bleft\b/.test(heard)) action = "left";
-          else if (/\bright\b/.test(heard)) action = "right";
+          else if (/\btwerk\b/.test(text)) action = "twerk";
+          else if (/\bstop\b/.test(text)) action = "stop";
+          else if (/\bdock\b|\bgo home\b|\bcharge\b/.test(text)) action = "dock";
+          else if (/\bforward\b|\bahead\b|\bgo\b/.test(text)) action = "up";
+          else if (/\bback\b|\breverse\b/.test(text)) action = "down";
+          else if (/\bleft\b/.test(text)) action = "left";
+          else if (/\bright\b/.test(text)) action = "right";
           setVoice("speaking");
           if (action === "spotify_play" && playQuery) {
             setVoiceLine(`“Playing ${playQuery} on Spotify.”`);
@@ -459,16 +559,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
           else if (action) { drive(action as any); setVoiceLine(`“On it — ${heard}.”`); }
           else { setVoiceLine(`“Didn't catch that — try stop, forward, back, left, right, dock, twerk, or open spotify.”`); }
           logTelemetry("voice_speak", { heard: text, action });
-          }; // end runSingleCommand
-          // Execute parts in sequence with delays
-          if (parts.length > 1) {
-            setVoiceLine(`"Got it — ${parts.length} commands."`);
-            parts.forEach((p: string, i: number) => runPart(p, i * 2500));
-            voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, parts.length * 2500 + 1000));
-          } else {
-            runSingleCommand(heard);
-            voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 2800));
-          }
+          voiceTimers.current.push(setTimeout(() => { setVoice("idle"); setVoiceLine(null); }, 2800));
         };
         rec.onerror = () => { setVoice("idle"); setVoiceLine(null); };
         rec.onend = () => { setVoice((vv) => vv === "listening" ? "idle" : vv); };
@@ -641,6 +732,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       drive,
       twerk,
       wakeRobot,
+      speak,
       setSpeed,
       dismissDoorEvent,
       dismissTimeline,
