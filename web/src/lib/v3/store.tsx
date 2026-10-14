@@ -403,7 +403,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   // Browser beep via Web Audio (Pi has no beep endpoint yet).
   const twerk = useCallback((partyMode = false) => {
     // Twerk shake: rapid alternating moves for that booty-shake effect
-    // ~68 moves at 450ms each = ~30 seconds
+    // ~100 moves at 450ms each = ~45 seconds
     const twerkShake = [
       // Warm up: forward/back
       "up", "down", "up", "down",
@@ -419,25 +419,33 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       "up", "down", "left", "right",
       "down", "down", "up", "up",
       "left", "right", "left", "right", "left", "right", "left", "right",
-      // Finale: bounce out
+      // Keep going - round 2
       "up", "down", "up", "down",
-      // Extended: keep the party going (~30 sec total)
       "left", "right", "left", "right", "left", "right",
-      "up", "down", "up", "down",
-      "left", "left", "right", "right",
       "up", "down", "left", "right",
+      "left", "left", "right", "right",
+      // Round 3 - full energy
+      "left", "right", "left", "right", "left", "right", "left", "right",
+      "up", "down", "up", "down",
+      "left", "right", "up", "down", "left", "right",
+      "down", "up", "down", "up",
+      // Finale: bounce out (~45 sec total)
+      "left", "right", "left", "right",
+      "up", "down", "up", "down",
     ] as Array<"up" | "down" | "left" | "right">;
     const single = [
       "up", "down", "up", "down",
       "left", "right", "left", "right",
       "up", "down",
     ] as Array<"up" | "down" | "left" | "right">;
-    // Party mode / twerk: use the long shake (~30 sec)
+    // Party mode / twerk: use the long shake (~45 sec)
     const moves = partyMode ? twerkShake : single;
     logTelemetry("twerk", {});
     setVoiceLine("“Watch this.”");
     setVoice("speaking");
     let i = 0;
+    // Use a dedicated ref for dance so voice state changes don't kill it
+    const danceTimer = { current: null as any };
     const step = () => {
       if (i >= moves.length) {
         // Dance done — beep (unless party mode, music is the soundtrack)
@@ -461,7 +469,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       }
       drive(moves[i]);
       i++;
-      voiceTimers.current.push(setTimeout(step, 450));
+      danceTimer.current = setTimeout(step, 450);
     };
     step();
   }, [drive]);
@@ -574,8 +582,8 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
           const twerkAlone = /\btwerk\b/.test(text) && !playMatch;
           if (twerkAlone) {
             setVoice("speaking");
-            // Auto dance party with Sexy Red
-            danceParty("sexy red", undefined);
+            // Auto dance party with Sexy Red - twerk anthem
+            danceParty("sexy red throw", undefined);
             return;
           }
           if (playMatch) { action = "spotify_play"; playQuery = playMatch[1].trim(); }
