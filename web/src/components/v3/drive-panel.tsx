@@ -119,20 +119,29 @@ function HoldPad({ drive, dirBtn }: { drive: (d: "up"|"down"|"left"|"right"|"sto
     drive("stop");
   };
   useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
-  const btn = (dir: "up"|"down"|"left"|"right", label: string, icon: React.ReactNode) => (
-    <button
-      aria-label={label}
-      onPointerDown={(e) => { e.preventDefault(); start(dir); }}
-      onPointerUp={stop}
-      onPointerLeave={stop}
-      onPointerCancel={stop}
-      onContextMenu={(e) => e.preventDefault()}
-      className={dirBtn + " touch-none select-none"}
-      style={{ borderColor: "var(--v3-border)" }}
-    >
-      {icon}
-    </button>
-  );
+  const { activeDirection } = useV3Robot();
+  const btn = (dir: "up"|"down"|"left"|"right", label: string, icon: React.ReactNode) => {
+    const isActive = activeDirection === dir;
+    return (
+      <button
+        aria-label={label}
+        onPointerDown={(e) => { e.preventDefault(); start(dir); }}
+        onPointerUp={stop}
+        onPointerLeave={stop}
+        onPointerCancel={stop}
+        onContextMenu={(e) => e.preventDefault()}
+        className={dirBtn + " touch-none select-none"}
+        style={{
+          borderColor: isActive ? "var(--eng-cyan)" : "var(--v3-border)",
+          background: isActive ? "rgba(0, 212, 255, 0.2)" : "transparent",
+          boxShadow: isActive ? "0 0 15px rgba(0, 212, 255, 0.4)" : "none",
+          transform: isActive ? "scale(0.95)" : "scale(1)",
+        }}
+      >
+        {icon}
+      </button>
+    );
+  };
   return (
     <div className="grid grid-cols-3 gap-2 w-fit mx-auto">
       <span />

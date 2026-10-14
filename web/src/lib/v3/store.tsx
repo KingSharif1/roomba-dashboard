@@ -66,6 +66,7 @@ interface V3RobotApi {
   availableVoices: SpeechSynthesisVoice[];
   cleaning: { vacuum: boolean; main_brush: boolean; side_brush: boolean };
   setCleaningMotors: (v: boolean, m: boolean, s: boolean) => void;
+  activeDirection: string | null;
   setSpeed: (s: number) => void;
   dismissDoorEvent: () => void;
   dismissTimeline: (id: string) => void;
@@ -291,6 +292,9 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
 
   // Cleaning motors state
   const [cleaning, setCleaning] = useState({ vacuum: false, main_brush: false, side_brush: false });
+
+  // Active drive direction (for live button highlighting)
+  const [activeDirection, setActiveDirection] = useState<string | null>(null);
 
   const setCleaningMotors = useCallback(async (vacuum: boolean, main_brush: boolean, side_brush: boolean) => {
     if (!robotUrl || connection !== "live") return;
@@ -777,6 +781,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
         robotUrl,
         checks,
         cleaning,
+        activeDirection,
       },
       selectRoom,
       cleanMode,
@@ -789,6 +794,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       availableVoices,
       cleaning,
       setCleaningMotors,
+      activeDirection,
       setSpeed,
       dismissDoorEvent,
       dismissTimeline,

@@ -4,7 +4,7 @@ import { useV3Robot } from "@/lib/v3/store";
 
 /* Animated Roomba mascot — reflects Stella's current state */
 
-export function StellaMascot() {
+export function StellaMascot({ compact = false }: { compact?: boolean }) {
   const { state } = useV3Robot();
   const { connection, mode, battery } = state;
   const isLive = connection === "live";
@@ -15,9 +15,10 @@ export function StellaMascot() {
     : "standby";
 
   return (
-    <div className="flex flex-col items-center py-4">
+    <div className={`flex flex-col items-center ${compact ? "py-2" : "py-4"}`}>
+
       <div className={`stella-mascot stella-mascot-${displayMode}`}>
-        <svg viewBox="0 0 120 120" className="w-24 h-24">
+        <svg viewBox="0 0 120 120" className={compact ? "w-16 h-16" : "w-24 h-24"}>
           {/* Shadow */}
           <ellipse cx="60" cy="105" rx="35" ry="8" fill="rgba(0,0,0,0.3)" className="mascot-shadow" />
 

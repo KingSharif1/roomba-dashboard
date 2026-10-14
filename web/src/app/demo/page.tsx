@@ -296,11 +296,134 @@ function EngTelemetry() {
           <span className="eng-telemetry-value" style={{ color: "var(--eng-muted)" }}>No SLAM</span>
         </div>
       </div>
+      {/* Mascot integrated in status card */}
+      <div style={{ borderTop: "1px solid var(--eng-border)" }}>
+        <StellaMascot compact />
+      </div>
     </div>
   );
 }
 
 /* Engineering drive control */
+/* Unified Controller - drive + cleaning in one panel */
+function EngController() {
+  const [tab, setTab] = useState<"drive" | "clean">("drive");
+  const [open, setOpen] = useState(true);
+
+  return (
+    <div className="eng-panel">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="eng-panel-header w-full text-left cursor-pointer"
+        style={{ background: "var(--eng-panel-2)" }}
+      >
+        <span className="eng-panel-title">🎮 Controller</span>
+        <span className="text-[10px] font-bold tracking-widest" style={{ color: "var(--eng-cyan)" }}>
+          {open ? "[−]" : "[+]"}
+        </span>
+      </button>
+      {open && (
+        <div style={{ borderTop: "1px solid var(--eng-border)" }}>
+          {/* Tab switcher */}
+          <div className="flex justify-center py-3">
+            <div
+              className="relative flex p-1 rounded-full"
+              style={{ background: "var(--eng-bg-deep)", border: "1px solid var(--eng-border)" }}
+            >
+              {(["drive", "clean"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className="relative px-6 py-1.5 text-[11px] font-bold tracking-widest uppercase rounded-full transition-all"
+                  style={{ color: tab === t ? "var(--eng-bg-deep)" : "var(--eng-muted)" }}
+                >
+                  {tab === t && (
+                    <span
+                      className="absolute inset-0 rounded-full"
+                      style={{ background: "var(--eng-cyan)", boxShadow: "0 0 12px rgba(0,212,255,0.4)", zIndex: 0 }}
+                    />
+                  )}
+                  <span className="relative z-10">{t === "drive" ? "🕹️ Drive" : "🧹 Clean"}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="px-3 pb-3">
+            {tab === "drive" ? <V3DrivePanel /> : <CleaningControls />}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* Cleaning controls (extracted for controller) */
+function CleaningControls() {
+  const { state, cleaning, setCleaningMotors } = useV3Robot();
+  const isLive = state.connection === "live";
+
+  const toggle = (key: "vacuum" | "main_brush" | "side_brush") => {
+    const next = { ...cleaning, [key]: !cleaning[key] };
+    setCleaningMotors(next.vacuum, next.main_brush, next.side_brush);
+  };
+
+  return (
+    <div className="space-y-2">
+      {!isLive && (
+        <div className="text-[10px] text-center" style={{ color: "var(--eng-amber)" }}>
+          Connect to Stella to control cleaning
+        </div>
+      )}
+      {[
+        { key: "vacuum" as const, label: "Vacuum", icon: "🌀" },
+        { key: "main_brush" as const, label: "Main Brush", icon: "🧹" },
+        { key: "side_brush" as const, label: "Side Brush", icon: "🖌️" },
+      ].map(({ key, label, icon }) => (
+        <button
+          key={key}
+          onClick={() => toggle(key)}
+          disabled={!isLive}
+          className="w-full flex items-center justify-between p-3 transition-all"
+          style={{
+            background: cleaning[key] ? "rgba(0, 255, 136, 0.08)" : "var(--eng-panel-2)",
+            border: `1px solid ${cleaning[key] ? "var(--eng-green)" : "var(--eng-border)"}`,
+            borderRadius: "12px",
+            opacity: isLive ? 1 : 0.5,
+            boxShadow: cleaning[key] ? "0 0 15px rgba(0,255,136,0.2)" : "none",
+          }}
+        >
+          <span className="text-sm">{icon} {label}</span>
+          <span
+            className="text-[10px] font-bold px-3 py-1 rounded-full"
+            style={{
+              background: cleaning[key] ? "var(--eng-green)" : "var(--eng-border)",
+              color: cleaning[key] ? "var(--eng-bg-deep)" : "var(--eng-muted)",
+            }}
+          >
+            {cleaning[key] ? "● ON" : "○ OFF"}
+          </span>
+        </button>
+      ))}
+      <div className="flex gap-2 justify-center pt-2">
+        <button
+          onClick={() => setCleaningMotors(true, true, true)}
+          disabled={!isLive}
+          className="eng-btn"
+        >
+          All On
+        </button>
+        <button
+          onClick={() => setCleaningMotors(false, false, false)}
+          disabled={!isLive}
+          className="eng-btn"
+        >
+          All Off
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function EngDrive() {
   const { state, wakeRobot } = useV3Robot();
   const isLive = state.connection === "live";
@@ -385,11 +508,9 @@ function EngDashboardInner() {
       <main className="flex-1 p-3 space-y-3 max-w-2xl mx-auto w-full pb-8">
         <EngVoice />
         <EngVoiceSettings />
-        <EngDrive />
-        <EngCleaning />
+        <EngController />
         <EngMap />
         <EngTelemetry />
-        <StellaMascot />
 
         <div className="text-center text-[10px] tracking-widest pt-4" style={{ color: "var(--eng-dim)" }}>
           STELLA UNIT-01 // ENGINEERING BUILD
