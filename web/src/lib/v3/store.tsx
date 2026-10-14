@@ -268,7 +268,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
   }, [robotUrl, connection]);
 
   // Dance party: twerk + Spotify simultaneously
-  const danceParty = useCallback(async (query: string) => {
+  const danceParty = useCallback(async (query: string, target?: string) => {
     logTelemetry("dance_party", { query });
     setVoiceLine(`"Dance party — opening Spotify on TV."`);
     setVoice("speaking");
@@ -289,7 +289,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     const musicPromise = fetch("/api/spotify/play", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, target }),
     }).then((r) => r.json());
     // Start twerk immediately (don't wait for music)
     twerk(true); // true = party mode (repeat 3x, no beep at end)
@@ -383,12 +383,13 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
           const heard = (e.results[0][0].transcript || "").toLowerCase().trim();
           logTelemetry("voice_heard", { heard });
           // Multi-command: split on "and" / "then" and execute in sequence
-          // Dance party: "twerk and play X" or "dance and play X"
-          const dancePartyMatch = heard.match(/\b(?:twerk|dance)\b.*\bplay\s+(.+)/);
+          // Dance party: "twerk and play X" or "dance and play X [on room]"
+          const dancePartyMatch = heard.match(/\b(?:twerk|dance)\b.*\bplay\s+(.+?)(?:\s+on\s+(.+))?$/);
           if (dancePartyMatch) {
             const query = dancePartyMatch[1].trim();
+            const target = dancePartyMatch[2]?.trim();
             setVoice("speaking");
-            danceParty(query);
+            danceParty(query, target);
             return;
           }
           const parts = heard.split(/\s+\b(?:and|then)\b\s+/);

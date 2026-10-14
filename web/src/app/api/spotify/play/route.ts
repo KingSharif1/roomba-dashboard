@@ -37,6 +37,7 @@ async function spotifyFetch(
 }
 
 export async function POST(req: Request) {
+  const { query, target } = await req.json();
   const cookieStore = await cookies();
   let accessToken = cookieStore.get("spotify_access_token")?.value;
   // Fallback to env var for cross-device support (set after first OAuth)
@@ -63,7 +64,6 @@ export async function POST(req: Request) {
     );
   }
 
-  const { query } = await req.json();
   if (!query) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });
   }
