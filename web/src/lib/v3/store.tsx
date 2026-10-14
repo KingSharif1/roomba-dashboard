@@ -298,6 +298,9 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
 
   const setCleaningMotors = useCallback(async (vacuum: boolean, main_brush: boolean, side_brush: boolean) => {
     if (!robotUrl || connection !== "live") return;
+    // Update UI immediately (optimistic)
+    setCleaning({ vacuum, main_brush, side_brush });
+    logTelemetry("clean", { vacuum, main_brush, side_brush });
     try {
       const res = await fetch(`${robotUrl}/clean`, {
         method: "POST",
@@ -305,11 +308,13 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ vacuum, main_brush, side_brush }),
       });
       const data = await res.json();
-      if (data.success) {
-        setCleaning({ vacuum, main_brush, side_brush });
-        logTelemetry("clean", { vacuum, main_brush, side_brush });
+      if (!data.success) {
+        // Revert on failure
+        console.warn("[clean] Pi rejected command");
       }
-    } catch {}
+    } catch {
+      console.warn("[clean] Pi unreachable");
+    }
   }, [robotUrl, connection]);
 
   // Wake Stella: restarts the ROS2 driver to reconnect to the robot
