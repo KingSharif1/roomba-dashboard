@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/", headers: noCache },
       { source: "/stella/:path*", headers: noCache },
+      { source: "/ridenemt-mock/:path*", headers: noCache },
       { source: "/3d/:path*", headers: longCache },
       { source: "/3d", headers: noCache },
       { source: "/3d/index.html", headers: noCache },
@@ -29,6 +30,8 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       { source: "/stella", destination: "/stella/index.html", permanent: false },
+      { source: "/ridenemt-mock", destination: "/ridenemt-mock/index.html", permanent: false },
+      { source: "/ridenemt-mock/", destination: "/ridenemt-mock/index.html", permanent: false },
     ];
   },
   async rewrites() {

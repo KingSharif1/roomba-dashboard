@@ -195,3 +195,5 @@ h2{font-size:17px;font-weight:700}
 #view>.hero{min-height:100%}
 .composer{flex-direction:column;align-items:stretch}.quick button{width:auto;height:auto;background:var(--card);color:var(--ink)}
 .bub{width:fit-content}.bub.out{margin-left:auto}a.iconbtn{color:var(--ink)}.convstart{text-align:center;padding:18px 10px 6px;color:var(--mut);font-size:13px}.convstart .avatar{margin:0 auto 8px;width:52px;height:52px}
+.stepper.three .st{font-size:12px}.stepper.three .st i{width:22px;height:22px}.stepper.three .st:before{top:10px}
+.viewpast{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:46px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-weight:600;color:var(--v);margin-top:4px}.viewpast svg{width:17px;height:17px}
