@@ -210,3 +210,4 @@ body.compact .tmap{min-height:0;height:40vh}
 .rs .n{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}.rs .n svg{width:14px;height:14px}
 .tsheet .addr{font-size:14px;margin-top:2px}
 #view:not(.nopad)>.seg button:not(.on) .cnt{background:rgba(255,255,255,.18);color:#fff}
+.seghd{padding:12px 0 4px}.seghd .chip svg{width:13px;height:13px}.seghd p{margin-top:6px}
