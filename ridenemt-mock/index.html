@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F3F4F8">
+<title>RideNEMT Driver · Fleetly mockup</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head><body>
+<div id="stage">
+  <aside id="side">
+    <div class="brandrow"><span class="logo">R</span><b>RideNEMT</b><span class="muted"> · Fleetly driver mock</span></div>
+    <p class="muted">Interactive prototype. Click anything. Every screen:</p>
+    <div id="jump"></div>
+    <div class="sidebtns"><button class="btn ghost" onclick="toggleTheme()">Toggle light / dark</button><button class="btn ghost" onclick="resetDemo()">Reset demo</button></div>
+  </aside>
+  <div id="phone"><div id="app">
+    <div class="statusbar"><span>9:41</span><span class="sb-ic"><i data-i="signal"></i><i data-i="battery"></i></span></div>
+    <main id="view"></main>
+    <nav id="tabs"></nav>
+    <div id="sheet-wrap" onclick="if(event.target===this)closeSheet()"><div id="sheet"></div></div>
+    <div id="toast"></div>
+  </div></div>
+</div>
+<script src="app.js"></script>
+</body></html>
