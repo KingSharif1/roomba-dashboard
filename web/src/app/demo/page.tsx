@@ -348,11 +348,20 @@ function FControl() {
     setCleaningMotors(next.vacuum, next.main_brush, next.side_brush);
   };
 
-  const actions = [
-    { id: "clean", label: "Clean", icon: <Play className="w-4 h-4" />, cls: "pri", fn: () => cleanMode("all") },
-    { id: "stop", label: "Stop", icon: <Square className="w-4 h-4" />, cls: "danger", fn: () => cleanMode("stop") },
-    { id: "dock", label: "Dock", icon: <House className="w-4 h-4" />, cls: "", fn: () => cleanMode("dock") },
-  ];
+  // One contextual action row: only show what Stella can actually do right now.
+  //  asleep / offline / docked -> Wake only
+  //  cleaning / returning      -> Stop only
+  //  idle                      -> Clean + Dock
+  const asleep = !isLive || mode === "docked";
+  const busy = isLive && (mode === "cleaning" || mode === "returning");
+  const actions = asleep
+    ? [{ id: "wake", label: "Wake", icon: <Zap className="w-4 h-4" />, cls: "inv", fn: () => wakeRobot() }]
+    : busy
+      ? [{ id: "stop", label: "Stop", icon: <Square className="w-4 h-4" />, cls: "danger", fn: () => cleanMode("stop") }]
+      : [
+          { id: "clean", label: "Clean", icon: <Play className="w-4 h-4" />, cls: "pri", fn: () => cleanMode("all") },
+          { id: "dock", label: "Dock", icon: <House className="w-4 h-4" />, cls: "", fn: () => cleanMode("dock") },
+        ];
 
   return (
     <section id="control">
@@ -368,21 +377,13 @@ function FControl() {
       <div className="grid two">
         <div className="card">
           <div className="lbl" style={{ marginBottom: 10 }}>Actions</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${actions.length},1fr)`, gap: 8 }}>
             {actions.map((a) => (
               <button key={a.id} className={`btn ${a.cls}`} onClick={a.fn}>
                 {a.icon} {a.label}
               </button>
             ))}
           </div>
-          {!isLive && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <button onClick={() => wakeRobot()} className="btn inv">
-                <Zap className="w-4 h-4" /> Wake Stella
-              </button>
-              <div className="sm" style={{ textAlign: "center" }}>Not responding — press to reconnect</div>
-            </div>
-          )}
         </div>
         <div className="card">
           <div className="f-dt">
@@ -605,8 +606,18 @@ function FMapBody() {
             {zones.length === 0 && <div className="sm" style={{ marginTop: 8 }}>None yet — draw one on the map.</div>}
             {zones.map((z, i) => (
               <div className="row" key={i}>
-                <span>
-                  {z.n[0] + z.n.slice(1).toLowerCase()} · {roomAt(z.x + z.w / 2, z.y + z.h / 2, names)}
+                <span style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
+                  <input
+                    value={z.n}
+                    maxLength={24}
+                    aria-label="Zone name"
+                    onChange={(e) =>
+                      setZones((zs) => zs.map((q, j) => (j === i ? { ...q, n: e.target.value.toUpperCase() } : q)))
+                    }
+                    placeholder="Name this zone"
+                    style={{ background: "transparent", border: 0, outline: 0, color: "inherit", font: "inherit", padding: 0, width: "100%" }}
+                  />
+                  <span className="sm">{roomAt(z.x + z.w / 2, z.y + z.h / 2, names)}</span>
                 </span>
                 <button
                   className="iconbtn"
