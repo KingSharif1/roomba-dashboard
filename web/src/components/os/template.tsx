@@ -62,8 +62,8 @@ export function renderTemplate(v: any) {
 <section className="card" aria-label="Control" style={S("flex:1 1 340px;max-width:100%;display:flex;flex-direction:column;gap:12px")}><div style={S("display:flex;gap:8px")}><button type="button" className={`btn ${v.goCls}`} style={S("flex:1;height:52px;font-size:16px")} onClick={v.goTog}>{v.goIsStop && (<><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2" /></svg></>)}
 {v.goIsGo && (<><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg></>)}
 {" "}{v.goLabel}</button>
-{v.showDock && (<><button type="button" className="btn" style={S("height:52px;padding:0 18px")} onClick={v.dock}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9H3z" /></svg>
-{"Dock"}</button></>)}</div>
+{v.showDock && (<><button type="button" className="btn" style={S("height:52px;padding:0 18px")} onClick={v.dock}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z" /></svg>
+{"Charge"}</button></>)}</div>
 <div style={S("display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px")}>{v.tools.map((t: any, __i: number) => (<Fragment key={__i}><button type="button" className="btn" onClick={t.pick} role="switch" aria-checked={t.on} style={S(`height:44px;padding:0 8px;gap:7px;font-size:13px;${t.style}`)}><span className="dot" style={S(`background:${t.dot}`)}></span>
 {t.n}</button></Fragment>))}</div>
 <div className="seg" role="tablist" aria-label="Control style">{v.ctrlTabs.map((c: any, __i: number) => (<Fragment key={__i}><button type="button" role="tab" className={c.cls} onClick={c.pick}>{c.label}</button></Fragment>))}</div>
@@ -316,7 +316,7 @@ export function renderTemplate(v: any) {
 <span style={S("font-size:12px;color:#9a9aa3")}>{"%"}</span></span></div>
 <div style={S("display:flex;gap:3px;height:44px;align-items:flex-end")}>{v.spdSegs.map((g: any, __i: number) => (<Fragment key={__i}><button type="button" aria-label={g.label} onClick={g.pick} style={S(g.style)}></button></Fragment>))}</div>
 <div style={S("display:flex;gap:8px")}><button type="button" className={`btn ${v.goCls}`} style={S("flex:1;height:46px;padding:0 8px;background:rgba(0,0,0,.5)")} onClick={v.goTog}>{v.goLabel}</button>
-{v.showDock && (<><button type="button" className="btn" style={S("height:46px;padding:0 12px;background:rgba(0,0,0,.5);color:#fff")} onClick={v.dock}>{"Dock"}</button></>)}</div></div></div></>)}
+{v.showDock && (<><button type="button" className="btn" style={S("height:46px;padding:0 12px;background:rgba(0,0,0,.5);color:#fff")} onClick={v.dock}>{"Charge"}</button></>)}</div></div></div></>)}
 {v.toast && (<><div role="status" style={S("position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:60;background:var(--fg);color:var(--bg);padding:11px 18px;border-radius:12px;font-weight:600;font-size:14px;max-width:90vw;box-shadow:0 8px 30px rgba(0,0,0,.4)")}>{v.toast}</div></>)}</div>
     </>
   );

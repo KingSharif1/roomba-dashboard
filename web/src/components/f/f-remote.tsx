@@ -113,6 +113,19 @@ export function FRemote({ open, onClose }: { open: boolean; onClose: () => void 
         </div>
         <div className="fr-note" data-bad={note?.bad ? "1" : "0"} aria-live="polite">{note?.text ?? " "}</div>
         <div className="fr-body" data-live={live ? "1" : "0"}>
+          <div className="fr-apps">
+            {APPS.map((a) => (
+              <button
+                key={a.id}
+                className="fr-app"
+                style={{ ["--app" as string]: a.color }}
+                onClick={() => launch(a.id, a.label)}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+
           <div className="fr-row fr-small">
             <RBtn onTap={() => key("Back", "Back")} label="Back"><ArrowLeft /></RBtn>
             <RBtn onTap={() => key("Home", "Home")} label="Home"><House /></RBtn>
@@ -140,18 +153,6 @@ export function FRemote({ open, onClose }: { open: boolean; onClose: () => void 
             <RBtn hold onTap={() => key("VolumeUp", "Volume +")} label="Volume up"><Volume2 /></RBtn>
           </div>
 
-          <div className="fr-apps">
-            {APPS.map((a) => (
-              <button
-                key={a.id}
-                className="fr-app"
-                style={{ ["--app" as string]: a.color }}
-                onClick={() => launch(a.id, a.label)}
-              >
-                {a.label}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </FWindow>

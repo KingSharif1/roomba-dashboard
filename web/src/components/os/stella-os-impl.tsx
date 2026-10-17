@@ -452,7 +452,7 @@ renderVals() {
     robotT: 'translate(' + this.x.toFixed(1) + 'px,' + this.y.toFixed(1) + 'px) rotate(' + this.h.toFixed(0) + 'deg)',
     layers: lay.map(l => ({ label: l[1], icon: l[2], on: !!s.layers[l[0]], cls: s.layers[l[0]] ? 'on' : '', pick: () => this.setState({ layers: Object.assign({}, s.layers, { [l[0]]: !s.layers[l[0]] }) }) })),
     canWake: this.st === 'charging' || this.st === 'offline' || this.st === 'fault', wake: () => this.wake(),
-    goIsStop: act, goIsGo: !act && !wk, showDock: !act && !wk, goLabel: wk ? 'Wake' : act ? 'Stop' : 'Clean', goCls: wk ? 'inv' : act ? 'dng' : 'pri', goTog: () => wk ? this.wake() : act ? this.stopAll(false) : this.clean(),
+    goIsStop: act, goIsGo: !act && !wk, showDock: this.st !== 'charging', goLabel: wk ? 'Wake' : act ? 'Stop' : 'Clean', goCls: wk ? 'inv' : act ? 'dng' : 'pri', goTog: () => wk ? this.wake() : act ? this.stopAll(false) : this.clean(),
     stop: () => this.stopAll(false), dock: () => { this.goTo('dock'); },
     ctrlTabs: [['console', 'Console'], ['camera', 'Camera']].map(c => ({ label: c[1], cls: s.ctrl === c[0] ? 'on' : '', pick: () => this.setState({ ctrl: c[0] }) })),
     ctrlConsole: s.ctrl !== 'camera', ctrlCam: s.ctrl === 'camera',

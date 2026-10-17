@@ -78,3 +78,7 @@ converter lived outside the repo; edit `template.tsx` directly from now on.
 - **Pi voice brain** row shows what Stella is really using: `Claude · haiku-5-5` or `Offline – <reason>` (no key / daily limit / paused after errors). Tap it for the last error.
 - **Test Pi brain** runs one real Claude call from the Pi (`POST /ai/test`) and shows the exact error (wrong key, no internet, billing, bad model).
 - Backed by `GET /ai/status` + `POST /ai/test` in `stella_ext_router.py`; status persisted by `ai_router.py` in `~/.cache/stella-ai-status.json`. Rows only show when the Pi is reachable.
+
+## Charge button + remote apps on top
+- Home shows a **Charge** button (sends Stella to the dock) whenever she isn't already charging, even while moving.
+- TV remote: app shortcuts (Netflix, YouTube, Spotify, Hulu, Disney+) are now the first row.
