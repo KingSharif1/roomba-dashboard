@@ -55,10 +55,29 @@ export async function POST(req: Request) {
     );
   }
 
-  const { message } = await req.json();
+  const { message, history, mode } = await req.json();
   if (!message) {
     return NextResponse.json({ error: "Missing message" }, { status: 400 });
   }
+
+  // Earlier turns of a voice call (so she can hold a conversation). Keep it small and well-formed.
+  type Turn = { role: "user" | "assistant"; content: string };
+  const turns: Turn[] = [];
+  if (Array.isArray(history)) {
+    for (const h of history.slice(-8)) {
+      const role = h?.role === "assistant" ? "assistant" : h?.role === "user" ? "user" : null;
+      const text = typeof h?.text === "string" ? h.text.slice(0, 600) : "";
+      if (!role || !text) continue;
+      if (turns.length === 0 && role !== "user") continue;          // must start with the user
+      if (turns.length && turns[turns.length - 1].role === role) { turns[turns.length - 1].content += " " + text; continue; }
+      turns.push({ role, content: role === "assistant" ? JSON.stringify({ reply: text, commands: [] }) : text });
+    }
+    if (turns.length && turns[turns.length - 1].role === "user") turns.pop();   // new message goes last
+  }
+  const callNote =
+    mode === "call"
+      ? `\n\nLIVE VOICE CALL: you are on a phone-style call with King Sharif. Talk like a warm, funny, caring friend (sweet, never robotic). Keep "reply" to 1-2 short spoken sentences, no lists or emojis. You may ask a short follow-up question. Still return the JSON shape above, with "commands" when he asks for an action.`
+      : "";
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -71,8 +90,8 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
         max_tokens: 300,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: message }],
+        system: SYSTEM_PROMPT + callNote,
+        messages: [...turns, { role: "user", content: message }],
       }),
     });
 

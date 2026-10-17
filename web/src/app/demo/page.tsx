@@ -4,12 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import {
   Mic, Square, Play, House, Sun, Moon, Map as MapIcon, Camera,
   Activity, Settings, Gauge, Fan, Brush, Paintbrush, Pencil, Trash2, X,
-  Volume2, Zap, Cpu,
+  Volume2, Zap, Cpu, Phone, Tv,
 } from "lucide-react";
 import { V3RobotProvider, useV3Robot } from "@/lib/v3/store";
 import { FDrivePanel } from "@/components/v3/drive-panel-f";
 import { StellaMascot } from "@/components/v3/stella-mascot";
+import { FRemote } from "@/components/f/f-remote";
+import { FCall } from "@/components/f/f-call";
 import "../design-f.css";
+import "../f-windows.css";
 
 /* ═══════════════ Design F — dark blueprint cutaway ═══════════════
    From the approved interactive mock (supervisor/stella-mockups).
@@ -68,10 +71,14 @@ function FTop({
   theme,
   setTheme,
   onTalk,
+  onRemote,
+  onCall,
 }: {
   theme: Theme;
   setTheme: (t: Theme) => void;
   onTalk: () => void;
+  onRemote: () => void;
+  onCall: () => void;
 }) {
   const { state, wakeRobot, robotOnline } = useV3Robot();
   const { connection } = state;
@@ -104,6 +111,12 @@ function FTop({
         </span>
       </button>
       <div className="f-topr">
+        <button className="iconbtn" onClick={onRemote} aria-label="Open TV remote" title="TV remote">
+          <Tv className="w-4 h-4" />
+        </button>
+        <button className="iconbtn" onClick={onCall} aria-label="Call Stella" title="Call Stella">
+          <Phone className="w-4 h-4" />
+        </button>
         <div style={{ position: "relative" }}>
           <button className={`f-conn ${connClass}`} onClick={() => setPop((p) => !p)} aria-label="Connection details">
             <SigBars n={bars} />
@@ -1015,6 +1028,8 @@ function DashboardInner({
   const { connection, voice } = state;
   const isDemo = connection === "demo";
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [remoteOpen, setRemoteOpen] = useState(false);
+  const [callOpen, setCallOpen] = useState(false);
   const [active, setActive] = useState("control");
 
   const talk = () => {
@@ -1032,20 +1047,20 @@ function DashboardInner({
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA") return;
-      if (e.code === "Space" && !e.repeat && !voiceOpen) {
+      if (e.code === "Space" && !e.repeat && !voiceOpen && !remoteOpen && !callOpen) {
         e.preventDefault();
         talk();
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [voiceOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [voiceOpen, remoteOpen, callOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nav = NAV.filter((n) => !(isDemo && n.id === "settings"));
 
   return (
     <div className="f" data-theme={theme}>
-      <FTop theme={theme} setTheme={setTheme} onTalk={talk} />
+      <FTop theme={theme} setTheme={setTheme} onTalk={talk} onRemote={() => setRemoteOpen(true)} onCall={() => setCallOpen(true)} />
 
       <nav className="f-side" aria-label="Sections">
         {nav.map((n) => (
@@ -1088,6 +1103,8 @@ function DashboardInner({
       </nav>
 
       <FVoiceOverlay open={voiceOpen} onClose={closeVoice} />
+      <FRemote open={remoteOpen} onClose={() => setRemoteOpen(false)} />
+      <FCall open={callOpen} onClose={() => setCallOpen(false)} />
     </div>
   );
 }

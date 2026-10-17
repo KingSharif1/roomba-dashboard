@@ -80,6 +80,8 @@ interface V3RobotApi {
   /** Send a command to the live robot. No-op in demo mode.
    *  Real wiring: JSON over the WebSocket opened by the probe below. */
   sendRobotCommand: (cmd: { type: string; [k: string]: unknown }) => void;
+  /** Run one structured command from the Claude chat route ({action: "roku" | "tv_key" | "drive" | …}). */
+  runCommand: (cmd: unknown) => Promise<void>;
 }
 
 const V3RobotContext = createContext<V3RobotApi | null>(null);
@@ -961,13 +963,14 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       toggleListening,
       setSoundTrigger,
       sendRobotCommand,
+      runCommand: executeClaudeCommand,
     }),
     [
       mode, battery, batteryMinutesLeft, location, runMinutes, heading, speed,
       targetRooms, dx, dy, mx, my, doorEvent, timelineHidden, timeline,
       voice, voiceLine, soundTrigger, connection, robotUrl, checks,
       selectRoom, cleanMode, drive, twerk, setSpeed, dismissDoorEvent, dismissTimeline,
-      toggleListening, setSoundTrigger, sendRobotCommand,
+      toggleListening, setSoundTrigger, sendRobotCommand, executeClaudeCommand,
     ]
   );
 
