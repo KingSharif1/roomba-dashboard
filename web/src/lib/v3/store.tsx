@@ -245,9 +245,6 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
       setMode("cleaning");
       setTargetRooms(demoRooms.map((r) => r.id));
       logTelemetry("run_start", { rooms: "all" });
-      if (robotUrl && connection === "live") {
-        fetch(`${robotUrl}/control/start`, { method: "POST" }).catch(() => {});
-      }
     }
   }, [robotUrl, connection]);
 
@@ -825,7 +822,7 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
     }
     let cancelled = false;
     let ws: WebSocket | null = null;
-    const wsPath = process.env.NEXT_PUBLIC_ROBOT_WS_PATH || "/ws";
+    const wsPath = process.env.NEXT_PUBLIC_ROBOT_WS_PATH || "/live";
     const wsUrl = robotUrl.replace(/^http/, "ws") + wsPath;
     const timer = setTimeout(() => {
       if (!cancelled && ws?.readyState !== WebSocket.OPEN) {
@@ -868,8 +865,16 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
             doorId?: string;
             roomId?: string;
             id?: string;
+            /** Pi robot_api.py `/live` frames: no `type`, plus `state` + `activity` + `connected` */
+            activity?: string;
+            connected?: boolean;
           };
-          if (p.type === "state") {
+          if (p.type === undefined && typeof p.battery === "number" && p.activity) {
+            // Real Pi status frame (see robot_api.py RoombaBridge.status)
+            setBattery(p.battery);
+            setRobotOnline(p.connected === true && p.activity !== "fault");
+            setMode((prev) => (p.activity === "charging" ? "docked" : prev === "docked" ? "idle" : prev));
+          } else if (p.type === "state") {
             if (typeof p.battery === "number") setBattery(p.battery);
             if (typeof p.batteryMinutesLeft === "number") setBatteryMinutesLeft(p.batteryMinutesLeft);
             if (p.mode) setMode(p.mode);

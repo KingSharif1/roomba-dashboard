@@ -308,7 +308,12 @@ clean() {
     if (this.st === 'charging') return this.say('Docked in charging mode. Tap Wake first.');
     const ids = this.R.filter(r => !this.skip[r.id]).map(r => r.id); if (!ids.length) return this.say('All rooms are skipped');
     this.setState({ tools: { v: true, m: true, s: true } }); this.live().setCleaningMotors(true, true, true);
-    this.live().cleanMode('all'); this.log('driver', 'info', 'Clean started'); this.say('Cleaning'); return;
+    this.log('driver', 'info', 'Clean requested · tools on');
+    this.api('/control/start', 'POST').then(r => {
+      if (r && r.success !== false && !r.__err) { this.live().cleanMode('all'); this.say('Cleaning'); }
+      else { this.log('driver', 'warn', 'Autonomous cleaning is not built on Stella yet'); this.say('Tools on. Auto-clean isn’t built yet — drive with the stick'); }
+    });
+    return;
   }
   if (!this.online()) return this.say('Stella is offline. Tap Wake Stella.');
   if (this.st === 'charging') return this.say('Docked in charging mode. Tap Wake Stella first.');

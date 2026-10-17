@@ -17,6 +17,9 @@ const APPS = [
   { id: "disney", label: "Disney+", color: "#1b4ad6" },
 ] as const;
 
+/** The TVs Stella knows about. Only the first (Roku "75 Living") reports live status today. */
+const TVS = ["75 Living", "ds twin", "sharif d ace"] as const;
+
 type TvStatus = { power?: string | null; app_name?: string | null; player?: string | null } | null;
 
 export function FRemote({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -25,6 +28,7 @@ export function FRemote({ open, onClose }: { open: boolean; onClose: () => void 
   const live = connection === "live" && !!robotUrl;
   const [note, setNote] = useState<{ text: string; bad?: boolean } | null>(null);
   const [tv, setTv] = useState<TvStatus>(null);
+  const [sel, setSel] = useState(0);
   const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const say = useCallback((text: string, bad = false) => {
@@ -41,7 +45,7 @@ export function FRemote({ open, onClose }: { open: boolean; onClose: () => void 
         const res = await fetch(`${robotUrl}${path}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ tv: TVS[sel], ...body }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || data.success === false) say(data.error || "TV didn't answer", true);
@@ -50,7 +54,7 @@ export function FRemote({ open, onClose }: { open: boolean; onClose: () => void 
         say("Couldn't reach Stella", true);
       }
     },
-    [live, robotUrl, say]
+    [live, robotUrl, say, sel]
   );
 
   const key = useCallback((k: string, label = k) => post("/roku/key", { key: k }, label), [post]);
@@ -76,23 +80,35 @@ export function FRemote({ open, onClose }: { open: boolean; onClose: () => void 
   }, [open, live, robotUrl]);
 
   const tvNow = open && live ? tv : null;      // never show a stale status after closing / disconnecting
-  const tvLine = !tvNow
-    ? null
-    : tvNow.power && tvNow.power !== "PowerOn"
-      ? "TV is off"
-      : `${tvNow.app_name || "Home"}${tvNow.player && tvNow.player !== "close" ? " · " + tvNow.player : ""}`;
+  const statusOf = (i: number): { line: string; dot: string } => {
+    if (i !== 0 || !tvNow) return { line: i !== 0 ? "Not linked" : live ? "…" : "Demo", dot: "var(--mute)" };
+    if (tvNow.power && tvNow.power !== "PowerOn") return { line: "Off", dot: "var(--mute)" };
+    const playing = !!tvNow.player && tvNow.player !== "close";
+    return { line: `${tvNow.app_name || "Home"}${playing ? " · " + tvNow.player : ""}`, dot: playing ? "var(--ok)" : "var(--warn)" };
+  };
 
   return (
-    <FWindow open={open} onClose={onClose} title="TV remote" subtitle={tvLine ?? (live ? "75 Living" : "Demo mode — not connected")}>
+    <FWindow open={open} onClose={onClose} title="TV remote" subtitle={live ? "Connected" : "Demo mode — not connected"}>
       <div className="fr">
+        <div className="fr-tvs" role="tablist" aria-label="TVs">
+          {TVS.map((name, i) => {
+            const st = statusOf(i);
+            return (
+              <button key={name} role="tab" aria-selected={sel === i} className="fr-tv" data-on={sel === i ? "1" : "0"} onClick={() => setSel(i)}>
+                <span className="fr-tv-n"><i style={{ background: st.dot }} />{name}</span>
+                <span className="fr-tv-s">{st.line}</span>
+              </button>
+            );
+          })}
+        </div>
         <div className="fr-note" data-bad={note?.bad ? "1" : "0"} aria-live="polite">{note?.text ?? " "}</div>
         <div className="fr-body" data-live={live ? "1" : "0"}>
-          <div className="fr-row fr-top">
-            <RBtn onTap={() => key("Power", "Power")} className="fr-power" label="Power"><Power /></RBtn>
-          </div>
-          <div className="fr-row">
+          <div className="fr-row fr-small">
             <RBtn onTap={() => key("Back", "Back")} label="Back"><ArrowLeft /></RBtn>
             <RBtn onTap={() => key("Home", "Home")} label="Home"><House /></RBtn>
+            <RBtn onTap={() => key("InstantReplay", "Replay")} label="Replay"><RotateCcw /></RBtn>
+            <RBtn onTap={() => key("Info", "Options")} label="Options"><Asterisk /></RBtn>
+            <RBtn onTap={() => key("Power", "Power")} className="fr-power" label="Power"><Power /></RBtn>
           </div>
 
           <div className="fr-dpad" role="group" aria-label="Directional pad">
@@ -103,10 +119,6 @@ export function FRemote({ open, onClose }: { open: boolean; onClose: () => void 
             <RBtn hold onTap={() => key("Down")} className="d" label="Down"><ChevronDown /></RBtn>
           </div>
 
-          <div className="fr-row">
-            <RBtn onTap={() => key("InstantReplay", "Replay")} label="Replay"><RotateCcw /></RBtn>
-            <RBtn onTap={() => key("Info", "Options")} label="Options"><Asterisk /></RBtn>
-          </div>
           <div className="fr-row">
             <RBtn hold onTap={() => key("Rev", "Rewind")} label="Rewind"><Rewind /></RBtn>
             <RBtn onTap={() => key("Play", "Play / pause")} className="fr-play" label="Play / pause"><Play /></RBtn>

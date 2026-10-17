@@ -3,6 +3,12 @@
 The approved interactive mock, ported into the real app. Home = live map + one control card + app grid; every
 app (Camera/LiDAR, Map, Parts 3D, Logs, TV, Climate, Settings, Voice) opens full screen.
 
+## Screenshots (captured in a headless browser against a fake robot, not the real Pi)
+![Home and all apps](img/os/01-home-and-apps.png)
+![Home](img/os/02-home.png)
+![Talk window, TV remote, home](img/os/03-talk-remote-home.png)
+![TV remote on 390x844 and 360x640 phones](img/os/04-remote-small-phones.png)
+
 ## Where things live
 | Path | What |
 |---|---|
@@ -41,6 +47,13 @@ app (Camera/LiDAR, Map, Parts 3D, Logs, TV, Climate, Settings, Voice) opens full
 | TV | `FRemote` → `POST /roku/key`, `/roku/launch`, `GET /tv/status`. The mock's purple remote page is unused |
 
 Settings, zones, room names, theme, brain and thermostat choices are also kept in `localStorage["stella-os"]`.
+
+## Live connection contract (verified against `robot_api.py`)
+* The dashboard opens `wss://<robot>/live` (default; override `NEXT_PUBLIC_ROBOT_WS_PATH`). Earlier code defaulted to `/ws`, which the Pi does not serve.
+* Pi frames look like `{battery, state, connected, activity, pose, ...}` (no `type`). The store maps `battery`, `connected` and `activity === "charging"` → docked. Older `{type:"state", mode, ...}` frames still work.
+* **No login:** reachable over the tailnet ⇒ LIVE ("King"), otherwise DEMO. See `docs/TAILSCALE.md`.
+* Pi CORS (`ALLOWED_ORIGINS` in `robot_api.py`) lists only `roomba.kingsharif.com`, `stella.kingsharif.com`, `localhost:3000`. Vercel preview URLs are not allowed, so previews always show Demo unless `*.vercel.app` is added.
+* `POST /control/start` returns `{success:false}` (auto-clean not built). Clean turns the tools on and tells the user.
 
 ## Known gaps (honest list)
 * Floor plan / rooms / walls are still the mock's apartment; real LiDAR map + room detection is not wired.
