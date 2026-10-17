@@ -29,6 +29,9 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       { source: "/stella", destination: "/stella/index.html", permanent: false },
+      // The dashboard used to live at /demo (old blog links point there) - keep every old link working, query string included.
+      { source: "/demo", destination: "/dashboard", permanent: true },
+      { source: "/demo/:path*", destination: "/dashboard/:path*", permanent: true },
     ];
   },
   async rewrites() {

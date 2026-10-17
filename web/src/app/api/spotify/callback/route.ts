@@ -12,7 +12,7 @@ export async function GET(req: Request) {
 
   if (error || !code) {
     return NextResponse.redirect(
-      "https://stella.kingsharif.com/demo?spotify=error"
+      "https://stella.kingsharif.com/dashboard?spotify=error"
     );
   }
 
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
   if (!tokenRes.ok) {
     console.error("Spotify token exchange failed:", tokens);
     return NextResponse.redirect(
-      "https://stella.kingsharif.com/demo?spotify=error"
+      "https://stella.kingsharif.com/dashboard?spotify=error"
     );
   }
 
@@ -59,6 +59,6 @@ export async function GET(req: Request) {
   });
 
   return NextResponse.redirect(
-    "https://stella.kingsharif.com/demo?spotify=connected"
+    "https://stella.kingsharif.com/dashboard?spotify=connected"
   );
 }

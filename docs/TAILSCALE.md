@@ -5,7 +5,7 @@ membership *is* the authentication.
 
 ## How it works
 
-1. The dashboard (`/demo`) reads `NEXT_PUBLIC_ROBOT_URL` — the Pi's HTTPS
+1. The dashboard (`/dashboard`) reads `NEXT_PUBLIC_ROBOT_URL` — the Pi's HTTPS
    address on the tailnet, e.g. `https://stella.tail12345.ts.net`.
 2. On load it opens a WebSocket to `wss://<host>/ws`
    (path override: `NEXT_PUBLIC_ROBOT_WS_PATH`).

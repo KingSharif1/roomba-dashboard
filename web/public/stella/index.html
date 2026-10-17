@@ -15,8 +15,8 @@
 
 <header class="rv">
  <div class="t"><h1><svg class="logo-mark" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" class="lm-tile"/><g fill="none" stroke-width="14" stroke-linecap="round" class="lm-ink"><circle cx="256" cy="256" r="150"/><circle cx="256" cy="256" r="104" stroke-width="8" opacity="0.45"/><path d="M256 176 l24 52 56 6 -41 39 11 55 -50 -28 -50 28 11 -55 -41 -39 56 -6 z" class="lm-fill"/></g></svg><span class="wordmark">Stella</span></h1><div class="sub">A Roomba turned into a genuine robot build.</div>
- <nav><a href="#s1">1 Story</a><a href="#s2">2 Additions</a><a href="#s3">3 Layout</a><a href="#s4">4 Wiring</a><a href="#s5">5 Timeline</a><a href="#s6">6 Parts</a><a href="#s7">7 Lessons</a><a href="#s8">8 Why Stella</a></nav></div>
- <div class="tb"><div>DWG</div><div>STL-001</div><div>REV</div><div>E · 2026-10-12</div><div>BY</div><div>K. Sharif</div><div>STATUS</div><div>Pi rebuild</div><div>SRC</div><div><a href="https://github.com/KingSharif1/stella">github/stella</a></div></div>
+ <nav><a href="#s1">1 Story</a><a href="#s2">2 Additions</a><a href="#s3">3 Layout</a><a href="#s4">4 Wiring</a><a href="#s5">5 Timeline</a><a href="#s6">6 Parts</a><a href="#s7">7 Lessons</a><a href="#s8">8 Software</a><a href="#s9">9 Voice</a><a href="#s10">10 Dashboard</a><a href="#s11">11 Why Stella</a><a class="navcta" href="/dashboard">Open dashboard →</a></nav></div>
+ <div class="tb"><div>DWG</div><div>STL-001</div><div>REV</div><div>F · 2026-10-17</div><div>BY</div><div>K. Sharif</div><div>STATUS</div><div>Online · learning</div><div>SRC</div><div><a href="https://github.com/KingSharif1/stella">github/stella</a></div><div>LIVE</div><div><a href="/dashboard">/dashboard</a></div></div>
 </header>
 
 <section class="rv" style="margin-top:28px">
@@ -55,6 +55,7 @@
  <figure class="rv"><div id="wiring" class="dia"></div>
  <figcaption><b>Fig. 3</b> — Power, serial, I2C, USB and LCD pins. Red dots are solder joints; squares are connectors. Hover or tap a part.<span class="hint"> Swipe sideways →</span></figcaption></figure>
  <p class="foot rv">Mini-DIN colors are from my cable, traced with a meter. VPWR is raw battery (~15 V): never on the Arduino or Pi. Green (BRC) is unused for now. No buzzer: the Roomba plays beeps itself (OI Song/Play).</p>
+ <p class="foot rv"><b>Update, Oct 15:</b> this is the plan as first drawn. The Mega later died (see the timeline), so today the Roomba and the lidar each talk to the Pi through a small CP2102 USB-serial adapter. The power chain is unchanged.</p>
 </section>
 
 <section id="s5"><h2 class="rv"><span>5.</span> Timeline</h2>
@@ -72,7 +73,11 @@
  <li class="rv bad"><span class="tag">2026-10-11</span>The Pi died. Weeks on laptop USB and a weak power bank: under-voltage, throttling at 85 °C, then no boot. The Mega and lidar survived.</li>
  <li class="rv"><span class="tag">2026-10-11</span>Redesigned power around the Roomba battery: 3 A fuse, XH-M609 cutoff, rocker, DROK 5 A buck at 5.15 V. Planned the 10 in deck and ordered the last parts.</li>
  <li class="rv"><span class="tag">2026-10-12</span>Finished the diagnosis, ordered a replacement Vilros Pi 4 kit, wrote the safety and rebuild plan.</li>
- <li class="rv"><span class="tag">Next</span>Rebuild on the new Pi → mount the lidar → first map → voice.</li>
+ <li class="rv bad"><span class="tag">2026-10-13</span>New Pi up as <b>stella</b> (Ubuntu 24.04, Tailscale, ROS 2 Jazzy rebuilt). Then the Mega stopped working too, hot ATmega, no flashing. An Arduino Uno held the Roomba link at 57600 baud as a stopgap, and the old lidar adapter board turned out to be shorted 5 V to ground.</li>
+ <li class="rv win"><span class="tag">2026-10-15</span>Fixed it for good with red CP2102 USB adapters: the lidar spins at 10 Hz again and the Roomba talks at 115200 straight to the Pi. Each adapter has its own name by USB port. Six services start at boot (driver, API, lidar, charge, safety, voice). First voice test: "Stella, stop" actually stops her.</li>
+ <li class="rv win"><span class="tag">2026-10-16</span>The speaker arrived and she talks, offline. She can wake the TV, open Netflix or Spotify and press remote buttons over the home network. Added an optional cloud brain (Claude) so normal sentences work, locked to a short list of safe actions.</li>
+ <li class="rv win"><span class="tag">2026-10-17 <a class="chip" href="/dashboard">dashboard</a></span>The new dashboard went up: live battery, map with no-go zones, lidar view, TV remotes for all three TVs, the Nest thermostat over Matter, a call window to talk to her from your phone, and a self-check she can do by voice. Fan noise was making her hear random commands, so there's a noise filter and she answers to "Kalani bear" now.</li>
+ <li class="rv"><span class="tag">Next</span>Test her idle-to-dock habit, build the first real map from the lidar, then auto-clean and "go to the kitchen". The camera stream comes after that.</li>
  </ol>
 </section>
 
@@ -110,7 +115,37 @@
  </div><div class="note rv"><b>Rules I learned</b><br>Get the right part the first time.<br>Ground first, always.<br>Never trust wire colors.<br>Never power a Pi from a power bank.</div></div>
 </section>
 
-<section id="s8"><h2 class="rv"><span>8.</span> Why Stella</h2>
+<section id="s8"><h2 class="rv"><span>8.</span> How she works now</h2>
+ <div class="grid"><div>
+ <p class="lede rv">Once the hardware worked, the story became a software one.</p>
+ <p class="rv">Everything runs on the Pi. A small web server (FastAPI) sits on top of ROS 2 and speaks one language to the outside world. The dashboard talks to it over Tailscale, a private tunnel, so there is no login: if your device is on my tailnet you see her live, and everybody else gets the demo.</p>
+ <p class="rv">The Roomba, the lidar, the TVs and the thermostat all hang off that one server. TVs are controlled over their local Roku API and the thermostat over Matter, so nothing needs a cloud account. Only the optional Claude brain leaves the house, and it only sees text.</p>
+ </div><div class="note rv"><b>What runs on the Pi</b><br>roomba-driver<br>roomba-api<br>stella-lidar<br>stella-charge<br>stella-safety<br>stella-voice<br>stella-matter</div></div>
+ <figure class="rv" style="margin-top:22px"><div id="arch" class="dia"></div>
+ <figcaption><b>Fig. 4</b> — Where everything lives. Blue is software, green is hardware, orange is optional cloud. Hover or tap a part.<span class="hint"> Swipe sideways →</span></figcaption></figure>
+</section>
+
+<section id="s9"><h2 class="rv"><span>9.</span> Voice and brain</h2>
+ <div class="grid"><div>
+ <p class="rv">She is always listening, but only for her name. An offline model (Vosk) waits for "Stella" or "Kalani bear". Short commands like stop, go home, where are you and TV volume work with no internet at all.</p>
+ <p class="rv">Anything else goes to the Claude brain as text. It can only pick from a short list of safe actions (stop, dock, find, battery, TV, or look at herself), and everything else is ignored. If the internet drops, she falls back to the offline commands.</p>
+ <p class="rv">She can also check herself, read-only: Pi heat and power, her services, mic and speaker, Wi-Fi, the TV, the thermostat. Ask "is everything working?" and she tells you what's wrong in plain words.</p>
+ </div><div class="note rv"><b>Lessons from teaching her</b><br>A fan will happily "say" stop.<br>Check the words she's sure about.<br>Her name needs a looser bar than commands.<br>Let the AI pick from a list, never run commands.</div></div>
+ <figure class="rv" style="margin-top:22px"><div id="voiceflow" class="dia"></div>
+ <figcaption><b>Fig. 5</b> — From a spoken word to an action.</figcaption></figure>
+</section>
+
+<section id="s10"><h2 class="rv"><span>10.</span> The dashboard</h2>
+ <div class="grid"><div>
+ <p class="rv">The website is her control room. It is a phone-sized app: a live map with no-go zones, the lidar view, one smart Clean/Stop button, a Charge button, TV remotes for all three TVs, the thermostat, a call window to talk to her, and logs of everything she does.</p>
+ <p class="rv">Open it anywhere and you see demo data. Open it on my tailnet and it goes live.</p>
+ <p class="rv"><a class="cta" href="/dashboard">Open the dashboard →</a></p>
+ </div><div class="note rv"><b>Live parts</b><br>Battery and charging<br>LiDAR scan<br>3 TVs (green = on)<br>Nest thermostat<br>Voice and self-check<br><br><b>Still planned</b><br>Map built from the lidar<br>Auto-clean, "go to the kitchen"</div></div>
+ <figure class="rv" style="margin-top:22px"><a href="/dashboard"><img class="shot" src="dashboard-home.jpg" alt="Stella dashboard home screen with the apartment map" loading="lazy"></a>
+ <figcaption><b>Fig. 6</b> — The dashboard home. Tap to open the real thing.</figcaption></figure>
+</section>
+
+<section id="s11"><h2 class="rv"><span>11.</span> Why Stella</h2>
  <div class="why rv">
  <p>One Piece is one of my favorite anime. Dr. Vegapunk is one of the smartest people alive in that world, so smart he split his mind into six satellite bodies. Stella is the name of the original Vegapunk, the main body.</p>
  <p style="margin-bottom:0">In the same sense, Stella has a part of me in her. We really learned and grew together.</p>
@@ -122,10 +157,10 @@
  <div><p class="mark">Stella</p>
  <p class="cred">Built by King and the gng (Claude, Grok, Muse).</p></div>
  <div class="cols">
-  <div><h4>Read</h4><ul><li><a href="https://kingsharif.com/blog/roomba-694-raspberry-pi-ros2-build-log-days-1-3">Build log · part 1</a></li><li><a href="https://kingsharif.com/blog/roomba-694-build-log-part-2-serial-breakthrough">Build log · part 2</a></li><li><a href="https://kingsharif.com/blog">All posts</a></li></ul></div>
-  <div><h4>Explore</h4><ul><li><a href="https://github.com/KingSharif1/stella">Source on GitHub</a></li><li><a href="/3d">3D model, full screen</a></li><li><a href="#s6">Parts list</a></li><li><a href="#top">Back to top ↑</a></li></ul></div>
+  <div><h4>Read</h4><ul><li><a href="https://kingsharif.com/blog/roomba-694-raspberry-pi-ros2-build-log-days-1-3">Build log · part 1</a></li><li><a href="https://kingsharif.com/blog/roomba-694-build-log-part-2-serial-breakthrough">Build log · part 2</a></li><li><a href="https://kingsharif.com/blog/pi-died-eulogy">The Pi died (eulogy)</a></li><li><a href="https://kingsharif.com/blog">All posts</a></li></ul></div>
+  <div><h4>Explore</h4><ul><li><a href="/dashboard">Dashboard</a></li><li><a href="https://github.com/KingSharif1/stella">Source on GitHub</a></li><li><a href="/3d">3D model, full screen</a></li><li><a href="#s6">Parts list</a></li><li><a href="#top">Back to top ↑</a></li></ul></div>
  </div>
- <div class="tb2"><span>DWG<b>STL-001</b></span><span>REV<b>E · 2026-10-12</b></span><span>SCALE<b>1:1</b></span><span>SHEET<b>1 / 1</b></span><span>kingsharif.com</span></div>
+ <div class="tb2"><span>DWG<b>STL-001</b></span><span>REV<b>F · 2026-10-17</b></span><span>SCALE<b>1:1</b></span><span>SHEET<b>1 / 1</b></span><span>kingsharif.com</span></div>
 </div></footer>
 <script src="page.js?v3b"></script>
 </body></html>

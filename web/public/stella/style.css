@@ -139,3 +139,10 @@ footer.big .tb2{grid-column:1/-1;display:flex;flex-wrap:wrap;border:1px solid va
 footer.big .tb2 span{padding:7px 12px;border-right:1px solid var(--ink);color:var(--mute)}footer.big .tb2 span b{color:var(--ink);font-weight:500;margin-left:6px}
 footer.big .tb2 span:last-child{border-right:0;margin-left:auto}
 @media (max-width:700px){footer.big .in{grid-template-columns:1fr;gap:26px;padding:40px 14px 76px}footer.big .cred{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}footer.big .tb2 span:last-child{margin-left:0}}
+
+nav .navcta{margin-left:auto;border:1px solid var(--accent);color:var(--accent);border-radius:14px;padding:0 10px}
+.cta{display:inline-block;font:500 14px "IBM Plex Mono",monospace;text-decoration:none;color:var(--card);background:var(--accent);border-radius:20px;padding:9px 18px}
+.cta:hover{filter:brightness(1.1)}
+img.shot{display:block;width:100%;height:auto}
+.dia.flowdia svg{min-width:720px}
+@media (max-width:600px){.dia.flowdia .wiringwrap{overflow-x:auto}.dia.flowdia .wiringwrap svg{width:780px;max-width:none}}

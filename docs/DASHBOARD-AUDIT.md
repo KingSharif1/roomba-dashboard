@@ -1,7 +1,7 @@
-# Stella Dashboard Audit — `/demo` (v3)
+# Stella Dashboard Audit — `/dashboard` (v3)
 
 **Date:** 2026-10-12
-**Scope:** `src/app/demo/page.tsx` + `src/components/v3/*` + `src/lib/v3/*`
+**Scope:** `src/app/dashboard/page.tsx` + `src/components/v3/*` + `src/lib/v3/*`
 **Method:** Full code read of every file in the render path. No guessing.
 
 ---

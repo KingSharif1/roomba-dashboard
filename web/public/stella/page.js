@@ -123,6 +123,78 @@ function wiring(host){
  for(const k in nodes){const g=nodes[k];g.addEventListener('mouseenter',()=>!lock&&set(k));g.addEventListener('mouseleave',()=>!lock&&set(null));g.addEventListener('click',()=>{lock=lock===k?null:k;set(lock);});}
 }
 layout(document.getElementById('layout'));wiring(document.getElementById('wiring'));
+/* ---------- software diagrams (Fig. 4 + Fig. 5): same look + hover focus as the wiring diagram ---------- */
+function flow(host,vb,N,Wr,extra){
+ const w=document.createElement('div');w.className='scroll wiringwrap';host.appendChild(w);
+ const svg=el('svg',{viewBox:vb,role:'img','aria-label':host.dataset.label||'Diagram'});w.appendChild(svg);
+ if(extra)extra(svg);
+ const wires=[];
+ for(const [c,d,ids,lab] of Wr){const p=el('path',{d,class:'wire '+c},svg);wires.push([p,ids]);
+  if(lab){const t=tx(svg,lab[0],lab[1],lab[2],'wl mute',lab[3]?{'text-anchor':lab[3]}:{});wires.push([t,ids]);}}
+ const nodes={};
+ for(const k in N){const [x,y,ww,h,cat,title,lines]=N[k];const g=el('g',{class:'node '+cat,'data-k':k},svg);
+  el('rect',{x,y,width:ww,height:h,rx:8,class:'box'},g);tx(g,x+12,y+24,title,'title');
+  lines.forEach((s,i)=>tx(g,x+12,y+46+i*19,s,'s mute'));nodes[k]=g;}
+ const set=k=>{host.classList.toggle('focus',!!k);for(const kk in nodes)nodes[kk].classList.toggle('on',kk===k);
+  for(const [p,ids] of wires)p.classList.toggle('on',!!k&&ids.includes(k));
+  if(k)for(const [p,ids] of wires)if(ids.includes(k))for(const o of ids)nodes[o]&&nodes[o].classList.add('on');};
+ let lock=null;
+ for(const k in nodes){const g=nodes[k];g.addEventListener('mouseenter',()=>!lock&&set(k));g.addEventListener('mouseleave',()=>!lock&&set(null));g.addEventListener('click',()=>{lock=lock===k?null:k;set(lock);});}
+}
+const archHost=document.getElementById('arch');
+if(archHost){archHost.classList.add('flowdia');archHost.dataset.label='How the dashboard, the Pi, the robot and the home devices connect';
+ flow(archHost,'0 0 1000 640',{
+  phone:[30,30,250,84,'data','Phone or laptop',['the dashboard, in a browser','demo data unless on the tailnet']],
+  site:[370,30,260,84,'data','Vercel site',['stella.kingsharif.com','landing page + /dashboard']],
+  claude:[730,30,240,84,'power','Claude (optional)',['text only, never audio','safe actions only']],
+  ts:[30,160,340,62,'data','Tailscale tunnel',['private · being on the tailnet is the login']],
+  api:[30,300,250,84,'data','Pi API (FastAPI)',['status · drive · TVs · climate','live updates on /live']],
+  driver:[370,300,250,84,'data','ROS 2 driver',['Roomba Open Interface','charge + safety watchers']],
+  roomba:[730,300,240,84,'sense','Roomba 694',['USB serial adapter · 115200']],
+  voice:[30,410,250,84,'data','Voice listener',['wake word "Stella"','USB mic · Piper voice']],
+  lidarn:[370,410,250,84,'data','LiDAR node',['/scan · about 10 per second']],
+  lidar:[730,410,240,84,'sense','RPLIDAR C1',['USB serial adapter']],
+  matter:[30,520,250,70,'data','Matter server',['talks to the thermostat']],
+  tvc:[370,520,250,70,'data','TV control',['Roku API on the home Wi-Fi']],
+  home:[730,520,240,70,'sense','Nest + 3 Roku TVs',['local network only']],
+ },[
+  ['dt','M280,72 H370',['phone','site'],[292,64,'loads']],
+  ['dt','M155,114 V160',['phone','ts']],
+  ['dt','M155,222 V300',['ts','api']],
+  ['sp','M850,114 V270',['claude','voice'],[858,200,'text goes out']],
+  ['dt','M280,342 H370',['api','driver'],[288,334,'ROS']],
+  ['dt','M620,342 H730',['driver','roomba'],[628,334,'USB']],
+  ['dt','M620,452 H730',['lidarn','lidar'],[628,444,'USB']],
+  ['dt','M155,384 V410',['api','voice']],
+  ['dt','M495,384 V410',['driver','lidarn']],
+  ['dt','M620,555 H730',['tvc','home'],[628,547,'LAN']],
+  ['dt','M155,590 V606 H850 V590',['matter','home']],
+ ],svg=>{
+  el('rect',{x:16,y:258,width:968,height:362,fill:'none',stroke:'var(--pw)','stroke-dasharray':'7 5',rx:8,opacity:.6},svg);
+  tx(svg,968,278,'RASPBERRY PI 4 · ROS 2 JAZZY · "stella"','mute',{'font-size':11,'text-anchor':'end'});
+ });
+}
+const vfHost=document.getElementById('voiceflow');
+if(vfHost){vfHost.dataset.label='From a spoken word to an action';vfHost.classList.add('flowdia');
+ flow(vfHost,'0 0 1000 440',{
+  mic:[30,30,220,84,'sense','USB mic',['always listening','gain boosted']],
+  filt:[300,30,220,84,'data','Noise filter',['loudness + confidence','fan hum is ignored']],
+  wake:[570,30,240,84,'data','Wake word',['Vosk, offline','"Stella" · "Kalani bear"']],
+  cmd:[300,190,220,84,'data','Known command',['stop · dock · find','status · TV keys']],
+  brain:[620,190,240,84,'power','Claude (optional)',['any normal sentence','1 safe action + a reply']],
+  act:[300,340,220,84,'data','Do it',['stop · dock · TV · climate','or run a self-check']],
+  say:[620,340,240,84,'sense','Speaker',['Piper voice, offline','"Yesss?"']],
+ },[
+  ['dt','M250,72 H300',['mic','filt']],
+  ['dt','M520,72 H570',['filt','wake']],
+  ['dt','M630,114 V150 H410 V190',['wake','cmd'],[420,144,'known words']],
+  ['dt','M750,114 V190',['wake','brain'],[758,160,'normal sentence']],
+  ['sp','M620,232 H520',['brain','cmd'],[524,224,'no internet?','start']],
+  ['dt','M410,274 V340',['cmd','act']],
+  ['dt','M740,274 V306 H470 V340',['brain','act']],
+  ['dt','M520,382 H620',['act','say']],
+ ]);
+}
 /* ---------- reveal ---------- */
 document.querySelectorAll('.card svg *').forEach(p=>{try{const l=Math.ceil(p.getTotalLength());p.style.setProperty('--len',l);}catch(e){}});
 if(location.search.includes('static'))document.documentElement.classList.add('static');const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
