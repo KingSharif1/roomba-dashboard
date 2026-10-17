@@ -43,13 +43,13 @@ export function renderTemplate(v: any) {
 <path d={v.expPath} fill="var(--st)" opacity={v.expOp} />
 <path d={v.furn} fill="var(--line)" opacity=".7" />
 {v.zones.map((z: any, __i: number) => (<Fragment key={__i}><rect x={z.x} y={z.y} width={z.w} height={z.h} fill="url(#ng)" stroke="var(--bad)" strokeWidth="1.5" strokeDasharray="5 4" />
-<text x={z.tx} y={z.ty} transform={`rotate(-45 ${z.tx} ${z.ty})`} fontSize="10" fill="var(--bad)" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{z.n}</text></Fragment>))}
+<text x={z.tx} y={z.ty} transform={`rotate(45 ${z.tx} ${z.ty})`} fontSize="10" fill="var(--bad)" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{z.n}</text></Fragment>))}
 <path d={v.scanPoly} fill="var(--st)" opacity={v.scanOp} />
 <path d={v.wedge} fill="var(--st)" opacity={v.wedgeOp} />
 <path d={v.walls} fill="none" stroke="var(--mute)" strokeWidth="5" strokeLinecap="square" />
 <path d={v.hits} fill="none" stroke="var(--st)" strokeWidth="3.5" strokeLinecap="round" opacity={v.hitOp} />
 <rect x={v.dockR.x} y={v.dockR.y} width={v.dockR.w} height={v.dockR.h} rx="3" fill="var(--warn)" />
-{v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><text x={r.lx} y={r.ly} textAnchor="middle" transform={`rotate(-45 ${r.lx} ${r.ly})`} fontSize="11" letterSpacing="1" fill="var(--mute)" opacity={r.lop} fontFamily="JetBrains Mono, monospace">{r.up}</text></Fragment>))}
+{v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><text x={r.lx} y={r.ly} textAnchor="middle" transform={`rotate(45 ${r.lx} ${r.ly})`} fontSize="11" letterSpacing="1" fill="var(--mute)" opacity={r.lop} fontFamily="JetBrains Mono, monospace">{r.up}</text></Fragment>))}
 <g style={S(`transform:${v.robotT};transition:transform .12s linear`)}><circle r="26" fill="var(--st)" opacity=".18" />
 <circle r="13" fill="var(--st)" />
 <path d="M0 -3 L0 -12" stroke="var(--bg)" strokeWidth="3" strokeLinecap="round" /></g></g></svg>
@@ -128,13 +128,13 @@ export function renderTemplate(v: any) {
 <path d={v.expPath} fill="var(--st)" opacity=".2" />
 <path d={v.furn} fill="var(--line)" opacity=".7" />
 {v.zones.map((z: any, __i: number) => (<Fragment key={__i}><rect x={z.x} y={z.y} width={z.w} height={z.h} fill="url(#ng)" stroke="var(--bad)" strokeWidth="1.5" strokeDasharray="5 4" />
-<text x={z.tx} y={z.ty} transform={`rotate(-45 ${z.tx} ${z.ty})`} fontSize="10" fill="var(--bad)" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{z.n}</text></Fragment>))}
+<text x={z.tx} y={z.ty} transform={`rotate(45 ${z.tx} ${z.ty})`} fontSize="10" fill="var(--bad)" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{z.n}</text></Fragment>))}
 <rect x={v.zd.x} y={v.zd.y} width={v.zd.w} height={v.zd.h} fill="rgba(255,77,58,.25)" stroke="var(--bad)" strokeWidth="1.5" strokeDasharray="5 4" />
 <path d={v.scanPoly} fill="var(--st)" opacity=".12" />
 <path d={v.walls} fill="none" stroke="var(--mute)" strokeWidth="5" strokeLinecap="square" />
 <path d={v.hits} fill="none" stroke="var(--st)" strokeWidth="3.5" strokeLinecap="round" />
 <rect x={v.dockR.x} y={v.dockR.y} width={v.dockR.w} height={v.dockR.h} rx="3" fill="var(--warn)" />
-{v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><text x={r.lx} y={r.ly} textAnchor="middle" transform={`rotate(-45 ${r.lx} ${r.ly})`} fontSize="11" letterSpacing="1" fill="var(--fg)" opacity=".75" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{r.up}</text></Fragment>))}
+{v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><text x={r.lx} y={r.ly} textAnchor="middle" transform={`rotate(45 ${r.lx} ${r.ly})`} fontSize="11" letterSpacing="1" fill="var(--fg)" opacity=".75" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{r.up}</text></Fragment>))}
 <g style={S(`transform:${v.robotT};pointer-events:none`)}><circle r="26" fill="var(--st)" opacity=".18" />
 <circle r="13" fill="var(--st)" />
 <path d="M0 -3L0 -12" stroke="var(--bg)" strokeWidth="3" strokeLinecap="round" /></g></g></svg></section>

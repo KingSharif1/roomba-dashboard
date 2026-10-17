@@ -17,7 +17,7 @@ import { renderTemplate } from "./template";
 export class StellaOSImpl extends React.Component<any, any> {
 constructor(p) {
   super(p);
-  // Real apartment (from King's floor plan: bedrooms up / kitchen down, drawn turned 45° clockwise). Plan px -> world units; edit PLAN_* to adjust.
+  // Real apartment (from King's floor plan: bedrooms up / kitchen down, drawn turned 45° counter-clockwise = 315°). Plan px -> world units; edit PLAN_* to adjust.
   const K = 0.371, MX = (x) => Math.round(300 + (x - 392.5) * K), MY = (y) => Math.round(200 + (y - 372.5) * K);   // plan centred in the map, then the whole drawing is turned 45° (o.rot)
   const sg = (a, b, c, d) => [MX(a), MY(b), MX(c), MY(d)];
   const rm = (id, n, floor, x1, y1, x2, y2) => { const xa = MX(x1), xb = MX(x2), ya = Math.min(MY(y1), MY(y2)), yb = Math.max(MY(y1), MY(y2)); return { id, n, floor, x: xa, y: ya, w: xb - xa, h: yb - ya, lx: Math.round((xa + xb) / 2), ly: Math.round((ya + yb) / 2) + 4, c: [Math.round((xa + xb) / 2), Math.round((ya + yb) / 2)] }; };
@@ -32,7 +32,7 @@ constructor(p) {
   ];
   this.ADJ = { living: ['hall', 'bedroom1', 'kitchen', 'dining'], hall: ['living', 'bath', 'bedroom2'], bath: ['hall'], bedroom1: ['living'], bedroom2: ['hall'], kitchen: ['living', 'dining'], dining: ['living', 'kitchen'] };
   this.DOOR = { 'bedroom1|living': pt(195, 235), 'bath|hall': pt(410, 165), 'bedroom2|hall': pt(475, 200), 'hall|living': pt(395, 235), 'kitchen|living': pt(190, 545), 'dining|living': pt(390, 545), 'dining|kitchen': pt(300, 640) };
-  this.DK = pt(450, 500); this.START = this.R.find(r => r.id === 'living').c; this.NOGO = { x: MX(100), y: MY(470), w: 30, h: 22 };
+  this.DK = pt(450, 500); this.START = this.R.find(r => r.id === 'living').c; this.NOGO = { x: MX(108), y: MY(278), w: Math.round(110 * K), h: Math.round(110 * K) }   // chimney / fireplace corner of the living room;
   this.FURN = [fr(115,135,275,235), fr(185,60,280,110), fr(515,125,650,230), fr(495,40,570,100), fr(190,375,350,530), fr(145,320,300,460), fr(115,285,205,375), fr(315,560,435,690), fr(60,548,220,600), fr(60,680,270,740)].join('');
   this.x = this.START[0]; this.y = this.START[1]; this.h = 90; this.sw = 0; this.bat = 74; this.st = 'idle';
   this.route = []; this.goal = ''; this.queue = []; this.holdDir = ''; this.stk = [0, 0];
@@ -46,7 +46,7 @@ constructor(p) {
     fpv: false, turns: [], part: 'lidar', suction: 'normal', logSrc: ['driver', 'lidar', 'api', 'voice', 'battery', 'system'], logLv: 'good',
     tvSel: 0, tvs: [{ n: '75 Living', on: true, app: 'Netflix', vol: 18, playing: true, mute: false }, { n: 'ds twin', on: false, app: '—', vol: 12, playing: false, mute: false }, { n: 'sharif d ace', on: false, app: '—', vol: 10, playing: false, mute: false }],
     cur: 71.8, set: 72, cmode: 'auto', camOn: true, bump: 0, eco: true,
-    zones: [Object.assign({ n: 'No-go 1' }, this.NOGO)], selRoom: 'living', draw: false, camSrc: 'lidar', traceOpen: false,
+    zones: [Object.assign({ n: 'Chimney' }, this.NOGO)], selRoom: 'living', draw: false, camSrc: 'lidar', traceOpen: false,
     cfg: { wake: true, spoken: true, vstyle: 'Warm', confirm: false, autoDock: 15, idleDock: 0, voiceOut: 'Device', resume: 90, edge: true, maxSpd: 100, lostStop: true, cliff: true, aBat: true, aStuck: true, aDone: true, quiet: 'Off', units: 'F', t24: false }
   };
   [['system', 'info', 'Stella API started · demo robot'], ['api', 'info', 'WS /live connected · 0.5 s frames'], ['driver', 'warn', 'Unknown mode detected (known noisy 600-series packet)'], ['lidar', 'info', 'RPLIDAR C1 · scan 10 Hz · 360 pts'], ['battery', 'info', 'Pack 15.28 V · 74%'], ['voice', 'info', 'Brain ready: Claude (cloud) + on-device fallback']].forEach(a => this.log(a[0], a[1], a[2]));
@@ -84,7 +84,7 @@ async api(path, method, body, ms) {
 }
 loadSaved() {
   try {
-    const raw = localStorage.getItem('stella-os-v2'); if (raw) {
+    const raw = localStorage.getItem('stella-os-v3'); if (raw) {
       const d = JSON.parse(raw), p = {};
       if (d.cfg) p.cfg = Object.assign({}, this.state.cfg, d.cfg);
       if (Array.isArray(d.zones)) p.zones = d.zones;
@@ -98,7 +98,7 @@ loadSaved() {
   this.loaded = true;
 }
 save() {
-  try { const s = this.state, rooms = {}; this.R.forEach(r => { rooms[r.id] = r.n; }); localStorage.setItem('stella-os-v2', JSON.stringify({ cfg: s.cfg, zones: s.zones, theme: s.theme, brain: s.brain, suction: s.suction, set: s.set, cmode: s.cmode, eco: s.eco, rooms, skip: this.skip })); } catch (x) {}
+  try { const s = this.state, rooms = {}; this.R.forEach(r => { rooms[r.id] = r.n; }); localStorage.setItem('stella-os-v3', JSON.stringify({ cfg: s.cfg, zones: s.zones, theme: s.theme, brain: s.brain, suction: s.suction, set: s.set, cmode: s.cmode, eco: s.eco, rooms, skip: this.skip })); } catch (x) {}
 }
 pushRemote(ps) {
   if (!this.isLive()) return;
@@ -429,7 +429,7 @@ renderVals() {
   const goalName = this.goal === 'dock' ? 'the dock' : (R.find(r => r.id === this.goal) || { n: '' }).n;
   const zd = this.zd ? { x: Math.min(this.zd.x0, this.zd.x1), y: Math.min(this.zd.y0, this.zd.y1), w: Math.abs(this.zd.x1 - this.zd.x0), h: Math.abs(this.zd.y1 - this.zd.y0) } : { x: 0, y: 0, w: 0, h: 0 };
   const o = {
-    rot: 'rotate(45 300 200)', dockR: { x: this.DK[0] + 4, y: this.DK[1] - 10, w: 8, h: 20 },
+    rot: 'rotate(-45 300 200)', dockR: { x: this.DK[0] + 4, y: this.DK[1] - 10, w: 8, h: 20 },
     themeClass: s.theme === 'light' ? 'light' : '', color: STC[ds],
     sub: this.goal && ds === 'moving' ? (this.goal === 'dock' ? 'Docking' : 'Going to ' + goalName) : ds === 'moving' ? 'Moving' : !on ? 'Offline' : this.st === 'charging' ? (bat >= 100 ? 'Fully charged' : 'Charging') : bat < 20 ? 'Low battery' : 'Not charging', hasSub: true,
     room: on ? here.n : '—', batt: on ? bat + '%' : '—', battStyle: 'color:' + bc + ';border-color:' + bc, battFill: Math.max(1, Math.round(bat / 100 * 10)), offline: !on,
@@ -649,7 +649,7 @@ rvApps(o, ds, on, here) {
   // map editing
   const sel = this.R.find(x => x.id === s.selRoom) || this.R[0];
   const mapped = rm => { let n = 0, t = 0; for (let cy = (rm.y - 20) / 20; cy < (rm.y + rm.h - 20) / 20; cy++) for (let cx = (rm.x - 20) / 20; cx < (rm.x + rm.w - 20) / 20; cx++) { t++; if (this.exp[cy * 28 + cx]) n++; } return t ? Math.round(n / t * 100) : 0; };
-  const pt = e => { const rc = e.currentTarget.getBoundingClientRect(); const sx = (e.clientX - rc.left) / rc.width * 600 - 300, sy = (e.clientY - rc.top) / rc.height * 400 - 200, c = Math.SQRT1_2; /* undo the 45° turn */ return [Math.max(0, Math.min(600, 300 + (sx * c + sy * c))), Math.max(0, Math.min(400, 200 + (-sx * c + sy * c)))]; };
+  const pt = e => { const rc = e.currentTarget.getBoundingClientRect(); const sx = (e.clientX - rc.left) / rc.width * 600 - 300, sy = (e.clientY - rc.top) / rc.height * 400 - 200, c = Math.SQRT1_2; /* undo the -45° turn */ return [Math.max(0, Math.min(600, 300 + (sx * c - sy * c))), Math.max(0, Math.min(400, 200 + (sx * c + sy * c)))]; };
   Object.assign(r, {
     selName: sel.n, selMapped: mapped(sel) + '%', selDone: this.done[sel.id] || 'never',
     renameRoom: e => { const v = ((e.target && e.target.value) || '').slice(0, 16); if (v !== sel.n) { sel.n = v; this.save(); this.forceUpdate(); } },

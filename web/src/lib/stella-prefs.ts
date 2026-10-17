@@ -3,7 +3,7 @@ export type VoiceOut = "Device" | "Pi" | "Both";
 
 export function voiceOut(): VoiceOut {
   try {
-    const v = JSON.parse(localStorage.getItem("stella-os-v2") || "{}")?.cfg?.voiceOut;
+    const v = JSON.parse(localStorage.getItem("stella-os-v3") || "{}")?.cfg?.voiceOut;
     return v === "Pi" || v === "Both" ? v : "Device";
   } catch {
     return "Device";
