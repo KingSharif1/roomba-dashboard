@@ -53,6 +53,7 @@ componentDidMount() {
 componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.tt); clearTimeout(this.pushT); if (this.onNet) { window.removeEventListener('online', this.onNet); window.removeEventListener('offline', this.onNet); } try { this.rec && this.rec.abort(); } catch (x) {} this.driveZero(); }
 componentDidUpdate(_p, ps) {
   const s = this.state;
+  if (ps.theme !== s.theme && this.props.onTheme) this.props.onTheme(s.theme);
   if (!this.loaded) return;
   if (this.skipPush) { this.skipPush = false; this.save(); return; }
   if (ps.cfg !== s.cfg || ps.zones !== s.zones || ps.theme !== s.theme || ps.brain !== s.brain || ps.suction !== s.suction || ps.set !== s.set || ps.cmode !== s.cmode || ps.eco !== s.eco) {
@@ -60,6 +61,7 @@ componentDidUpdate(_p, ps) {
     clearTimeout(this.pushT); this.pushT = setTimeout(() => this.pushRemote(ps), 500);
   }
 }
+openTalk() { if (this.props.onTalk) this.props.onTalk(); else this.setState({ voiceOpen: true, heard: '', reply: '' }); }
 /* ───────── live bridge: everything below talks to the real robot when connected ───────── */
 live() { return (this.props && this.props.live) || {}; }
 isLive() { const l = this.live(); return l.connection === 'live' && !!l.robotUrl; }
@@ -391,7 +393,7 @@ renderVals() {
     room: on ? here.n : '—', batt: on ? bat + '%' : '—', battStyle: 'color:' + bc + ';border-color:' + bc, battFill: Math.max(1, Math.round(bat / 100 * 10)), offline: !on,
     linkDot: !signed ? '#ffd23f' : on ? '#3ecf8e' : '#8d8d94', linkLabel: !signed ? 'Demo' : on ? 'King' : 'Offline',
     toggleSigned: () => { if (this.isLive()) { this.say('Signed in as King'); return; } this.setState({ signed: !s.signed }); this.say(s.signed ? 'Signed out · demo robot' : 'Signed in as King'); },
-    openVoice: () => this.setState({ voiceOpen: true, heard: '', reply: '' }),
+    openVoice: () => this.openTalk(),
     goHome: () => this.setState({ app: 'home' }), openMap: () => this.setState({ app: 'map' }), openCam: () => this.setState({ app: 'camera' }),
     isHome: s.app === 'home', notHome: s.app !== 'home',
     rooms: R.map(r => ({ x: r.x, y: r.y, w: r.w, h: r.h, lx: r.lx, ly: r.ly, up: r.n.toUpperCase(), lop: mapApp ? 1 : (s.layers.labels && r.id !== here.id ? 1 : 0), fill: r.id === selId ? 'var(--soft)' : this.skip[r.id] && mapApp ? 'rgba(141,141,148,.12)' : 'transparent', stroke: mapApp && r.id === s.selRoom ? 'var(--acc)' : 'transparent', pick: mapApp ? () => this.setState({ selRoom: r.id }) : () => this.goTo(r.id) })),
@@ -595,7 +597,7 @@ rvApps(o, ds, on, here) {
       ['climate', 'Climate', s.cur.toFixed(0) + '° → ' + s.set + '°', 'M10 4a2 2 0 014 0v9.5a4.5 4.5 0 11-4 0z', 'var(--ok)'],
       ['voice', 'Voice', b.short, 'M9 3h6v10a3 3 0 01-6 0zM5 11a7 7 0 0014 0M12 18v3', b.dot],
       ['settings', 'Settings', 'Voice · alerts', 'M12 9a3 3 0 100 6 3 3 0 000-6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2', 'var(--mute)']
-    ].map(a => ({ title: a[1], sub: a[2], icon: a[3], dot: a[4], pick: () => a[0] === 'voice' ? this.setState({ voiceOpen: true, heard: '', reply: '' }) : this.setState({ app: a[0] }) })),
+    ].map(a => ({ title: a[1], sub: a[2], icon: a[3], dot: a[4], pick: () => a[0] === 'voice' ? this.openTalk() : a[0] === 'tv' && this.props.onRemote ? this.props.onRemote() : this.setState({ app: a[0] }) })),
     isCam: s.app === 'camera', isMap: s.app === 'map', isParts: s.app === 'parts', isLogs: s.app === 'logs', isTv: s.app === 'tv', isClimate: s.app === 'climate', isSettings: s.app === 'settings',
     camTabs: [['cam', 'Camera'], ['lidar', 'LiDAR']].map(c => ({ label: c[1], cls: cs === c[0] ? 'on' : '', pick: () => this.setState({ camSrc: c[0] }) })),
     camIsCam: cs === 'cam', camIsLidar: cs !== 'cam', useLidar: () => this.setState({ camSrc: 'lidar' }),

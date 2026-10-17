@@ -11,6 +11,7 @@ app (Camera/LiDAR, Map, Parts 3D, Logs, TV, Climate, Settings, Voice) opens full
 | `web/src/components/os/os.css` | Mock styles (scoped under `.sf`) |
 | `web/src/components/os/stella-os-impl.tsx` | Behaviour: simulator (demo) + live bridge. `@ts-nocheck` on purpose (ported sim) |
 | `web/src/components/os/stella-os.tsx` | Hooks the OS to `useV3Robot()` (connection, battery, mode, clean/dock/wake/motors, voice) |
+| `web/src/components/f/f-call.tsx`, `f-remote.tsx` | The call-style **Talk** window and the phone-style **TV remote** from the classic dashboard. Talk button and the Voice tile open the call; the TV tile opens the remote. Mounted in `stella-os.tsx` inside a zero-height `.f` host so they keep their theme variables |
 | `web/src/app/demo/classic/page.tsx` | The previous Design F dashboard, kept at `/demo/classic` |
 | `pi/stella_ext_router.py` | New Pi endpoints (see below). **Not deployed or tested on the Pi yet** |
 
@@ -36,7 +37,8 @@ app (Camera/LiDAR, Map, Parts 3D, Logs, TV, Climate, Settings, Voice) opens full
 | TV remote | `POST /roku/key {key, tv}`, `POST /roku/launch {app, tv}`, `GET /tv/status` (existing) |
 | Climate | `GET/POST /climate {set, mode, eco, units}` — stub; **Nest link not built** (Matter or Google SDM) |
 | Pose | `GET /pose` → `{x,y,theta}` metres; mapped to the floor plan at 50 u/m from the dock — needs calibration |
-| Voice | Browser SpeechRecognition → `/api/stella/chat` (Claude) → `runCommand()` for TV/drive/dock; falls back to on-device intents; replies via browser TTS |
+| Voice (Talk) | `FCall`: hands-free call. Browser SpeechRecognition → `/api/stella/chat` (Claude, with last turns) → `runCommand()` for TV/drive/dock → browser TTS → listens again. The mock's orb overlay + Auto/Claude/On-device select is still in `stella-os-impl.tsx` but no longer opened (Talk uses the call window); the Settings brain select does not affect the call yet |
+| TV | `FRemote` → `POST /roku/key`, `/roku/launch`, `GET /tv/status`. The mock's purple remote page is unused |
 
 Settings, zones, room names, theme, brain and thermostat choices are also kept in `localStorage["stella-os"]`.
 
