@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MicOff, PhoneOff, Send } from "lucide-react";
+import { Mic, MicOff, PhoneOff, Send, Volume2 } from "lucide-react";
 import { useV3Robot } from "@/lib/v3/store";
 import { FWindow } from "./f-window";
-import { voiceOut } from "@/lib/stella-prefs";
+import { voiceOut, setVoiceOut, nextVoiceOut, VOICE_OUT_LABEL, type VoiceOut } from "@/lib/stella-prefs";
 
 /**
  * Voice call with Stella — hands-free, back-and-forth like a phone call.
@@ -75,6 +75,9 @@ export function FCall({ open, onClose }: { open: boolean; onClose: () => void })
   }, []);
 
   const listenRef = useRef<() => void>(() => {});
+  const [vout, setVout] = useState<VoiceOut>("Device");
+  useEffect(() => { if (open) setVout(voiceOut()); }, [open]);
+  const cycleVout = () => { const n = nextVoiceOut(voiceOut()); setVoiceOut(n); setVout(n); };
   const handleUserRef = useRef<(t: string) => void>(() => {});
 
   const speak = useCallback((text: string, after?: () => void) => {
@@ -241,6 +244,7 @@ export function FCall({ open, onClose }: { open: boolean; onClose: () => void })
           <span className="fc-core"><i /><i /><i /><i /><i /></span>
         </button>
         <div className="fc-state">{label}</div>
+        <div className="fc-state" style={{ fontSize: 10, opacity: 0.7 }}>Voice on: {VOICE_OUT_LABEL[vout]}</div>
         {error && <div className="fc-err">{error}</div>}
         {!SR && <div className="fc-err">Voice input isn&apos;t supported in this browser — type below, she&apos;ll still talk back.</div>}
 
@@ -262,6 +266,9 @@ export function FCall({ open, onClose }: { open: boolean; onClose: () => void })
         <div className="fc-bar">
           <button className="fc-round" onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"} data-on={muted ? "1" : "0"}>
             {muted ? <MicOff /> : <Mic />}
+          </button>
+          <button className="fc-round" onClick={cycleVout} aria-label={`Voice plays on: ${VOICE_OUT_LABEL[vout]} (tap to change)`} title={VOICE_OUT_LABEL[vout]} data-on={vout === "Device" ? "0" : "1"}>
+            <Volume2 />
           </button>
           <button className="fc-round fc-end" onClick={onClose} aria-label="End call"><PhoneOff /></button>
         </div>
