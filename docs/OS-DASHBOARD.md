@@ -73,3 +73,8 @@ converter lived outside the repo; edit `template.tsx` directly from now on.
 * **Logs** default to "Good" (info only); "All" brings back warnings/errors. **Header** shows one status: Charging / Fully charged / Low battery / Not charging / Offline.
 * **Settings:** removed "Signed in as King". New: "Voice plays on" (Device / Pi speaker / Both → Pi `POST /speak`, Piper) and "Go dock when idle" (Off/5/10/20 min → Pi idle loop sends the dock command; off by default, untested on the robot).
 * **Camera → LiDAR** shows the live `/scan` from the Pi (`GET /lidar`) when connected; demo mode keeps the simulator view. No LiDAR recording service exists in the repo, so this is the live feed, not a replay.
+
+## Pi voice brain visibility (Settings → Voice)
+- **Pi voice brain** row shows what Stella is really using: `Claude · haiku-5-5` or `Offline – <reason>` (no key / daily limit / paused after errors). Tap it for the last error.
+- **Test Pi brain** runs one real Claude call from the Pi (`POST /ai/test`) and shows the exact error (wrong key, no internet, billing, bad model).
+- Backed by `GET /ai/status` + `POST /ai/test` in `stella_ext_router.py`; status persisted by `ai_router.py` in `~/.cache/stella-ai-status.json`. Rows only show when the Pi is reachable.

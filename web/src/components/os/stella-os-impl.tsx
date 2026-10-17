@@ -166,6 +166,10 @@ syncLive() {
       });
     });
   }
+  if (now - (this.aiT || 0) > 10000) {
+    this.aiT = now;
+    this.api('/ai/status', 'GET').then(d => { this.aiSt = d && !d.__err ? d : null; });
+  }
   if (now - (this.clT || 0) > 15000) {
     this.clT = now;
     this.api('/climate', 'GET').then(d => {
@@ -738,7 +742,20 @@ rvApps(o, ds, on, here) {
   const T = (label, k) => ({ label, val: '', tc: cfg[k] ? 'tog on' : 'tog', showTog: 'display:block', showVal: 'display:none', pick: () => setCfg(k, !cfg[k]) });
   const C = (label, k, opts, fmt) => ({ label, val: fmt(cfg[k]), tc: 'tog', showTog: 'display:none', showVal: 'display:inline-flex', pick: () => setCfg(k, opts[(opts.indexOf(cfg[k]) + 1) % opts.length]) });
   const SU = ['eco', 'normal', 'turbo'];
-  r.sV = [T('Wake word “Stella”', 'wake'), T('Spoken replies', 'spoken'), C('Voice', 'vstyle', ['Warm', 'Crisp', 'Low'], v => v), { label: 'Voice plays on', val: VOICE_OUT_LABEL[getVoiceOut()], tc: 'tog', showTog: 'display:none', showVal: 'display:inline-flex', pick: () => { setVoiceOut(nextVoiceOut(getVoiceOut())); this.forceUpdate(); } }, T('Ask before big moves', 'confirm')];
+  r.sV = [T('Wake word “Stella”', 'wake'), T('Spoken replies', 'spoken'), C('Voice', 'vstyle', ['Warm', 'Crisp', 'Low'], v => v), { label: 'Voice plays on', val: VOICE_OUT_LABEL[getVoiceOut()], tc: 'tog', showTog: 'display:none', showVal: 'display:inline-flex', pick: () => { setVoiceOut(nextVoiceOut(getVoiceOut())); this.forceUpdate(); } }, T('Ask before big moves', 'confirm')]
+    .concat(this.isLive() ? [
+      (() => { const a = this.aiSt; const val = !a ? 'Pi not reachable' : a.engine === 'claude' ? 'Claude · ' + String(a.model || '').replace('claude-', '') : 'Offline' + (a.reason ? ' – ' + a.reason : '');
+        return { label: 'Pi voice brain', val, tc: 'tog', showTog: 'display:none', showVal: 'display:inline-flex', pick: () => {
+          const a2 = this.aiSt; if (!a2) return this.say('Pi not reachable');
+          this.say(a2.engine === 'claude' ? 'Using Claude (' + a2.used_today + '/' + a2.cap + ' today)' : 'Offline: ' + (a2.reason || 'unknown') + (a2.last_err ? ' — ' + a2.last_err : '')); } }; })(),
+      { label: 'Test Pi brain', val: this.aiTest || 'Run', tc: 'tog', showTog: 'display:none', showVal: 'display:inline-flex', pick: () => {
+        this.aiTest = 'Testing…'; this.forceUpdate();
+        this.api('/ai/test', 'POST', {}, 20000).then(x => {
+          this.aiTest = x && x.ok ? 'Works · ' + x.ms + ' ms' : 'Failed';
+          this.say(x && x.ok ? 'Claude answered in ' + x.ms + ' ms' : 'Brain test failed: ' + ((x && (x.error || x.__err)) || 'no answer'));
+          this.aiT = 0; this.forceUpdate();
+        }); } },
+    ] : []);
   r.sC = [C('Auto-dock at', 'autoDock', [15, 20, 25], v => v + '%'), C('Go dock when idle', 'idleDock', [0, 5, 10, 20], v => v ? v + ' min' : 'Off'), C('Resume after charge', 'resume', [80, 90, 100], v => v + '%'), T('Edge cleaning', 'edge'), { label: 'Default suction', val: s.suction, tc: 'tog', showTog: 'display:none', showVal: 'display:inline-flex', pick: () => this.setState({ suction: SU[(SU.indexOf(s.suction) + 1) % 3] }) }];
   r.sS = [C('Max drive speed', 'maxSpd', [50, 75, 100], v => v + '%'), T('Stop if connection drops', 'lostStop'), T('Cliff warnings', 'cliff'), T('Alert: battery low', 'aBat'), T('Alert: stuck', 'aStuck'), T('Alert: clean finished', 'aDone'), C('Quiet hours', 'quiet', ['Off', '10 pm – 7 am'], v => v)];
   r.sD = [C('Temperature', 'units', ['F', 'C'], v => '°' + v), T('24-hour time', 't24')].concat(this.isLive() ? [] : [{ label: 'Simulate no internet', val: '', tc: !s.internet ? 'tog on' : 'tog', showTog: 'display:block', showVal: 'display:none', pick: () => this.setState({ internet: !s.internet }) }]);
