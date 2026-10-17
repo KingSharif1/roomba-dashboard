@@ -38,21 +38,21 @@ export function renderTemplate(v: any) {
 {v.batt}</span>
 {v.hasSub && (<><span className="sm">{v.sub}</span></>)}</div>
 <div style={S("position:relative;padding:6px 8px 8px")}><svg viewBox="0 0 600 400" width="100%" style={S("display:block")} role="img" aria-label="Floor plan with live LiDAR scan"><defs><pattern id="wood" width="26" height="9" patternUnits="userSpaceOnUse"><rect width="26" height="9" fill="rgba(176,120,70,.16)" /><path d="M0 8.5h26M13 0v8.5" stroke="rgba(176,120,70,.38)" strokeWidth=".8" /></pattern><pattern id="carpet" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="rgba(120,130,170,.10)" /><circle cx="1.5" cy="1.5" r=".7" fill="rgba(120,130,170,.35)" /><circle cx="4.5" cy="4.5" r=".7" fill="rgba(120,130,170,.35)" /></pattern><pattern id="ng" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="rgba(255,77,58,.12)" />
-<rect width="4" height="10" fill="rgba(255,77,58,.5)" /></pattern></defs>
+<rect width="4" height="10" fill="rgba(255,77,58,.5)" /></pattern></defs><g transform={v.rot}>
 {v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.floor} style={S("pointer-events:none")} /><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} onClick={r.pick} style={S("cursor:pointer")} /></Fragment>))}
 <path d={v.expPath} fill="var(--st)" opacity={v.expOp} />
 <path d={v.furn} fill="var(--line)" opacity=".7" />
 {v.zones.map((z: any, __i: number) => (<Fragment key={__i}><rect x={z.x} y={z.y} width={z.w} height={z.h} fill="url(#ng)" stroke="var(--bad)" strokeWidth="1.5" strokeDasharray="5 4" />
-<text x={z.tx} y={z.ty} fontSize="11" fill="var(--bad)" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{z.n}</text></Fragment>))}
+<text x={z.tx} y={z.ty} transform={`rotate(-45 ${z.tx} ${z.ty})`} fontSize="10" fill="var(--bad)" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{z.n}</text></Fragment>))}
 <path d={v.scanPoly} fill="var(--st)" opacity={v.scanOp} />
 <path d={v.wedge} fill="var(--st)" opacity={v.wedgeOp} />
 <path d={v.walls} fill="none" stroke="var(--mute)" strokeWidth="5" strokeLinecap="square" />
 <path d={v.hits} fill="none" stroke="var(--st)" strokeWidth="3.5" strokeLinecap="round" opacity={v.hitOp} />
 <rect x={v.dockR.x} y={v.dockR.y} width={v.dockR.w} height={v.dockR.h} rx="3" fill="var(--warn)" />
-{v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><text x={r.lx} y={r.ly} fontSize="14" letterSpacing="1.5" fill="var(--mute)" opacity={r.lop} fontFamily="JetBrains Mono, monospace">{r.up}</text></Fragment>))}
+{v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><text x={r.lx} y={r.ly} textAnchor="middle" transform={`rotate(-45 ${r.lx} ${r.ly})`} fontSize="11" letterSpacing="1" fill="var(--mute)" opacity={r.lop} fontFamily="JetBrains Mono, monospace">{r.up}</text></Fragment>))}
 <g style={S(`transform:${v.robotT};transition:transform .12s linear`)}><circle r="26" fill="var(--st)" opacity=".18" />
 <circle r="13" fill="var(--st)" />
-<path d="M0 -3 L0 -12" stroke="var(--bg)" strokeWidth="3" strokeLinecap="round" /></g></svg>
+<path d="M0 -3 L0 -12" stroke="var(--bg)" strokeWidth="3" strokeLinecap="round" /></g></g></svg>
 <div style={S("position:absolute;right:18px;top:16px;display:flex;flex-direction:column;gap:8px")}>{v.layers.map((l: any, __i: number) => (<Fragment key={__i}><button type="button" className={`ib ${l.cls}`} aria-label={l.label} aria-pressed={l.on} onClick={l.pick}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={l.icon} /></svg></button></Fragment>))}
 <button type="button" className="ib" aria-label="Edit map" onClick={v.openMap}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" /></svg></button></div>
 {v.camOn && (<><button type="button" onClick={v.openCam} aria-label="Open camera" style={S("position:absolute;left:18px;bottom:18px;width:132px;height:78px;border-radius:12px;overflow:hidden;border:1.5px solid rgba(255,255,255,.3);background:#07070a;box-shadow:0 6px 20px rgba(0,0,0,.45);padding:0")}><svg viewBox="0 0 640 360" preserveAspectRatio="none" width="100%" height="100%" style={S("position:absolute;inset:0")} aria-hidden="true">{v.fp.map((c: any, __i: number) => (<Fragment key={__i}><rect x={c.x} y={c.y} width={c.w} height={c.h} fill={c.f} opacity={c.o} /></Fragment>))}</svg>
@@ -123,21 +123,21 @@ export function renderTemplate(v: any) {
 <button type="button" className="chip" onClick={v.openFpv} style={S("position:absolute;right:12px;bottom:12px;height:44px;padding:0 16px;background:rgba(0,0,0,.6);color:#fff;border-color:rgba(255,255,255,.3);font-size:14px")}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
 {"Expand"}</button></>)}</div></div></>)}
 {v.isMap && (<><div style={S("display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start")}><section className="card" style={S("flex:999 1 420px;padding:8px")}><svg viewBox="0 0 600 400" width="100%" style={S(`display:block;touch-action:${v.mapTouch}`)} role="img" aria-label="Floor plan" onPointerDown={v.mapDown} onPointerMove={v.mapMove} onPointerUp={v.mapUp} onPointerCancel={v.mapUp}><defs><pattern id="wood" width="26" height="9" patternUnits="userSpaceOnUse"><rect width="26" height="9" fill="rgba(176,120,70,.16)" /><path d="M0 8.5h26M13 0v8.5" stroke="rgba(176,120,70,.38)" strokeWidth=".8" /></pattern><pattern id="carpet" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="rgba(120,130,170,.10)" /><circle cx="1.5" cy="1.5" r=".7" fill="rgba(120,130,170,.35)" /><circle cx="4.5" cy="4.5" r=".7" fill="rgba(120,130,170,.35)" /></pattern><pattern id="ng" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="rgba(255,77,58,.12)" />
-<rect width="4" height="10" fill="rgba(255,77,58,.5)" /></pattern></defs>
+<rect width="4" height="10" fill="rgba(255,77,58,.5)" /></pattern></defs><g transform={v.rot}>
 {v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.floor} style={S("pointer-events:none")} /><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} stroke={r.stroke} strokeWidth="2.5" onClick={r.pick} style={S("cursor:pointer")} /></Fragment>))}
 <path d={v.expPath} fill="var(--st)" opacity=".2" />
 <path d={v.furn} fill="var(--line)" opacity=".7" />
 {v.zones.map((z: any, __i: number) => (<Fragment key={__i}><rect x={z.x} y={z.y} width={z.w} height={z.h} fill="url(#ng)" stroke="var(--bad)" strokeWidth="1.5" strokeDasharray="5 4" />
-<text x={z.tx} y={z.ty} fontSize="11" fill="var(--bad)" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{z.n}</text></Fragment>))}
+<text x={z.tx} y={z.ty} transform={`rotate(-45 ${z.tx} ${z.ty})`} fontSize="10" fill="var(--bad)" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{z.n}</text></Fragment>))}
 <rect x={v.zd.x} y={v.zd.y} width={v.zd.w} height={v.zd.h} fill="rgba(255,77,58,.25)" stroke="var(--bad)" strokeWidth="1.5" strokeDasharray="5 4" />
 <path d={v.scanPoly} fill="var(--st)" opacity=".12" />
 <path d={v.walls} fill="none" stroke="var(--mute)" strokeWidth="5" strokeLinecap="square" />
 <path d={v.hits} fill="none" stroke="var(--st)" strokeWidth="3.5" strokeLinecap="round" />
 <rect x={v.dockR.x} y={v.dockR.y} width={v.dockR.w} height={v.dockR.h} rx="3" fill="var(--warn)" />
-{v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><text x={r.lx} y={r.ly} fontSize="14" letterSpacing="1.5" fill="var(--fg)" opacity=".75" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{r.up}</text></Fragment>))}
+{v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><text x={r.lx} y={r.ly} textAnchor="middle" transform={`rotate(-45 ${r.lx} ${r.ly})`} fontSize="11" letterSpacing="1" fill="var(--fg)" opacity=".75" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{r.up}</text></Fragment>))}
 <g style={S(`transform:${v.robotT};pointer-events:none`)}><circle r="26" fill="var(--st)" opacity=".18" />
 <circle r="13" fill="var(--st)" />
-<path d="M0 -3L0 -12" stroke="var(--bg)" strokeWidth="3" strokeLinecap="round" /></g></svg></section>
+<path d="M0 -3L0 -12" stroke="var(--bg)" strokeWidth="3" strokeLinecap="round" /></g></g></svg></section>
 <aside className="card" style={S("flex:1 1 290px;display:flex;flex-direction:column;gap:10px")}><div style={S("display:flex;align-items:center;gap:8px")}><input value={v.selName} onChange={v.renameRoom} aria-label="Room name" style={S("flex:1;min-width:0;height:44px;border-radius:11px;border:1px solid var(--line);background:var(--soft);color:var(--fg);font:inherit;font-weight:700;font-size:18px;padding:0 12px")} />
 <button type="button" className="btn pri" style={S("height:44px;padding:0 14px")} onClick={v.sendSel}>{"Send"}</button></div>
 <div style={S("display:flex;flex-wrap:wrap;gap:6px")}><span className="chip mono">{"Mapped "}{v.selMapped}</span>

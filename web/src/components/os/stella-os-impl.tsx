@@ -17,10 +17,10 @@ import { renderTemplate } from "./template";
 export class StellaOSImpl extends React.Component<any, any> {
 constructor(p) {
   super(p);
-  // Real apartment (from King's floor plan, flipped top-to-bottom). Plan px -> world units; edit PLAN_* to adjust.
-  const K = 360 / 735, MX = (x) => Math.round(144 + (x - 75) * K), MY = (y) => Math.round(20 + (740 - y) * K);
+  // Real apartment (from King's floor plan: bedrooms up / kitchen down, drawn turned 45° clockwise). Plan px -> world units; edit PLAN_* to adjust.
+  const K = 0.371, MX = (x) => Math.round(300 + (x - 392.5) * K), MY = (y) => Math.round(200 + (y - 372.5) * K);   // plan centred in the map, then the whole drawing is turned 45° (o.rot)
   const sg = (a, b, c, d) => [MX(a), MY(b), MX(c), MY(d)];
-  const rm = (id, n, floor, x1, y1, x2, y2) => { const xa = MX(x1), xb = MX(x2), ya = Math.min(MY(y1), MY(y2)), yb = Math.max(MY(y1), MY(y2)); return { id, n, floor, x: xa, y: ya, w: xb - xa, h: yb - ya, lx: xa + 8, ly: ya + 20, c: [Math.round((xa + xb) / 2), Math.round((ya + yb) / 2)] }; };
+  const rm = (id, n, floor, x1, y1, x2, y2) => { const xa = MX(x1), xb = MX(x2), ya = Math.min(MY(y1), MY(y2)), yb = Math.max(MY(y1), MY(y2)); return { id, n, floor, x: xa, y: ya, w: xb - xa, h: yb - ya, lx: Math.round((xa + xb) / 2), ly: Math.round((ya + yb) / 2) + 4, c: [Math.round((xa + xb) / 2), Math.round((ya + yb) / 2)] }; };
   const pt = (x, y) => [MX(x), MY(y)];
   const fr = (x1, y1, x2, y2) => { const xa = MX(x1), xb = MX(x2), ya = Math.min(MY(y1), MY(y2)), yb = Math.max(MY(y1), MY(y2)); return 'M' + xa + ' ' + ya + 'h' + (xb - xa) + 'v' + (yb - ya) + 'h' + (xa - xb) + 'z'; };
   this.W = [sg(75,5,710,5), sg(710,5,710,235), sg(710,235,475,235), sg(475,235,475,740), sg(475,740,75,740), sg(75,740,75,5),
@@ -32,7 +32,7 @@ constructor(p) {
   ];
   this.ADJ = { living: ['hall', 'bedroom1', 'kitchen', 'dining'], hall: ['living', 'bath', 'bedroom2'], bath: ['hall'], bedroom1: ['living'], bedroom2: ['hall'], kitchen: ['living', 'dining'], dining: ['living', 'kitchen'] };
   this.DOOR = { 'bedroom1|living': pt(195, 235), 'bath|hall': pt(410, 165), 'bedroom2|hall': pt(475, 200), 'hall|living': pt(395, 235), 'kitchen|living': pt(190, 545), 'dining|living': pt(390, 545), 'dining|kitchen': pt(300, 640) };
-  this.DK = pt(450, 500); this.START = this.R.find(r => r.id === 'living').c; this.NOGO = { x: MX(100), y: MY(470), w: 40, h: 30 };
+  this.DK = pt(450, 500); this.START = this.R.find(r => r.id === 'living').c; this.NOGO = { x: MX(100), y: MY(470), w: 30, h: 22 };
   this.FURN = [fr(115,135,275,235), fr(185,60,280,110), fr(515,125,650,230), fr(495,40,570,100), fr(190,375,350,530), fr(145,320,300,460), fr(115,285,205,375), fr(315,560,435,690), fr(60,548,220,600), fr(60,680,270,740)].join('');
   this.x = this.START[0]; this.y = this.START[1]; this.h = 90; this.sw = 0; this.bat = 74; this.st = 'idle';
   this.route = []; this.goal = ''; this.queue = []; this.holdDir = ''; this.stk = [0, 0];
@@ -191,7 +191,7 @@ segDist(px, py, s) {
   let t = l2 ? ((px - s[0]) * dx + (py - s[1]) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t));
   return Math.hypot(px - (s[0] + t * dx), py - (s[1] + t * dy));
 }
-blocked(x, y) { return this.W.some(s => this.segDist(x, y, s) < 11) || this.state.zones.some(z => x > z.x && x < z.x + z.w && y > z.y && y < z.y + z.h); }
+blocked(x, y) { return this.W.some(s => this.segDist(x, y, s) < 8) || this.state.zones.some(z => x > z.x && x < z.x + z.w && y > z.y && y < z.y + z.h); }
 ray(x, y, a) {
   const dx = Math.sin(a), dy = -Math.cos(a); let best = 400;
   for (const s of this.W) {
@@ -429,7 +429,7 @@ renderVals() {
   const goalName = this.goal === 'dock' ? 'the dock' : (R.find(r => r.id === this.goal) || { n: '' }).n;
   const zd = this.zd ? { x: Math.min(this.zd.x0, this.zd.x1), y: Math.min(this.zd.y0, this.zd.y1), w: Math.abs(this.zd.x1 - this.zd.x0), h: Math.abs(this.zd.y1 - this.zd.y0) } : { x: 0, y: 0, w: 0, h: 0 };
   const o = {
-    dockR: { x: this.DK[0] + 8, y: this.DK[1] - 14, w: 12, h: 28 },
+    rot: 'rotate(45 300 200)', dockR: { x: this.DK[0] + 4, y: this.DK[1] - 10, w: 8, h: 20 },
     themeClass: s.theme === 'light' ? 'light' : '', color: STC[ds],
     sub: this.goal && ds === 'moving' ? (this.goal === 'dock' ? 'Docking' : 'Going to ' + goalName) : ds === 'moving' ? 'Moving' : !on ? 'Offline' : this.st === 'charging' ? (bat >= 100 ? 'Fully charged' : 'Charging') : bat < 20 ? 'Low battery' : 'Not charging', hasSub: true,
     room: on ? here.n : '—', batt: on ? bat + '%' : '—', battStyle: 'color:' + bc + ';border-color:' + bc, battFill: Math.max(1, Math.round(bat / 100 * 10)), offline: !on,
@@ -649,7 +649,7 @@ rvApps(o, ds, on, here) {
   // map editing
   const sel = this.R.find(x => x.id === s.selRoom) || this.R[0];
   const mapped = rm => { let n = 0, t = 0; for (let cy = (rm.y - 20) / 20; cy < (rm.y + rm.h - 20) / 20; cy++) for (let cx = (rm.x - 20) / 20; cx < (rm.x + rm.w - 20) / 20; cx++) { t++; if (this.exp[cy * 28 + cx]) n++; } return t ? Math.round(n / t * 100) : 0; };
-  const pt = e => { const rc = e.currentTarget.getBoundingClientRect(); return [Math.max(0, Math.min(600, (e.clientX - rc.left) / rc.width * 600)), Math.max(0, Math.min(400, (e.clientY - rc.top) / rc.height * 400))]; };
+  const pt = e => { const rc = e.currentTarget.getBoundingClientRect(); const sx = (e.clientX - rc.left) / rc.width * 600 - 300, sy = (e.clientY - rc.top) / rc.height * 400 - 200, c = Math.SQRT1_2; /* undo the 45° turn */ return [Math.max(0, Math.min(600, 300 + (sx * c + sy * c))), Math.max(0, Math.min(400, 200 + (-sx * c + sy * c)))]; };
   Object.assign(r, {
     selName: sel.n, selMapped: mapped(sel) + '%', selDone: this.done[sel.id] || 'never',
     renameRoom: e => { const v = ((e.target && e.target.value) || '').slice(0, 16); if (v !== sel.n) { sel.n = v; this.save(); this.forceUpdate(); } },
