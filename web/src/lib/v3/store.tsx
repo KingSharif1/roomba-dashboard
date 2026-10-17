@@ -233,16 +233,21 @@ export function V3RobotProvider({ children }: { children: ReactNode }) {
         fetch(`${robotUrl}/control/stop`, { method: "POST" }).catch(() => {});
       }
     } else if (m === "dock") {
-      setMode("docked");
+      const live = !!robotUrl && connection === "live";
+      // Live: the robot still has to drive home, so show "returning" until the Pi reports "docked" over the WS.
+      setMode(live ? "returning" : "docked");
       setLocation({ roomId: "living-room", label: "Dock · Living room" });
       logTelemetry("dock", {});
-      if (robotUrl && connection === "live") {
+      if (live) {
         fetch(`${robotUrl}/control/dock`, { method: "POST" }).catch(() => {});
       }
     } else {
       setMode("cleaning");
       setTargetRooms(demoRooms.map((r) => r.id));
       logTelemetry("run_start", { rooms: "all" });
+      if (robotUrl && connection === "live") {
+        fetch(`${robotUrl}/control/start`, { method: "POST" }).catch(() => {});
+      }
     }
   }, [robotUrl, connection]);
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Schibsted_Grotesk } from "next/font/google";
+import { Geist, Geist_Mono, JetBrains_Mono, Schibsted_Grotesk } from "next/font/google";
 import { RobotProvider } from "@/components/connection/robot-provider";
 import "./globals.css";
 import "./engineering.css";
@@ -17,7 +17,13 @@ const geistMono = Geist_Mono({
 const display = Schibsted_Grotesk({
   variable: "--font-schibsted",
   subsets: ["latin"],
-  weight: "700",
+  weight: ["400", "500", "600", "700"],
+});
+
+const jbMono = JetBrains_Mono({
+  variable: "--font-jbmono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -44,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${jbMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <RobotProvider>{children}</RobotProvider>
