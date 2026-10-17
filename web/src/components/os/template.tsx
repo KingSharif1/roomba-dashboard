@@ -37,9 +37,9 @@ export function renderTemplate(v: any) {
 <rect x="2.5" y="2.5" width={v.battFill} height="6" rx="1" fill="currentColor" /></svg>
 {v.batt}</span>
 {v.hasSub && (<><span className="sm">{v.sub}</span></>)}</div>
-<div style={S("position:relative;padding:6px 8px 8px")}><svg viewBox="0 0 600 400" width="100%" style={S("display:block")} role="img" aria-label="Floor plan with live LiDAR scan"><defs><pattern id="ng" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="rgba(255,77,58,.12)" />
+<div style={S("position:relative;padding:6px 8px 8px")}><svg viewBox="0 0 600 400" width="100%" style={S("display:block")} role="img" aria-label="Floor plan with live LiDAR scan"><defs><pattern id="wood" width="26" height="9" patternUnits="userSpaceOnUse"><rect width="26" height="9" fill="rgba(176,120,70,.16)" /><path d="M0 8.5h26M13 0v8.5" stroke="rgba(176,120,70,.38)" strokeWidth=".8" /></pattern><pattern id="carpet" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="rgba(120,130,170,.10)" /><circle cx="1.5" cy="1.5" r=".7" fill="rgba(120,130,170,.35)" /><circle cx="4.5" cy="4.5" r=".7" fill="rgba(120,130,170,.35)" /></pattern><pattern id="ng" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="rgba(255,77,58,.12)" />
 <rect width="4" height="10" fill="rgba(255,77,58,.5)" /></pattern></defs>
-{v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} onClick={r.pick} style={S("cursor:pointer")} /></Fragment>))}
+{v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.floor} style={S("pointer-events:none")} /><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} onClick={r.pick} style={S("cursor:pointer")} /></Fragment>))}
 <path d={v.expPath} fill="var(--st)" opacity={v.expOp} />
 <path d={v.furn} fill="var(--line)" opacity=".7" />
 {v.zones.map((z: any, __i: number) => (<Fragment key={__i}><rect x={z.x} y={z.y} width={z.w} height={z.h} fill="url(#ng)" stroke="var(--bad)" strokeWidth="1.5" strokeDasharray="5 4" />
@@ -48,7 +48,7 @@ export function renderTemplate(v: any) {
 <path d={v.wedge} fill="var(--st)" opacity={v.wedgeOp} />
 <path d={v.walls} fill="none" stroke="var(--mute)" strokeWidth="5" strokeLinecap="square" />
 <path d={v.hits} fill="none" stroke="var(--st)" strokeWidth="3.5" strokeLinecap="round" opacity={v.hitOp} />
-<rect x="525" y="352" width="42" height="14" rx="3" fill="var(--warn)" />
+<rect x={v.dockR.x} y={v.dockR.y} width={v.dockR.w} height={v.dockR.h} rx="3" fill="var(--warn)" />
 {v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><text x={r.lx} y={r.ly} fontSize="14" letterSpacing="1.5" fill="var(--mute)" opacity={r.lop} fontFamily="JetBrains Mono, monospace">{r.up}</text></Fragment>))}
 <g style={S(`transform:${v.robotT};transition:transform .12s linear`)}><circle r="26" fill="var(--st)" opacity=".18" />
 <circle r="13" fill="var(--st)" />
@@ -122,9 +122,9 @@ export function renderTemplate(v: any) {
 <path d="M0 -4L0 -22" stroke="#000" strokeWidth="7" strokeLinecap="round" /></g></svg></button>
 <button type="button" className="chip" onClick={v.openFpv} style={S("position:absolute;right:12px;bottom:12px;height:44px;padding:0 16px;background:rgba(0,0,0,.6);color:#fff;border-color:rgba(255,255,255,.3);font-size:14px")}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
 {"Expand"}</button></>)}</div></div></>)}
-{v.isMap && (<><div style={S("display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start")}><section className="card" style={S("flex:999 1 420px;padding:8px")}><svg viewBox="0 0 600 400" width="100%" style={S(`display:block;touch-action:${v.mapTouch}`)} role="img" aria-label="Floor plan" onPointerDown={v.mapDown} onPointerMove={v.mapMove} onPointerUp={v.mapUp} onPointerCancel={v.mapUp}><defs><pattern id="ng" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="rgba(255,77,58,.12)" />
+{v.isMap && (<><div style={S("display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start")}><section className="card" style={S("flex:999 1 420px;padding:8px")}><svg viewBox="0 0 600 400" width="100%" style={S(`display:block;touch-action:${v.mapTouch}`)} role="img" aria-label="Floor plan" onPointerDown={v.mapDown} onPointerMove={v.mapMove} onPointerUp={v.mapUp} onPointerCancel={v.mapUp}><defs><pattern id="wood" width="26" height="9" patternUnits="userSpaceOnUse"><rect width="26" height="9" fill="rgba(176,120,70,.16)" /><path d="M0 8.5h26M13 0v8.5" stroke="rgba(176,120,70,.38)" strokeWidth=".8" /></pattern><pattern id="carpet" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="rgba(120,130,170,.10)" /><circle cx="1.5" cy="1.5" r=".7" fill="rgba(120,130,170,.35)" /><circle cx="4.5" cy="4.5" r=".7" fill="rgba(120,130,170,.35)" /></pattern><pattern id="ng" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="rgba(255,77,58,.12)" />
 <rect width="4" height="10" fill="rgba(255,77,58,.5)" /></pattern></defs>
-{v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} stroke={r.stroke} strokeWidth="2.5" onClick={r.pick} style={S("cursor:pointer")} /></Fragment>))}
+{v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.floor} style={S("pointer-events:none")} /><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} stroke={r.stroke} strokeWidth="2.5" onClick={r.pick} style={S("cursor:pointer")} /></Fragment>))}
 <path d={v.expPath} fill="var(--st)" opacity=".2" />
 <path d={v.furn} fill="var(--line)" opacity=".7" />
 {v.zones.map((z: any, __i: number) => (<Fragment key={__i}><rect x={z.x} y={z.y} width={z.w} height={z.h} fill="url(#ng)" stroke="var(--bad)" strokeWidth="1.5" strokeDasharray="5 4" />
@@ -133,7 +133,7 @@ export function renderTemplate(v: any) {
 <path d={v.scanPoly} fill="var(--st)" opacity=".12" />
 <path d={v.walls} fill="none" stroke="var(--mute)" strokeWidth="5" strokeLinecap="square" />
 <path d={v.hits} fill="none" stroke="var(--st)" strokeWidth="3.5" strokeLinecap="round" />
-<rect x="525" y="352" width="42" height="14" rx="3" fill="var(--warn)" />
+<rect x={v.dockR.x} y={v.dockR.y} width={v.dockR.w} height={v.dockR.h} rx="3" fill="var(--warn)" />
 {v.rooms.map((r: any, __i: number) => (<Fragment key={__i}><text x={r.lx} y={r.ly} fontSize="14" letterSpacing="1.5" fill="var(--fg)" opacity=".75" fontFamily="JetBrains Mono, monospace" style={S("pointer-events:none")}>{r.up}</text></Fragment>))}
 <g style={S(`transform:${v.robotT};pointer-events:none`)}><circle r="26" fill="var(--st)" opacity=".18" />
 <circle r="13" fill="var(--st)" />

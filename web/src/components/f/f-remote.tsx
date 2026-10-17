@@ -20,14 +20,16 @@ const APPS = [
 /** The TVs Stella knows about. Only the first (Roku "75 Living") reports live status today. */
 const TVS = ["75 Living", "ds twin", "sharif d ace"] as const;
 
-type TvStatus = { power?: string | null; app_name?: string | null; player?: string | null } | null;
+type PiTv = { name: string; on: boolean; app?: string; player?: string };
+
+const sameTv = (a: string, b: string) => { const x = a.toLowerCase(), y = b.toLowerCase(); return x === y || x.includes(y) || y.includes(x); };
 
 export function FRemote({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { state } = useV3Robot();
   const { robotUrl, connection } = state;
   const live = connection === "live" && !!robotUrl;
   const [note, setNote] = useState<{ text: string; bad?: boolean } | null>(null);
-  const [tv, setTv] = useState<TvStatus>(null);
+  const [tvs, setTvs] = useState<PiTv[] | null>(null);
   const [sel, setSel] = useState(0);
   const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -60,18 +62,23 @@ export function FRemote({ open, onClose }: { open: boolean; onClose: () => void 
   const key = useCallback((k: string, label = k) => post("/roku/key", { key: k }, label), [post]);
   const launch = useCallback((app: string, label: string) => post("/roku/launch", { app }, `Opening ${label}`), [post]);
 
-  // What the TV is doing right now (needs the Pi's /tv/status; stays hidden on older Pi code)
+  // What every TV is doing right now (Pi `/tvs`; older Pi code falls back to `/tv/status` for the first TV only)
   useEffect(() => {
     if (!open || !live) return;
     let stop = false;
     const poll = async () => {
       try {
-        const res = await fetch(`${robotUrl}/tv/status`);
-        if (!res.ok) throw new Error();
-        const d = await res.json();
-        if (!stop) setTv(d.tv ?? null);
+        let rows: PiTv[] | null = null;
+        const res = await fetch(`${robotUrl}/tvs`);
+        if (res.ok) rows = (await res.json()).tvs ?? [];
+        else {
+          const r2 = await fetch(`${robotUrl}/tv/status`);
+          const t = r2.ok ? (await r2.json()).tv : null;
+          rows = t ? [{ name: TVS[0], on: !!t.power && t.power === "PowerOn", app: t.app_name || "Home", player: t.player || "" }] : null;
+        }
+        if (!stop) setTvs(rows);
       } catch {
-        if (!stop) setTv(null);
+        if (!stop) setTvs(null);
       }
     };
     poll();
@@ -79,12 +86,15 @@ export function FRemote({ open, onClose }: { open: boolean; onClose: () => void 
     return () => { stop = true; clearInterval(t); };
   }, [open, live, robotUrl]);
 
-  const tvNow = open && live ? tv : null;      // never show a stale status after closing / disconnecting
+  const tvsNow = open && live ? tvs : null;      // never show a stale status after closing / disconnecting
   const statusOf = (i: number): { line: string; dot: string } => {
-    if (i !== 0 || !tvNow) return { line: i !== 0 ? "Not linked" : live ? "…" : "Demo", dot: "var(--mute)" };
-    if (tvNow.power && tvNow.power !== "PowerOn") return { line: "Off", dot: "var(--mute)" };
-    const playing = !!tvNow.player && tvNow.player !== "close";
-    return { line: `${tvNow.app_name || "Home"}${playing ? " · " + tvNow.player : ""}`, dot: playing ? "var(--ok)" : "var(--warn)" };
+    if (!live) return { line: "Demo", dot: "var(--mute)" };
+    if (!tvsNow) return { line: "…", dot: "var(--mute)" };
+    const t = tvsNow.find((x) => sameTv(x.name, TVS[i])) ?? (tvsNow.length === 1 && i === 0 ? tvsNow[0] : undefined);
+    if (!t) return { line: "Not found", dot: "var(--mute)" };
+    if (!t.on) return { line: "Off", dot: "var(--mute)" };
+    const playing = !!t.player && t.player !== "close";
+    return { line: `${t.app || "On"}${playing ? " · " + t.player : ""}`, dot: "var(--ok)" };
   };
 
   return (

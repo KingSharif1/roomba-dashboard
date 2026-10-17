@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, MicOff, PhoneOff, Send } from "lucide-react";
 import { useV3Robot } from "@/lib/v3/store";
 import { FWindow } from "./f-window";
+import { voiceOut } from "@/lib/stella-prefs";
 
 /**
  * Voice call with Stella — hands-free, back-and-forth like a phone call.
@@ -27,7 +28,8 @@ type Msg = { role: "user" | "assistant"; text: string };
 const END_RE = /^\s*(bye|goodbye|good night|hang up|end (the )?call|that'?s all)\b/i;
 
 export function FCall({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { runCommand, ttsVoiceURI, availableVoices } = useV3Robot();
+  const { runCommand, ttsVoiceURI, availableVoices, state: robotState } = useV3Robot();
+  const { connection, robotUrl } = robotState;
   const [phase, setPhase] = useState<Phase>("idle");
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [interim, setInterim] = useState("");
@@ -76,6 +78,17 @@ export function FCall({ open, onClose }: { open: boolean; onClose: () => void })
   const handleUserRef = useRef<(t: string) => void>(() => {});
 
   const speak = useCallback((text: string, after?: () => void) => {
+    // Voice output: this device (default), the Pi's own speaker, or both. Set in Settings → "Voice plays on".
+    const out = voiceOut();
+    const toPi = out !== "Device" && connection === "live" && !!robotUrl;
+    if (toPi) {
+      fetch(`${robotUrl}/speak`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) }).catch(() => {});
+      if (out === "Pi") {                      // nothing plays here: wait about as long as she talks, then listen again
+        setP("speaking");
+        window.setTimeout(() => after?.(), Math.min(15000, 900 + text.length * 70));
+        return;
+      }
+    }
     if (typeof window === "undefined" || !window.speechSynthesis) { after?.(); return; }
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
@@ -96,7 +109,7 @@ export function FCall({ open, onClose }: { open: boolean; onClose: () => void })
     u.onerror = finish;
     setP("speaking");
     window.speechSynthesis.speak(u);
-  }, [setP]);
+  }, [setP, connection, robotUrl]);
 
   const resume = useCallback(() => {
     if (!activeRef.current) return;

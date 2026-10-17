@@ -17,17 +17,24 @@ import { renderTemplate } from "./template";
 export class StellaOSImpl extends React.Component<any, any> {
 constructor(p) {
   super(p);
-  this.W = [[20,20,580,20],[580,20,580,380],[580,380,20,380],[20,380,20,20],[320,20,320,110],[320,180,440,180],[500,180,580,180],[320,180,320,280],[320,340,320,380],[20,220,90,220],[150,220,320,220],[220,220,220,290],[220,340,220,380]];
+  // Real apartment (from King's floor plan, flipped top-to-bottom). Plan px -> world units; edit PLAN_* to adjust.
+  const K = 360 / 735, MX = (x) => Math.round(144 + (x - 75) * K), MY = (y) => Math.round(20 + (740 - y) * K);
+  const sg = (a, b, c, d) => [MX(a), MY(b), MX(c), MY(d)];
+  const rm = (id, n, floor, x1, y1, x2, y2) => { const xa = MX(x1), xb = MX(x2), ya = Math.min(MY(y1), MY(y2)), yb = Math.max(MY(y1), MY(y2)); return { id, n, floor, x: xa, y: ya, w: xb - xa, h: yb - ya, lx: xa + 8, ly: ya + 20, c: [Math.round((xa + xb) / 2), Math.round((ya + yb) / 2)] }; };
+  const pt = (x, y) => [MX(x), MY(y)];
+  const fr = (x1, y1, x2, y2) => { const xa = MX(x1), xb = MX(x2), ya = Math.min(MY(y1), MY(y2)), yb = Math.max(MY(y1), MY(y2)); return 'M' + xa + ' ' + ya + 'h' + (xb - xa) + 'v' + (yb - ya) + 'h' + (xa - xb) + 'z'; };
+  this.W = [sg(75,5,710,5), sg(710,5,710,235), sg(710,235,475,235), sg(475,235,475,740), sg(475,740,75,740), sg(75,740,75,5),
+    sg(475,5,475,170), sg(315,5,315,235), sg(75,235,150,235), sg(240,235,315,235), sg(315,165,370,165), sg(450,165,475,165)];
   this.R = [
-    { id: 'living', n: 'Living room', x: 20, y: 20, w: 300, h: 200, lx: 34, ly: 46, c: [170, 120] },
-    { id: 'kitchen', n: 'Kitchen', x: 320, y: 20, w: 260, h: 160, lx: 334, ly: 46, c: [450, 100] },
-    { id: 'dining', n: 'Dining', x: 320, y: 180, w: 260, h: 200, lx: 334, ly: 206, c: [450, 290] },
-    { id: 'bedroom', n: 'Bedroom', x: 20, y: 220, w: 200, h: 160, lx: 34, ly: 246, c: [120, 320] },
-    { id: 'bath', n: 'Bath', x: 220, y: 220, w: 100, h: 160, lx: 232, ly: 246, c: [270, 300] }
+    rm('bedroom1', 'Bedroom 1', 'carpet', 75, 5, 315, 235), rm('bath', 'Bath', 'wood', 315, 5, 475, 165), rm('hall', 'Hall', 'carpet', 315, 165, 475, 235),
+    rm('bedroom2', 'Bedroom 2', 'carpet', 475, 5, 710, 235), rm('living', 'Living room', 'carpet', 75, 235, 475, 545),
+    rm('kitchen', 'Kitchen', 'wood', 75, 545, 300, 740), rm('dining', 'Dining', 'wood', 300, 545, 475, 740)
   ];
-  this.ADJ = { living: ['kitchen', 'bedroom'], kitchen: ['living', 'dining'], dining: ['kitchen', 'bath'], bath: ['dining', 'bedroom'], bedroom: ['bath', 'living'] };
-  this.DOOR = { 'kitchen|living': [320, 145], 'dining|kitchen': [470, 180], 'bath|dining': [320, 310], 'bath|bedroom': [220, 315], 'bedroom|living': [120, 220] };
-  this.x = 170; this.y = 120; this.h = 90; this.sw = 0; this.bat = 74; this.st = 'idle';
+  this.ADJ = { living: ['hall', 'bedroom1', 'kitchen', 'dining'], hall: ['living', 'bath', 'bedroom2'], bath: ['hall'], bedroom1: ['living'], bedroom2: ['hall'], kitchen: ['living', 'dining'], dining: ['living', 'kitchen'] };
+  this.DOOR = { 'bedroom1|living': pt(195, 235), 'bath|hall': pt(410, 165), 'bedroom2|hall': pt(475, 200), 'hall|living': pt(395, 235), 'kitchen|living': pt(190, 545), 'dining|living': pt(390, 545), 'dining|kitchen': pt(300, 640) };
+  this.DK = pt(450, 500); this.START = this.R.find(r => r.id === 'living').c; this.NOGO = { x: MX(100), y: MY(470), w: 40, h: 30 };
+  this.FURN = [fr(115,135,275,235), fr(185,60,280,110), fr(515,125,650,230), fr(495,40,570,100), fr(190,375,350,530), fr(145,320,300,460), fr(115,285,205,375), fr(315,560,435,690), fr(60,548,220,600), fr(60,680,270,740)].join('');
+  this.x = this.START[0]; this.y = this.START[1]; this.h = 90; this.sw = 0; this.bat = 74; this.st = 'idle';
   this.route = []; this.goal = ''; this.queue = []; this.holdDir = ''; this.stk = [0, 0];
   this.rot = 35; this.dragging = false; this.lastMove = 0; this.n = 0; this.exp = new Uint8Array(28 * 18); this.expPath = ''; this.expDirty = true;
   this.logs = []; this.tl = 0; this.scanCache = null; this.look = 0; this.skip = {}; this.done = {}; this.lk = null; this.zd = null; this.vm = 'idle';
@@ -36,11 +43,11 @@ constructor(p) {
     app: 'home', theme: 'dark', ctrl: 'console', pad: 'stick', speed: 50, tools: { v: false, m: false, s: false },
     layers: { scan: true, explored: true, labels: true }, toast: '', signed: true, internet: true, brain: 'auto',
     voiceOpen: false, listening: false, thinking: false, heard: '', reply: '', vsrc: '', vms: 0, vi: 0,
-    fpv: false, turns: [], part: 'lidar', suction: 'normal', logSrc: ['driver', 'lidar', 'api', 'voice', 'battery', 'system'], logLv: 'all',
+    fpv: false, turns: [], part: 'lidar', suction: 'normal', logSrc: ['driver', 'lidar', 'api', 'voice', 'battery', 'system'], logLv: 'good',
     tvSel: 0, tvs: [{ n: '75 Living', on: true, app: 'Netflix', vol: 18, playing: true, mute: false }, { n: 'ds twin', on: false, app: '—', vol: 12, playing: false, mute: false }, { n: 'sharif d ace', on: false, app: '—', vol: 10, playing: false, mute: false }],
     cur: 71.8, set: 72, cmode: 'auto', camOn: true, bump: 0, eco: true,
-    zones: [{ x: 420, y: 300, w: 70, h: 50, n: 'No-go 1' }], selRoom: 'living', draw: false, camSrc: 'lidar', traceOpen: false,
-    cfg: { wake: true, spoken: true, vstyle: 'Warm', confirm: false, autoDock: 15, resume: 90, edge: true, maxSpd: 100, lostStop: true, cliff: true, aBat: true, aStuck: true, aDone: true, quiet: 'Off', units: 'F', t24: false }
+    zones: [Object.assign({ n: 'No-go 1' }, this.NOGO)], selRoom: 'living', draw: false, camSrc: 'lidar', traceOpen: false,
+    cfg: { wake: true, spoken: true, vstyle: 'Warm', confirm: false, autoDock: 15, idleDock: 0, voiceOut: 'Device', resume: 90, edge: true, maxSpd: 100, lostStop: true, cliff: true, aBat: true, aStuck: true, aDone: true, quiet: 'Off', units: 'F', t24: false }
   };
   [['system', 'info', 'Stella API started · demo robot'], ['api', 'info', 'WS /live connected · 0.5 s frames'], ['driver', 'warn', 'Unknown mode detected (known noisy 600-series packet)'], ['lidar', 'info', 'RPLIDAR C1 · scan 10 Hz · 360 pts'], ['battery', 'info', 'Pack 15.28 V · 74%'], ['voice', 'info', 'Brain ready: Claude (cloud) + on-device fallback']].forEach(a => this.log(a[0], a[1], a[2]));
 }
@@ -77,7 +84,7 @@ async api(path, method, body, ms) {
 }
 loadSaved() {
   try {
-    const raw = localStorage.getItem('stella-os'); if (raw) {
+    const raw = localStorage.getItem('stella-os-v2'); if (raw) {
       const d = JSON.parse(raw), p = {};
       if (d.cfg) p.cfg = Object.assign({}, this.state.cfg, d.cfg);
       if (Array.isArray(d.zones)) p.zones = d.zones;
@@ -91,7 +98,7 @@ loadSaved() {
   this.loaded = true;
 }
 save() {
-  try { const s = this.state, rooms = {}; this.R.forEach(r => { rooms[r.id] = r.n; }); localStorage.setItem('stella-os', JSON.stringify({ cfg: s.cfg, zones: s.zones, theme: s.theme, brain: s.brain, suction: s.suction, set: s.set, cmode: s.cmode, eco: s.eco, rooms, skip: this.skip })); } catch (x) {}
+  try { const s = this.state, rooms = {}; this.R.forEach(r => { rooms[r.id] = r.n; }); localStorage.setItem('stella-os-v2', JSON.stringify({ cfg: s.cfg, zones: s.zones, theme: s.theme, brain: s.brain, suction: s.suction, set: s.set, cmode: s.cmode, eco: s.eco, rooms, skip: this.skip })); } catch (x) {}
 }
 pushRemote(ps) {
   if (!this.isLive()) return;
@@ -121,10 +128,14 @@ syncLive() {
       const px = q.x, py = q.y, th = q.theta !== undefined ? q.theta : q.yaw;
       if (typeof px === 'number' && typeof py === 'number') {
         // metres -> floor-plan units (50 u/m, origin at the dock). Calibrate once the real map is saved.
-        this.x = Math.max(24, Math.min(576, 545 + px * 50)); this.y = Math.max(24, Math.min(376, 345 - py * 50));
+        this.x = Math.max(24, Math.min(576, this.DK[0] + px * 50)); this.y = Math.max(24, Math.min(376, this.DK[1] - py * 50));
         if (typeof th === 'number') this.h = ((90 - th * 180 / Math.PI) % 360 + 360) % 360;
       }
     });
+  }
+  if ((this.state.app === 'camera' || this.state.app === 'home' || this.state.fpv) && now - (this.ldT || 0) > 700) {
+    this.ldT = now;
+    this.api('/lidar', 'GET').then(d => { if (d && !d.__err && Array.isArray(d.r)) { this.lidar = d; this.lidarAt = Date.now(); } else this.lidar = null; });
   }
   if (now - (this.logT || 0) > 2500) {
     this.logT = now;
@@ -136,10 +147,22 @@ syncLive() {
   }
   if (now - (this.tvT || 0) > 5000) {
     this.tvT = now;
-    this.api('/tv/status', 'GET').then(d => {
-      const t = d && d.tv; if (!t) return;
-      const on = !!t.power && !/off|standby/i.test(String(t.power));
-      this.setState({ tvs: this.state.tvs.map((x, i) => i === 0 ? Object.assign({}, x, { on, app: on ? (t.app_name || 'Home') : '—', playing: on && /play/i.test(String(t.player || '')) }) : x) });
+    this.api('/tvs', 'GET').then(d => {
+      const same = (x, y) => { x = String(x).toLowerCase(); y = String(y).toLowerCase(); return x === y || x.indexOf(y) >= 0 || y.indexOf(x) >= 0; };
+      if (d && !d.__err && Array.isArray(d.tvs)) {
+        const rows = d.tvs;
+        this.setState({ tvs: this.state.tvs.map((x, i) => {
+          const t = rows.find(r => same(r.name, x.n)) || (rows.length === 1 && i === 0 ? rows[0] : null);
+          if (!t) return Object.assign({}, x, { on: false, app: '—', playing: false });
+          return Object.assign({}, x, { on: !!t.on, app: t.on ? (t.app || 'Home') : '—', playing: !!t.on && /play/i.test(String(t.player || '')) });
+        }) });
+        return;
+      }
+      this.api('/tv/status', 'GET').then(d2 => {   // older Pi code: first TV only
+        const t = d2 && d2.tv; if (!t) return;
+        const on = !!t.power && !/off|standby|ready/i.test(String(t.power));
+        this.setState({ tvs: this.state.tvs.map((x, i) => i === 0 ? Object.assign({}, x, { on, app: on ? (t.app_name || 'Home') : '—', playing: on && /play/i.test(String(t.player || '')) }) : x) });
+      });
     });
   }
   if (now - (this.clT || 0) > 15000) {
@@ -211,7 +234,7 @@ goTo(id, queued) {
   if (!this.online()) { this.say('Stella is offline. Tap Wake Stella.'); return; }
   if (this.st === 'charging') { this.say('Docked in charging mode. Tap Wake Stella first.'); return; }
   if (!queued) this.queue = [];
-  const from = this.roomAt(this.x, this.y).id, to = id === 'dock' ? 'dining' : id;
+  const from = this.roomAt(this.x, this.y).id, to = id === 'dock' ? 'living' : id;
   let path = [from];
   if (from !== to && this.ADJ[from]) {
     const prev = { [from]: null }; const q = [from];
@@ -220,7 +243,7 @@ goTo(id, queued) {
   }
   const wp = [];
   for (let i = 0; i < path.length - 1; i++) wp.push(this.DOOR[[path[i], path[i + 1]].sort().join('|')]);
-  wp.push(id === 'dock' ? [545, 345] : this.R.find(r => r.id === to).c);
+  wp.push(id === 'dock' ? this.DK.slice() : this.R.find(r => r.id === to).c);
   this.route = wp.map(p => p.slice()); this.goal = id;
   const nm = id === 'dock' ? 'the dock' : this.R.find(r => r.id === id).n;
   this.log('driver', 'info', 'Autonomy: heading to ' + nm);
@@ -254,7 +277,7 @@ tick() {
         this.route.shift();
         if (!this.route.length) {
           if (this.goal && this.goal !== 'dock') this.done[this.goal] = this.clock();
-          if (this.goal === 'dock') { this.x = 545; this.y = 345; this.h = 0; this.st = 'charging'; this.log('battery', 'info', 'Docked · charging started'); this.say('Docked · charging'); }
+          if (this.goal === 'dock') { this.x = this.DK[0]; this.y = this.DK[1]; this.h = 0; this.st = 'charging'; this.log('battery', 'info', 'Docked · charging started'); this.say('Docked · charging'); }
           else if (this.queue.length) this.goTo(this.queue.shift(), true);
           else { this.log('driver', 'info', 'Arrived'); this.say('Arrived'); this.goal = ''; }
         }
@@ -332,6 +355,19 @@ setTool(k) {
   if (this.isLive()) this.live().setCleaningMotors(!!t.v, !!t.m, !!t.s);
   this.log('driver', 'info', { v: 'Vacuum', m: 'Main brush', s: 'Side brush' }[k] + (t[k] ? ' on' : ' off'));
 }
+liveLidarCols() {
+  const d = this.lidar; if (!this.isLive() || !d || Date.now() - (this.lidarAt || 0) > 3000) return null;
+  const out = [{ x: 0, y: 0, w: 640, h: 360, f: '#07090d', o: 1 }], S = 45;      // 45 px per metre, robot in the middle
+  for (const m of [1, 2, 3]) out.push({ x: 320 - m * S, y: 180 - 0.5, w: m * S * 2, h: 1, f: '#ffffff', o: 0.08 }, { x: 320 - 0.5, y: 180 - m * S, w: 1, h: m * S * 2, f: '#ffffff', o: 0.08 });
+  d.r.forEach((m, i) => {
+    if (!m) return; const a = d.angle_min + i * d.angle_inc;
+    const x = 320 - m * Math.sin(a) * S, y = 180 - m * Math.cos(a) * S;
+    if (x < 0 || x > 640 || y < 0 || y > 360) return;
+    out.push({ x: x - 1.6, y: y - 1.6, w: 3.2, h: 3.2, f: '#3ecf8e', o: 0.95 });
+  });
+  out.push({ x: 314, y: 174, w: 12, h: 12, f: '#ffffff', o: 1 });
+  return out;
+}
 fpvCols() {
   const N = 80, FOV = 100, out = []; let near = 999;
   for (let i = 0; i < N; i++) {
@@ -393,18 +429,19 @@ renderVals() {
   const goalName = this.goal === 'dock' ? 'the dock' : (R.find(r => r.id === this.goal) || { n: '' }).n;
   const zd = this.zd ? { x: Math.min(this.zd.x0, this.zd.x1), y: Math.min(this.zd.y0, this.zd.y1), w: Math.abs(this.zd.x1 - this.zd.x0), h: Math.abs(this.zd.y1 - this.zd.y0) } : { x: 0, y: 0, w: 0, h: 0 };
   const o = {
+    dockR: { x: this.DK[0] + 8, y: this.DK[1] - 14, w: 12, h: 28 },
     themeClass: s.theme === 'light' ? 'light' : '', color: STC[ds],
-    sub: this.goal && ds === 'moving' ? (this.goal === 'dock' ? 'Docking' : 'Going to ' + goalName) : LBL[ds], hasSub: ds !== 'idle',
+    sub: this.goal && ds === 'moving' ? (this.goal === 'dock' ? 'Docking' : 'Going to ' + goalName) : ds === 'moving' ? 'Moving' : !on ? 'Offline' : this.st === 'charging' ? (bat >= 100 ? 'Fully charged' : 'Charging') : bat < 20 ? 'Low battery' : 'Not charging', hasSub: true,
     room: on ? here.n : '—', batt: on ? bat + '%' : '—', battStyle: 'color:' + bc + ';border-color:' + bc, battFill: Math.max(1, Math.round(bat / 100 * 10)), offline: !on,
     linkDot: !signed ? '#ffd23f' : on ? '#3ecf8e' : '#8d8d94', linkLabel: !signed ? 'Demo' : on ? 'King' : 'Offline',
     toggleSigned: () => { if (this.isLive()) { this.say('Signed in as King'); return; } this.setState({ signed: !s.signed }); this.say(s.signed ? 'Signed out · demo robot' : 'Signed in as King'); },
     openVoice: () => this.openTalk(),
     goHome: () => this.setState({ app: 'home' }), openMap: () => this.setState({ app: 'map' }), openCam: () => this.setState({ app: 'camera' }),
     isHome: s.app === 'home', notHome: s.app !== 'home',
-    rooms: R.map(r => ({ x: r.x, y: r.y, w: r.w, h: r.h, lx: r.lx, ly: r.ly, up: r.n.toUpperCase(), lop: mapApp ? 1 : (s.layers.labels && r.id !== here.id ? 1 : 0), fill: r.id === selId ? 'var(--soft)' : this.skip[r.id] && mapApp ? 'rgba(141,141,148,.12)' : 'transparent', stroke: mapApp && r.id === s.selRoom ? 'var(--acc)' : 'transparent', pick: mapApp ? () => this.setState({ selRoom: r.id }) : () => this.goTo(r.id) })),
+    rooms: R.map(r => ({ floor: r.floor === 'wood' ? 'url(#wood)' : 'url(#carpet)', x: r.x, y: r.y, w: r.w, h: r.h, lx: r.lx, ly: r.ly, up: r.n.toUpperCase(), lop: mapApp ? 1 : (s.layers.labels && r.id !== here.id ? 1 : 0), fill: r.id === selId ? 'var(--soft)' : this.skip[r.id] && mapApp ? 'rgba(141,141,148,.12)' : 'transparent', stroke: mapApp && r.id === s.selRoom ? 'var(--acc)' : 'transparent', pick: mapApp ? () => this.setState({ selRoom: r.id }) : () => this.goTo(r.id) })),
     zones: s.zones.map(z => ({ x: z.x, y: z.y, w: z.w, h: z.h, n: z.n, tx: z.x + 4, ty: z.y + 13 })), zd,
     expPath: this.expPath, expOp: s.layers.explored ? (on ? 0.2 : 0.1) : 0,
-    furn: 'M60 110h140v44h-140zM40 270h110v70h-110zM400 50h100v40h-100zM390 250h120v60h-120z',
+    furn: this.FURN,
     scanPoly: poly, scanOp: s.layers.scan && on ? 0.13 : 0, wedge, wedgeOp: s.layers.scan && on ? 0.3 : 0, hits, hitOp: s.layers.scan && on ? 0.9 : 0,
     walls: this.W.map(w => 'M' + w[0] + ' ' + w[1] + 'L' + w[2] + ' ' + w[3]).join(''),
     robotT: 'translate(' + this.x.toFixed(1) + 'px,' + this.y.toFixed(1) + 'px) rotate(' + this.h.toFixed(0) + 'deg)',
@@ -424,7 +461,7 @@ renderVals() {
     mainStyle: s.app === 'home' ? 'max-width:1240px;margin:0 auto;padding:68px 12px 40px;display:flex;flex-direction:column;gap:14px' : 'position:fixed;inset:0;z-index:30;overflow:auto;background:var(--bg);display:flex;flex-direction:column;gap:12px;padding:68px ' + (s.app === 'logs' ? '12px' : 'max(12px,calc((100% - 1240px)/2))') + ' 12px',
     hf: () => this.hold('f'), hb: () => this.hold('b'), hl: () => this.hold('l'), hr: () => this.hold('r'), hu: () => { this.holdDir = ''; },
     driveRead: mag > 0 ? 'Driving at ' + mag + '%' : on ? 'Hold to drive' : 'Offline',
-    fp: need ? this.fpvCols() : [], openFpv: () => this.setState({ fpv: true }),
+    fp: need ? (this.liveLidarCols() || this.fpvCols()) : [], openFpv: () => this.setState({ fpv: true }),
     lookDown: e => { if (e.target && e.target.closest && e.target.closest('button')) return; this.lk = { x: e.clientX, l: this.look }; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} },
     lookMove: e => { if (!this.lk) return; const l = this.lk.l - (e.clientX - this.lk.x) * 0.4; this.look = ((l + 540) % 360) - 180; this.forceUpdate(); },
     lookUp: () => { this.lk = null; }, lookCenter: () => { this.look = 0; this.forceUpdate(); }, lookOff: Math.abs(this.look) > 2,
@@ -649,11 +686,11 @@ rvApps(o, ds, on, here) {
   const SVC = { driver: 'roomba-driver', api: 'stella-api', lidar: 'stella-lidar', camera: 'stella-camera', voice: 'stella-voice', battery: 'stella-battery', system: 'stella', tv: 'stella-tv', climate: 'stella-climate' };
   r.srcChips = SRC.map(k => ({ n: k, style: s.logSrc.indexOf(k) >= 0 ? 'background:var(--fg);color:var(--bg);border-color:var(--fg)' : '', pick: () => this.setState({ logSrc: s.logSrc.indexOf(k) >= 0 ? s.logSrc.filter(x => x !== k) : s.logSrc.concat(k) }) }));
   r.logAll = () => this.setState({ logSrc: SRC.slice() }); r.logNone = () => this.setState({ logSrc: [] });
-  r.lvTabs = [['all', 'All'], ['warn', 'Warnings']].map(x => ({ label: x[1], cls: s.logLv === x[0] ? 'on' : '', pick: () => this.setState({ logLv: x[0] }) }));
-  const rows = s.app === 'logs' ? this.logs.filter(l => s.logSrc.indexOf(l.src) >= 0 && (s.logLv === 'all' || l.lv !== 'info')).slice(0, 80) : [];
+  r.lvTabs = [['good', 'Good'], ['all', 'All']].map(x => ({ label: x[1], cls: s.logLv === x[0] ? 'on' : '', pick: () => this.setState({ logLv: x[0] }) }));
+  const rows = s.app === 'logs' ? this.logs.filter(l => s.logSrc.indexOf(l.src) >= 0 && (s.logLv === 'all' || l.lv === 'info')).slice(0, 80) : [];
   r.logRows = rows.map(l => ({ t: l.t, svc: SVC[l.src] || l.src, m: l.m.replace('|', ' · '), col: LV[l.lv], bar: BAR[l.lv] })); r.logEmpty = rows.length === 0;
   // tv
-  r.tvTabs = s.tvs.map((t, i) => ({ n: t.n, dot: t.on ? (t.playing ? 'var(--ok)' : '#ffd23f') : 'var(--mute)', st: t.on ? (t.playing ? 'Playing' : 'Paused') : 'Off', style: 'display:flex;flex-direction:column;align-items:flex-start;padding:8px 10px;border-radius:12px;min-width:0;text-align:left;border:1.5px solid ' + (i === s.tvSel ? 'var(--acc)' : 'var(--line)') + ';background:' + (i === s.tvSel ? 'var(--soft)' : 'transparent'), pick: () => this.setState({ tvSel: i }) }));
+  r.tvTabs = s.tvs.map((t, i) => ({ n: t.n, dot: t.on ? 'var(--ok)' : 'var(--mute)', st: t.on ? (t.playing ? 'Playing' : 'Paused') : 'Off', style: 'display:flex;flex-direction:column;align-items:flex-start;padding:8px 10px;border-radius:12px;min-width:0;text-align:left;border:1.5px solid ' + (i === s.tvSel ? 'var(--acc)' : 'var(--line)') + ';background:' + (i === s.tvSel ? 'var(--soft)' : 'transparent'), pick: () => this.setState({ tvSel: i }) }));
   const upd = f => this.setState({ tvs: s.tvs.map((x, i) => i === s.tvSel ? Object.assign({}, x, f(x)) : x) });
   r.tvApp = tv.on ? tv.app : '—';
   const RK = { Up: 'Up', Down: 'Down', Left: 'Left', Right: 'Right', OK: 'Select', Back: 'Back', Options: 'Info', Home: 'Home', Rewind: 'Rev', 'Fast forward': 'Fwd', 'Play/Pause': 'Play', 'Vol +': 'VolumeUp', 'Vol −': 'VolumeDown', Mute: 'VolumeMute' };
@@ -665,7 +702,7 @@ rvApps(o, ds, on, here) {
   r.kPlay = kk('Play/Pause', x => ({ playing: !x.playing })); r.kPlayLbl = tv.playing ? '❚❚' : '▶';
   r.kVu = kk('Vol +', x => ({ vol: Math.min(40, x.vol + 2), mute: false })); r.kVd = kk('Vol −', x => ({ vol: Math.max(0, x.vol - 2) }));
   r.kMute = kk('Mute', x => ({ mute: !x.mute })); r.kMuteBg = tv.mute ? '#d62b2b' : '#2a1a4a';
-  r.tvDot = tv.on ? (tv.playing ? 'var(--ok)' : '#ffd23f') : 'var(--mute)'; r.tvStatus = tv.on ? 'On' : 'Off';
+  r.tvDot = tv.on ? 'var(--ok)' : 'var(--mute)'; r.tvStatus = tv.on ? 'On' : 'Off';
   r.tvPlayTxt = !tv.on ? 'Standby' : tv.playing ? 'Playing' : 'Paused'; r.tvMuteTxt = tv.mute ? 'Muted' : 'Vol ' + tv.vol;
   const TSC = [['Netflix', '#e50914', '#fff'], ['YouTube', '#ff3b30', '#fff'], ['Spotify', '#1db954', '#06210f'], ['Hulu', '#1ce783', '#06210f']];
   r.tvShort = TSC.map(a => ({ n: a[0], style: 'height:36px;border-radius:11px;font-size:10px;letter-spacing:-.02em;background:' + a[1] + ';color:' + a[2] + ';box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 3px 0 rgba(0,0,0,.45)', pick: () => { upd(() => ({ on: true, app: a[0], playing: true })); this.log('tv', 'info', tv.n + ' → ' + a[0]); tvSend('/roku/launch', { app: a[0].toLowerCase() }, tv.n + ' → ' + a[0]); } }));
@@ -692,7 +729,7 @@ rvApps(o, ds, on, here) {
   r.runToday = '3.2'; r.runBars = RV.map((v, i) => ({ x: i * 30, h: Math.round(v / 4 * 44) + 4, y: 60 - (Math.round(v / 4 * 44) + 4), f: i === 6 ? 'var(--acc)' : 'var(--line)', d: DL[(new Date(Date.now() - (6 - i) * 864e5)).getDay()] }));
   // state chips + brain tabs + theme
   r.isDemo = !this.isLive();
-  r.stateChips = ['idle', 'charging', 'low', 'fault', 'offline'].map(k => ({ label: k, cls: this.st === k || (k === 'low' && this.st === 'idle' && this.bat < 20) ? 'on' : '', pick: () => { this.stopAll(true); if (k === 'low') { this.st = 'idle'; this.bat = 15; } else { this.st = k; if (k === 'idle' && this.bat < 20) this.bat = 74; } if (k === 'charging') { this.x = 545; this.y = 345; this.h = 0; } this.log('system', k === 'fault' ? 'err' : 'info', 'Demo state → ' + k); } }));
+  r.stateChips = ['idle', 'charging', 'low', 'fault', 'offline'].map(k => ({ label: k, cls: this.st === k || (k === 'low' && this.st === 'idle' && this.bat < 20) ? 'on' : '', pick: () => { this.stopAll(true); if (k === 'low') { this.st = 'idle'; this.bat = 15; } else { this.st = k; if (k === 'idle' && this.bat < 20) this.bat = 74; } if (k === 'charging') { this.x = this.DK[0]; this.y = this.DK[1]; this.h = 0; } this.log('system', k === 'fault' ? 'err' : 'info', 'Demo state → ' + k); } }));
   r.brainTabs = [['auto', 'Auto'], ['claude', 'Claude'], ['local', 'On-device']].map(x => ({ label: x[1], cls: s.brain === x[0] ? 'on' : '', pick: () => this.setState({ brain: x[0] }) }));
   r.themeTabs = [['dark', 'Dark'], ['light', 'Light']].map(x => ({ label: x[1], cls: s.theme === x[0] ? 'on' : '', pick: () => this.setState({ theme: x[0] }) }));
   // settings rows
@@ -700,10 +737,10 @@ rvApps(o, ds, on, here) {
   const T = (label, k) => ({ label, val: '', tc: cfg[k] ? 'tog on' : 'tog', showTog: 'display:block', showVal: 'display:none', pick: () => setCfg(k, !cfg[k]) });
   const C = (label, k, opts, fmt) => ({ label, val: fmt(cfg[k]), tc: 'tog', showTog: 'display:none', showVal: 'display:inline-flex', pick: () => setCfg(k, opts[(opts.indexOf(cfg[k]) + 1) % opts.length]) });
   const SU = ['eco', 'normal', 'turbo'];
-  r.sV = [T('Wake word “Stella”', 'wake'), T('Spoken replies', 'spoken'), C('Voice', 'vstyle', ['Warm', 'Crisp', 'Low'], v => v), T('Ask before big moves', 'confirm')];
-  r.sC = [C('Auto-dock at', 'autoDock', [15, 20, 25], v => v + '%'), C('Resume after charge', 'resume', [80, 90, 100], v => v + '%'), T('Edge cleaning', 'edge'), { label: 'Default suction', val: s.suction, tc: 'tog', showTog: 'display:none', showVal: 'display:inline-flex', pick: () => this.setState({ suction: SU[(SU.indexOf(s.suction) + 1) % 3] }) }];
+  r.sV = [T('Wake word “Stella”', 'wake'), T('Spoken replies', 'spoken'), C('Voice', 'vstyle', ['Warm', 'Crisp', 'Low'], v => v), C('Voice plays on', 'voiceOut', ['Device', 'Pi', 'Both'], v => v === 'Pi' ? 'Pi speaker' : v), T('Ask before big moves', 'confirm')];
+  r.sC = [C('Auto-dock at', 'autoDock', [15, 20, 25], v => v + '%'), C('Go dock when idle', 'idleDock', [0, 5, 10, 20], v => v ? v + ' min' : 'Off'), C('Resume after charge', 'resume', [80, 90, 100], v => v + '%'), T('Edge cleaning', 'edge'), { label: 'Default suction', val: s.suction, tc: 'tog', showTog: 'display:none', showVal: 'display:inline-flex', pick: () => this.setState({ suction: SU[(SU.indexOf(s.suction) + 1) % 3] }) }];
   r.sS = [C('Max drive speed', 'maxSpd', [50, 75, 100], v => v + '%'), T('Stop if connection drops', 'lostStop'), T('Cliff warnings', 'cliff'), T('Alert: battery low', 'aBat'), T('Alert: stuck', 'aStuck'), T('Alert: clean finished', 'aDone'), C('Quiet hours', 'quiet', ['Off', '10 pm – 7 am'], v => v)];
-  r.sD = [C('Temperature', 'units', ['F', 'C'], v => '°' + v), T('24-hour time', 't24'), { label: 'Signed in as King', val: '', tc: signed ? 'tog on' : 'tog', showTog: 'display:block', showVal: 'display:none', pick: () => o.toggleSigned() }].concat(this.isLive() ? [] : [{ label: 'Simulate no internet', val: '', tc: !s.internet ? 'tog on' : 'tog', showTog: 'display:block', showVal: 'display:none', pick: () => this.setState({ internet: !s.internet }) }]);
+  r.sD = [C('Temperature', 'units', ['F', 'C'], v => '°' + v), T('24-hour time', 't24')].concat(this.isLive() ? [] : [{ label: 'Simulate no internet', val: '', tc: !s.internet ? 'tog on' : 'tog', showTog: 'display:block', showVal: 'display:none', pick: () => this.setState({ internet: !s.internet }) }]);
   // voice
   const vm = this.vm || 'idle', BC = { listen: '#ff5a1f', think: '#ffd23f', speak: b.dot, idle: '#8d8d94' }[vm];
   const spN = this.spk && vm === 'speak' ? Math.floor((Date.now() - this.spk.t0) / 30) : 0;
