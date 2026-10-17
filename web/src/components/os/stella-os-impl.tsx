@@ -105,9 +105,9 @@ pushRemote(ps) {
   const s = this.state;
   if (ps.zones !== s.zones) this.api('/zones', 'POST', { zones: s.zones }).then(r => { if (r && r.__err) this.log('api', 'warn', 'Zones not saved on Stella: ' + r.__err); });
   if (ps.cfg !== s.cfg || ps.suction !== s.suction || ps.brain !== s.brain) this.api('/settings', 'POST', { cfg: s.cfg, suction: s.suction, brain: s.brain });
-  if (ps.set !== s.set || ps.cmode !== s.cmode || ps.eco !== s.eco) this.api('/climate', 'POST', { set: s.set, mode: s.cmode, eco: s.eco, units: s.cfg.units }).then(r => { if (!r || r.__err) this.noClimate(); });
+  if (ps.set !== s.set || ps.cmode !== s.cmode || ps.eco !== s.eco) this.api('/climate', 'POST', { set: s.set, mode: s.cmode, eco: s.eco, units: s.cfg.units }).then(r => { if (!r || r.__err) this.noClimate(r && r.__err); });
 }
-noClimate() { const t = Date.now(); if (t - (this.ncT || 0) > 30000) { this.ncT = t; this.say('Thermostat is not linked to Stella yet'); } }
+noClimate(msg) { const t = Date.now(); if (t - (this.ncT || 0) > 30000) { this.ncT = t; this.say(msg || 'Thermostat is not linked to Stella yet'); } }
 driveVec(lin, ang) {
   const now = Date.now(); if (now - (this.dvT || 0) < 140 && (lin || ang)) return; this.dvT = now;
   this.driving = !!(lin || ang);
@@ -168,7 +168,7 @@ syncLive() {
   if (now - (this.clT || 0) > 15000) {
     this.clT = now;
     this.api('/climate', 'GET').then(d => {
-      if (!d || d.__err) return this.noClimate();
+      if (!d || d.__err) return this.noClimate(d && d.__err);
       const p = {}; if (typeof d.cur === 'number') p.cur = d.cur; if (typeof d.set === 'number') p.set = d.set; if (d.mode) p.cmode = d.mode; if (typeof d.eco === 'boolean') p.eco = d.eco;
       if (Object.keys(p).length) { this.skipPush = true; this.setState(p); }
     });
