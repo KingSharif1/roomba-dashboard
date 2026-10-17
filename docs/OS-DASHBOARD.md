@@ -82,3 +82,6 @@ converter lived outside the repo; edit `template.tsx` directly from now on.
 ## Charge button + remote apps on top
 - Home shows a **Charge** button (sends Stella to the dock) whenever she isn't already charging, even while moving.
 - TV remote: app shortcuts (Netflix, YouTube, Spotify, Hulu, Disney+) are now the first row.
+
+## Self-check (Settings → Voice)
+**Self-check** runs the Pi's read-only health look (`GET /selfcheck`): CPU temp/power, services, mic/speaker/serial devices, Wi-Fi/internet/Tailscale, TV, thermostat. Shows "All good" or "N issues" and speaks the top two problems.

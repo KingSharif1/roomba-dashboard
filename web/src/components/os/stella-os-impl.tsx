@@ -748,6 +748,12 @@ rvApps(o, ds, on, here) {
         return { label: 'Pi voice brain', val, tc: 'tog', showTog: 'display:none', showVal: 'display:inline-flex', pick: () => {
           const a2 = this.aiSt; if (!a2) return this.say('Pi not reachable');
           this.say(a2.engine === 'claude' ? 'Using Claude (' + a2.used_today + '/' + a2.cap + ' today)' : 'Offline: ' + (a2.reason || 'unknown') + (a2.last_err ? ' — ' + a2.last_err : '')); } }; })(),
+      { label: 'Self-check', val: this.scTxt || 'Run', tc: 'tog', showTog: 'display:none', showVal: 'display:inline-flex', pick: () => {
+        this.scTxt = 'Checking…'; this.forceUpdate();
+        this.api('/selfcheck', 'GET', undefined, 25000).then(x => {
+          const p = x && x.problems; this.scTxt = !x || x.__err ? 'No answer' : p.length ? p.length + ' issue' + (p.length > 1 ? 's' : '') : 'All good';
+          this.say(!x || x.__err ? 'Self-check failed' : p.length ? 'Self-check: ' + p.slice(0, 2).join('; ') : 'Self-check: everything looks good'); this.forceUpdate();
+        }); } },
       { label: 'Test Pi brain', val: this.aiTest || 'Run', tc: 'tog', showTog: 'display:none', showVal: 'display:inline-flex', pick: () => {
         this.aiTest = 'Testing…'; this.forceUpdate();
         this.api('/ai/test', 'POST', {}, 20000).then(x => {
