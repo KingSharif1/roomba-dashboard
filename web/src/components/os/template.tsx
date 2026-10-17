@@ -173,14 +173,14 @@ export function renderTemplate(v: any) {
 <button type="button" className={v.sCls} role="switch" aria-label="Side brush" onClick={v.sTog}><i></i></button></div></>)}
 <div className="mono" style={S("font-size:11.5px;line-height:1.7;color:var(--mute)")}>{v.partLogs.map((l: any, __i: number) => (<Fragment key={__i}><div><span>{l.t}</span>
 {" "}{l.m}</div></Fragment>))}</div></section></div></>)}
-{v.isLogs && (<><section className="card" style={S("flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:12px")}><div style={S("display:flex;gap:6px;align-items:center")}><div style={S("display:flex;gap:6px;overflow-x:auto;flex:1;padding-bottom:2px")}><button type="button" className="chip" style={S("flex:none")} onClick={v.logAll}>{"All"}</button>
+{v.isLogs && (<><section className="card" style={S("flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:12px")}><div className="seg" style={S("width:100%")}>{v.lvTabs.map((v: any, __i: number) => (<Fragment key={__i}><button type="button" className={v.cls} onClick={v.pick}>{v.label}</button></Fragment>))}</div>
+<div style={S("display:flex;flex-wrap:wrap;gap:6px;align-items:center")}><span className="sm" style={S("flex:none;margin-right:2px")}>{"Show from"}</span><button type="button" className="chip" style={S("flex:none")} onClick={v.logAll}>{"All"}</button>
 <button type="button" className="chip" style={S("flex:none")} onClick={v.logNone}>{"None"}</button>
 {v.srcChips.map((c: any, __i: number) => (<Fragment key={__i}><button type="button" className="chip mono" style={S(`flex:none;${c.style}`)} onClick={c.pick}>{c.n}</button></Fragment>))}</div>
-<div className="seg" style={S("width:170px;flex:none")}>{v.lvTabs.map((v: any, __i: number) => (<Fragment key={__i}><button type="button" className={v.cls} onClick={v.pick}>{v.label}</button></Fragment>))}</div></div>
 <div className="mono" style={S("flex:1;min-height:0;overflow:auto;font-size:13px;line-height:1.7;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg)")}>{v.logEmpty && (<><div className="sm">{"Nothing to show."}</div></>)}
-{v.logRows.map((l: any, __i: number) => (<Fragment key={__i}><div style={S(`display:flex;gap:10px;border-left:3px solid ${l.bar};padding-left:8px;white-space:nowrap`)}><span style={S("color:var(--mute);flex:none")}>{l.t}</span>
-<span style={S("color:var(--acc);flex:none;min-width:112px")}>{l.svc}</span>
-<span style={S(`color:${l.col};white-space:normal`)}>{l.m}</span></div></Fragment>))}</div></section></>)}
+{v.logRows.map((l: any, __i: number) => (<Fragment key={__i}><div style={S(`display:flex;flex-wrap:wrap;gap:0 10px;border-left:3px solid ${l.bar};padding-left:8px;margin-bottom:4px`)}><span style={S("color:var(--mute);flex:none")}>{l.t}</span>
+<span style={S("color:var(--acc);flex:none")}>{l.svc}</span>
+<span style={S(`color:${l.col};white-space:normal;flex:1 1 220px`)}>{l.m}</span></div></Fragment>))}</div></section></>)}
 {v.isTv && (<><div style={S("flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;gap:12px")}><section className="card" style={S("width:100%;max-width:520px;padding:10px;display:flex;flex-direction:column;gap:8px")}><div style={S("display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px")}>{v.tvTabs.map((t: any, __i: number) => (<Fragment key={__i}><button type="button" onClick={t.pick} style={S(t.style)}><span style={S("display:flex;align-items:center;gap:6px;font-weight:700;font-size:13.5px;min-width:0")}><span className="dot" style={S(`background:${t.dot}`)}></span>
 <span style={S("overflow:hidden;text-overflow:ellipsis;white-space:nowrap")}>{t.n}</span></span>
 <span className="mono" style={S("font-size:11px;opacity:.75;margin-top:2px")}>{t.st}</span></button></Fragment>))}</div>

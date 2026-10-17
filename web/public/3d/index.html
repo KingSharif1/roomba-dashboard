@@ -2,7 +2,7 @@
 <base href="/3d/">
 <script>{const q=new URLSearchParams(location.search);if(q.has('embed'))document.documentElement.dataset.embed='1';const forced=q.get('theme');if(forced==='dark'||forced==='paper')localStorage.setItem('stella-theme',forced);const t=localStorage.getItem('stella-theme')||'paper';document.documentElement.dataset.theme=t==='dark'?'dark':'paper';}</script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
-<link rel="modulepreload" href="viewer.js?v1">
+<link rel="modulepreload" href="viewer.js?v2">
 <style>
 :root{--bg:#0c0f2e;--card:#141a46;--ink:#e9e7ff;--mute:#9ea3d8;--line:#2a2f78;--acc:#ff7a59}
 [data-theme=paper]{--bg:#efe6d2;--card:#f9f2e2;--ink:#2a2119;--mute:#76695a;--line:#d8cbb2;--acc:#c2410c}
@@ -88,7 +88,7 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
   #boot .part{animation:none;opacity:1;transform:none}
 }
 </style></head><body>
-<div id="boot" role="status" aria-busy="true" aria-label="Drawing Stella"><div class="sheet"><svg viewBox="0 0 240 240" aria-hidden="true"><g class="part shell"><circle cx="120" cy="132" r="74"/><circle cx="120" cy="132" r="50" opacity="0.4"/></g><g class="part ardu"><rect x="132" y="116" width="54" height="42" rx="3"/><path d="M142 128h34M142 136h24M142 146h30"/></g><g class="part pi"><rect x="96" y="84" width="46" height="26" rx="2"/></g><g class="part lcd"><rect x="102" y="116" width="36" height="16" rx="1"/><path d="M106 121h28M106 127h18"/></g><g class="part lidar"><circle cx="120" cy="102" r="16"/><circle cx="120" cy="102" r="5"/></g><g class="part cable"><path d="M58 170 C84 196, 132 192, 150 160"/><circle cx="58" cy="170" r="3.2"/></g></svg><p>Stella</p></div></div>
+<div id="boot" role="status" aria-busy="true" aria-label="Drawing Stella"><div class="sheet"><svg viewBox="0 0 240 240" aria-hidden="true"><g class="part shell"><circle cx="120" cy="132" r="74"/><circle cx="120" cy="132" r="50" opacity="0.4"/></g><g class="part ardu"><rect x="134" y="118" width="40" height="16" rx="2"/><rect x="174" y="122" width="12" height="8"/><rect x="134" y="140" width="40" height="16" rx="2"/><rect x="174" y="144" width="12" height="8"/></g><g class="part pi"><rect x="96" y="84" width="46" height="26" rx="2"/></g><g class="part lcd"><path d="M104 120h30M104 128h30M104 136h22"/></g><g class="part lidar"><circle cx="120" cy="102" r="16"/><circle cx="120" cy="102" r="5"/></g><g class="part cable"><path d="M58 170 C84 196, 132 192, 150 160"/><circle cx="58" cy="170" r="3.2"/></g></svg><p>Stella</p></div></div>
 <div id="wash" aria-hidden="true"></div>
 <div id="watermark" aria-hidden="true"><svg viewBox="0 0 512 512"><g fill="none" stroke-width="18" stroke-linecap="round" class="ink"><circle cx="256" cy="256" r="168"/><circle cx="256" cy="256" r="112" stroke-width="10" opacity="0.55"/><path d="M256 168 l28 58 64 8 -46 44 12 62 -58 -32 -58 32 12 -62 -46 -44 64 -8 z" class="star"/></g></svg></div>
 <div id="dock">
@@ -129,4 +129,4 @@ html:not([data-embed]) [data-embedonly]{display:none!important}
   </div>
 </div>
 <div id="info"></div>
-<script type="module" src="viewer.js?v1"></script></body></html>
+<script type="module" src="viewer.js?v2"></script></body></html>

@@ -86,3 +86,8 @@ converter lived outside the repo; edit `template.tsx` directly from now on.
 ## Self-check (Settings → Voice)
 **Self-check** runs the Pi's read-only health look (`GET /selfcheck`): CPU temp/power, services, mic/speaker/serial devices, Wi-Fi/internet/Tailscale, TV, thermostat. Shows "All good" or "N issues" and speaks the top two problems.
 - Old URL: `/demo` (and `/demo/classic`) permanently redirect to `/dashboard`.
+
+## Clean button, Logs filters, 3D model (2026-10-17, later)
+- **Clean (live):** checks state first (asleep/offline → "Tap Wake", on the dock → "Tap Wake, then drive"), then asks the Pi `/control/start`. Only if the Pi says yes does it turn the vacuum/brushes on. Until the lidar map + navigation exist it says "Auto-clean needs the lidar map first" and spins nothing. Header status shows "Asleep or offline" when the Pi isn't reporting.
+- **Logs:** Good/All toggle on its own full-width row; source filters wrap on a "Show from" row; log lines wrap on phones.
+- **Landing page + `/3d` viewer:** Mega, LCD and MPU removed. Two CP2102 adapters (Roomba, lidar) drawn in the 3D model (`public/3d/model.js`, rebuilt into `viewer.js` with `npx esbuild public/3d/app.js --bundle --minify --format=esm --outfile=public/3d/viewer.js`; bump `?v` in `public/3d/index.html`), the layout figure and the wiring figure. Blog chips + footer now point to the 5 real build-log posts.

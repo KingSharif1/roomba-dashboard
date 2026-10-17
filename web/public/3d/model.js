@@ -64,25 +64,22 @@ boxMM(41.5,42.6,H+4,H+29,-12.5,12.5,M(0x1e6b3a,{roughness:0.5}));
 boxMM(37.5,41.5,H+12,H+20,-4,4,black);
 add(new THREE.CylinderGeometry(3.4,3.4,3,24),M(0x0a0a0a,{roughness:0.1,metalness:0.5}),36,H+16,0).rotation.z=Math.PI/2;
 tube([[42.6,H+28,0],[45,H+34,0],[47,H+34,0],[48.5,H+26,0]],1.1,M(0xf1f1f1));
-// ---------------- Mega + proto shield + LCD + MPU (robot's left = +Z) ----------------
-const pcbTex=(col,hole)=>tex(512,266,(g,w,h)=>{g.fillStyle=col;g.fillRect(0,0,w,h);if(hole){g.fillStyle='rgba(230,200,120,.9)';for(let x=40;x<w-30;x+=11)for(let y=40;y<h-30;y+=11){g.beginPath();g.arc(x,y,2.6,0,7);g.fill();}}g.fillStyle='#111';g.fillRect(20,6,w-40,12);g.fillRect(20,h-18,w-40,12);});
-P('mega');
-boxMM(-60,42,H+8,H+9.6,32,85,new THREE.MeshStandardMaterial({map:pcbTex('#1d4ed8',false),roughness:0.5}));
-boxMM(-58,40,H+9.6,H+20,33,36,black);boxMM(-58,40,H+9.6,H+20,81,84,black);
-boxMM(-60,42,H+20,H+21.6,32,85,new THREE.MeshStandardMaterial({map:pcbTex('#2563eb',true),roughness:0.5}));
-// LCD 16x2
-P('lcd');
-boxMM(-58,22,H+22,H+24,45,81,black);   // header row
-boxMM(-58,22,H+30,H+31.6,45,81,M(0x1b7a3a,{roughness:0.5}));
-const lcdT=tex(512,192,(g,w,h)=>{g.fillStyle='#0b0d0f';g.fillRect(0,0,w,h);g.fillStyle='#a3e635';g.fillRect(26,26,w-52,h-52);g.fillStyle='#1a2e05';g.font='bold 46px DejaVu Sans Mono';g.fillText('BAT 15.2V  OK',44,86);g.fillText('LIDAR ON  MAP',44,140);});
-const lcdM=[black,black,new THREE.MeshStandardMaterial({map:lcdT,roughness:0.2,emissive:0x2a3d08,emissiveIntensity:0.3}),black,black,black];
-const lcd=new THREE.Mesh(new THREE.BoxGeometry(71,7,26),lcdM);lcd.position.set(-18,H+35,63);lcd.castShadow=true;scene.add(lcd);
-for(const x of [-55,19])for(const z of [47,79])cyl(1.4,H+21.6,H+30,x,z,brass,12);
-// MPU6050 (GY-521)
-P('mpu');
-boxMM(24,40,H+23.6,H+25.2,36,57,M(0x1e40af,{roughness:0.5}));
-boxMM(24,40,H+21.6,H+23.6,54,57,black);
-boxMM(30,34,H+25.2,H+26.4,44,48,black);
+// ---------------- two CP2102 USB-serial adapters (robot's left = +Z). #1 = Roomba, #2 = LiDAR ----------------
+const redPcb=M(0xc0262d,{roughness:0.5}), silver=M(0xc7ccd4,{metalness:0.85,roughness:0.25});
+function cp2102(name,zc){
+ P(name);
+ boxMM(-33,-3,H,H+1.6,zc-8,zc+8,redPcb);                       // red HW-598A board
+ boxMM(-3,9,H+0.2,H+4.4,zc-6.5,zc+6.5,silver);                 // USB-A plug
+ boxMM(-18,-12,H+1.6,H+2.6,zc-3,zc+3,black);                   // CP2102 chip
+ boxMM(-35,-31,H+1.6,H+8,zc-6,zc+6,black);                     // 4-pin header
+ for(let i=0;i<4;i++)cyl(0.5,H+8,H+10,-33,zc-4.5+i*3,M(0xd4af37,{metalness:0.8}),8);
+}
+cp2102('cp1',72);   // Roomba (USB port 1.1)
+cp2102('cp2',52);   // RPLIDAR C1 (USB port 1.3)
+const usb=M(0x15171a,{roughness:0.5});
+P('cp1');tube([[9,H+3,72],[20,H+5,70],[38,H+8,44],[48,H+14,24]],1.9,usb);
+P('cp2');tube([[9,H+3,52],[20,H+5,50],[38,H+8,32],[48,H+14,10]],1.9,usb);
+tube([[-10,H+40,27.8],[-14,H+30,38],[-24,H+12,48],[-33,H+9,52]],1.3,M(0x3b82f6,{roughness:0.5}));   // lidar wires -> adapter #2 header
 // ---------------- power box (front-right = -Z), clear acrylic walls ----------------
 P('powerbox');
 const R=122, yr=x=>-Math.sqrt(R*R-x*x);
@@ -128,7 +125,7 @@ tube([[-23,H+10,-100],[-12,H+9,-96],[-4,H+6,-80]],1.3,red);
 P('usbc');
 tube([[60,H+6,-62],[66,H+10,-58],[68,H+13,-50],[70,H+13,-48]],1.8,blk);   // stripped USB-C buck -> Pi
 P('dincable');
-tube([[40,92.5,131],[40,96,118],[39,H+6,100],[37,H+12,88],[34,H+15,84]],2.2,grey);  // mini-DIN cable
+tube([[40,92.5,131],[40,96,120],[22,H+6,102],[-4,H+5,88],[-30,H+9,74],[-33,H+9,72]],2.2,grey);  // mini-DIN cable -> adapter #1 header
 P('wheels');
 const tire=M(0x1a1a1a,{roughness:0.8}),hub=M(0x6b7280,{metalness:0.4,roughness:0.4});
 export const wheels=[];

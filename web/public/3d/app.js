@@ -19,9 +19,8 @@ const INFO={
   speaker:['ASHATA speaker','Stella\'s voice'],
   mic:['JOUNIVO mic','hears commands'],
   camera:['Pi Camera','sees ahead'],
-  mega:['Arduino Mega + shield','talks to the Roomba, reads sensors'],
-  lcd:['16x2 LCD','shows status'],
-  mpu:['MPU6050','senses tilt and turns'],
+  cp1:['CP2102 adapter #1','Roomba serial ↔ Pi USB'],
+  cp2:['CP2102 adapter #2','LiDAR ↔ Pi USB'],
   powerbox:['power box','holds the power parts'],
   xh:['XH-M609','cuts power when the battery is low'],
   buck:['DROK buck','battery → 5.15 V for the Pi'],
@@ -29,9 +28,9 @@ const INFO={
   fuse:['3 A fuse','protects against shorts'],
   battwires:['battery wires','direct tap from the battery'],
   usbc:['USB-C cable','5.15 V into the Pi'],
-  dincable:['mini-DIN cable','Roomba serial ↔ Mega']
+  dincable:['mini-DIN cable','Roomba serial ↔ adapter #1']
 };
-const LAYER={wheels:-70,tape:25,plate:50,posts:95,powerbox:85,xh:85,buck:85,rocker:85,fuse:85,pi:85,camera:85,mega:85,mpu:125,lcd:150,lidar:150,speaker:130,mic:130,battwires:50,usbc:85,dincable:60};
+const LAYER={wheels:-70,tape:25,plate:50,posts:95,powerbox:85,xh:85,buck:85,rocker:85,fuse:85,pi:85,camera:85,cp1:85,cp2:85,lidar:150,speaker:130,mic:130,battwires:50,usbc:85,dincable:60};
 
 const q=new URLSearchParams(location.search);
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;

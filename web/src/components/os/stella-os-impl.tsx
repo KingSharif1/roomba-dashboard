@@ -332,14 +332,19 @@ stickMove(e) {
 }
 clean() {
   if (this.isLive()) {
-    if (this.live().robotOnline === false) return this.say('Stella is offline. Tap Wake.');
-    if (this.st === 'charging') return this.say('Docked in charging mode. Tap Wake first.');
+    // Check what she is really doing first (the Pi reports charging / offline-asleep / moving).
+    if (this.live().robotOnline === false || this.st === 'offline') return this.say('Stella is asleep or offline. Tap Wake.');
+    if (this.st === 'charging') return this.say('She’s on the dock charging. Tap Wake, then drive her.');
     const ids = this.R.filter(r => !this.skip[r.id]).map(r => r.id); if (!ids.length) return this.say('All rooms are skipped');
-    this.setState({ tools: { v: true, m: true, s: true } }); this.live().setCleaningMotors(true, true, true);
-    this.log('driver', 'info', 'Clean requested · tools on');
+    // Ask the Pi first. Until the lidar map + navigation exist it says no, and we must NOT spin the vacuum for nothing.
     this.api('/control/start', 'POST').then(r => {
-      if (r && r.success !== false && !r.__err) { this.live().cleanMode('all'); this.say('Cleaning'); }
-      else { this.log('driver', 'warn', 'Autonomous cleaning is not built on Stella yet'); this.say('Tools on. Auto-clean isn’t built yet — drive with the stick'); }
+      if (r && r.success !== false && !r.__err) {
+        this.setState({ tools: { v: true, m: true, s: true } }); this.live().setCleaningMotors(true, true, true);
+        this.log('driver', 'info', 'Clean requested · tools on'); this.live().cleanMode('all'); this.say('Cleaning');
+      } else {
+        this.log('driver', 'info', 'Clean pressed · auto-clean needs the lidar map first');
+        this.say('Auto-clean needs the lidar map first. Drive her with the stick, or switch the vacuum on yourself.');
+      }
     });
     return;
   }
@@ -436,7 +441,7 @@ renderVals() {
   const o = {
     rot: 'rotate(0 300 200)', dockR: { x: this.DK[0] - 12, y: this.DK[1] - 14, w: 8, h: 28 },
     themeClass: s.theme === 'light' ? 'light' : '', color: STC[ds],
-    sub: this.goal && ds === 'moving' ? (this.goal === 'dock' ? 'Docking' : 'Going to ' + goalName) : ds === 'moving' ? 'Moving' : !on ? 'Offline' : this.st === 'charging' ? (bat >= 100 ? 'Fully charged' : 'Charging') : bat < 20 ? 'Low battery' : 'Not charging', hasSub: true,
+    sub: this.goal && ds === 'moving' ? (this.goal === 'dock' ? 'Docking' : 'Going to ' + goalName) : ds === 'moving' ? 'Moving' : !on ? 'Asleep or offline' : this.st === 'charging' ? (bat >= 100 ? 'Fully charged' : 'Charging') : bat < 20 ? 'Low battery' : 'Not charging', hasSub: true,
     room: on ? here.n : '—', batt: on ? bat + '%' : '—', battStyle: 'color:' + bc + ';border-color:' + bc, battFill: Math.max(1, Math.round(bat / 100 * 10)), offline: !on,
     linkDot: !signed ? '#ffd23f' : on ? '#3ecf8e' : '#8d8d94', linkLabel: !signed ? 'Demo' : on ? 'King' : 'Offline',
     toggleSigned: () => { if (this.isLive()) { this.say('Signed in as King'); return; } this.setState({ signed: !s.signed }); this.say(s.signed ? 'Signed out · demo robot' : 'Signed in as King'); },
