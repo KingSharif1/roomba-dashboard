@@ -19,7 +19,7 @@ app (Camera/LiDAR, Map, Parts 3D, Logs, TV, Climate, Settings, Voice) opens full
 | `web/src/components/os/stella-os.tsx` | Hooks the OS to `useV3Robot()` (connection, battery, mode, clean/dock/wake/motors, voice) |
 | `web/src/components/f/f-call.tsx`, `f-remote.tsx` | The call-style **Talk** window and the phone-style **TV remote** from the classic dashboard. Talk button and the Voice tile open the call; the TV tile opens the remote. Mounted in `stella-os.tsx` inside a zero-height `.f` host so they keep their theme variables |
 | `web/src/app/demo/classic/page.tsx` | The previous Design F dashboard, kept at `/demo/classic` |
-| `pi/stella_ext_router.py` | New Pi endpoints (see below). **Not deployed or tested on the Pi yet** |
+| `stella_ext_router.py` (lives in the ARK vault: `projects/stella/hardware/pi/`) | New Pi endpoints (see below). **Not deployed or tested on the Pi yet** |
 
 ## Demo vs live
 * `connection === "live"` (Pi WebSocket opened → on the tailnet): header shows **King**; the simulator's motion is off;
@@ -59,7 +59,7 @@ Settings, zones, room names, theme, brain and thermostat choices are also kept i
 * Floor plan / rooms / walls are still the mock's apartment; real LiDAR map + room detection is not wired.
 * Camera tab says "No camera connected" (Pi Camera isn't detected). LiDAR view is simulated until `/scan` exists.
 * Parts panel numbers (CPU temp, volts, currents) are static text, not telemetry.
-* Pi endpoints in `pi/stella_ext_router.py` are untested on hardware. Nest, Nav2 and object labelling are not built.
+* Pi endpoints in `stella_ext_router.py` (lives in the ARK vault: `projects/stella/hardware/pi/`) are untested on hardware. Nest, Nav2 and object labelling are not built.
 * Vercel preview shows Demo mode (no tailnet). MCP read access to the Vercel project returned 403 for the team scope.
 
 ## Dev notes
